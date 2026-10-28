@@ -1,0 +1,302 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>LiteShot — Screenshots, in glass</title>
+  <meta name="description" content="The two-click screenshot tool for Windows, rebuilt with a Liquid Glass interface: annotate, blur names and faces, edit with AI, and share encrypted links that delete themselves.">
+  <meta http-equiv="Content-Security-Policy" content="default-src 'self'; img-src 'self' data:; style-src 'self'; script-src 'self'; connect-src 'self'; base-uri 'none'; form-action 'none'">
+  <meta name="theme-color" content="#fbf6f1" media="(prefers-color-scheme: light)">
+  <meta name="theme-color" content="#0f0b16" media="(prefers-color-scheme: dark)">
+  <meta property="og:type" content="website">
+  <meta property="og:title" content="LiteShot — Screenshots, in glass">
+  <meta property="og:description" content="Press PrtScn, drag, done. Free for Windows 10 and 11.">
+  <meta property="og:image" content="https://liteshot-updates.tight-dawn-4128.workers.dev/img/og.png">
+  <meta name="twitter:card" content="summary_large_image">
+  <link rel="icon" href="/favicon.ico" sizes="any">
+  <link rel="apple-touch-icon" href="/img/apple-touch-icon.png">
+  <link rel="stylesheet" href="/styles.css">
+  <script src="/app.js" defer></script>
+</head>
+<body>
+  <svg class="sprite" width="0" height="0" aria-hidden="true">
+    <defs>
+      <symbol id="i-pen" viewBox="0 0 24 24"><g fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M4.2 19.8l1.2-4.6 10-10a2.3 2.3 0 0 1 3.2 3.2l-10 10z"/><path d="M13.6 7.2l3.2 3.2"/></g></symbol>
+      <symbol id="i-line" viewBox="0 0 24 24"><path d="M5 19L19 5" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round"/></symbol>
+      <symbol id="i-arrow" viewBox="0 0 24 24"><g fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M5.5 18.5L17.5 6.5"/><path d="M9 6h9v9"/></g></symbol>
+      <symbol id="i-rect" viewBox="0 0 24 24"><rect x="3.5" y="5.5" width="17" height="13" rx="3.2" fill="none" stroke="currentColor" stroke-width="1.8"/></symbol>
+      <symbol id="i-circle" viewBox="0 0 24 24"><circle cx="12" cy="12" r="8.5" fill="none" stroke="currentColor" stroke-width="1.8"/></symbol>
+      <symbol id="i-marker" viewBox="0 0 24 24"><g fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M15.2 4.2l4.6 4.6-7.6 7.6-4.6-4.6z"/><path d="M7.6 11.8l-2.6 5 2.2 2.2 5-2.6"/></g><rect x="12.5" y="19.4" width="8.5" height="2.2" rx="1.1" fill="currentColor"/></symbol>
+      <symbol id="i-text" viewBox="0 0 24 24"><g fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M2.8 19.5L8.2 5l5.4 14.5"/><path d="M4.8 14.4h6.8"/><path d="M20.8 19.5v-5.2a2.8 2.8 0 0 0-5.3-1.2"/><path d="M20.8 16.4c-3.6-.6-5.6.2-5.6 1.7 0 1.2 1 1.7 2.2 1.7 2 0 3.4-1.4 3.4-3.4"/></g></symbol>
+      <symbol id="i-counter" viewBox="0 0 24 24"><circle cx="12" cy="12" r="9" fill="none" stroke="currentColor" stroke-width="1.8"/><path d="M10 9.2l2.6-1.8v9.2" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/></symbol>
+      <symbol id="i-pixelate" viewBox="0 0 24 24"><rect x="3.5" y="3.5" width="17" height="17" rx="4" fill="none" stroke="currentColor" stroke-width="1.8"/><path d="M3.5 3.5h4.25v4.25H3.5zM12 3.5h4.25v4.25H12zM7.75 7.75H12V12H7.75zM16.25 7.75h4.25V12h-4.25zM3.5 12h4.25v4.25H3.5zM12 12h4.25v4.25H12zM7.75 16.25H12v4.25H7.75zM16.25 16.25h4.25v4.25h-4.25z" fill="currentColor"/></symbol>
+      <symbol id="i-face" viewBox="0 0 24 24"><circle cx="12" cy="12" r="9" fill="none" stroke="currentColor" stroke-width="1.8" stroke-dasharray="3.2 2.7" stroke-linecap="round"/><ellipse cx="9.5" cy="10.1" rx="1.1" ry="1.5" fill="currentColor"/><ellipse cx="14.5" cy="10.1" rx="1.1" ry="1.5" fill="currentColor"/><path d="M8.6 13.6a4 3 0 0 0 6.8 0" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round"/></symbol>
+      <symbol id="i-sparkles" viewBox="0 0 24 24"><path d="M10 5.5c.7 4.4 2.3 6.4 6.5 8-4.2 1.6-5.8 3.6-6.5 8-.7-4.4-2.3-6.4-6.5-8 4.2-1.6 5.8-3.6 6.5-8z" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linejoin="round"/><path d="M18.6 1.8c.3 1.8.9 2.6 2.6 3.6-1.7 1-2.3 1.8-2.6 3.6-.3-1.8-.9-2.6-2.6-3.6 1.7-1 2.3-1.8 2.6-3.6zM19 15.8c.2 1.3.6 1.8 1.6 2.6-1 .8-1.4 1.3-1.6 2.6-.2-1.3-.6-1.8-1.6-2.6 1-.8 1.4-1.3 1.6-2.6z" fill="currentColor"/></symbol>
+      <symbol id="i-video" viewBox="0 0 24 24"><g fill="none" stroke="currentColor" stroke-width="1.8" stroke-linejoin="round"><rect x="2.5" y="6" width="13.5" height="12" rx="3"/><path d="M16 10.6l4.4-2.7 1.1.7v6.8l-1.1.7-4.4-2.7z"/></g></symbol>
+      <symbol id="i-cloud" viewBox="0 0 24 24"><g fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M7.2 18.6h10.4a3.9 3.9 0 0 0 .5-7.8 5.6 5.6 0 0 0-10.8-.6 4.2 4.2 0 0 0-.1 8.4z"/><path d="M12.2 16.2v-5.8M9.6 12.8l2.6-2.6 2.6 2.6"/></g></symbol>
+      <symbol id="i-pin" viewBox="0 0 24 24"><g fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" transform="rotate(40 12 12)"><path d="M8.2 3.6h7.6M9.6 3.6v5.8L7 12.2v2h10v-2l-2.6-2.8V3.6M12 14.2v7"/></g></symbol>
+      <symbol id="i-ocr" viewBox="0 0 24 24"><g fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M3.8 9V6.3a2.5 2.5 0 0 1 2.5-2.5H9M15 3.8h2.7a2.5 2.5 0 0 1 2.5 2.5V9M20.2 15v2.7a2.5 2.5 0 0 1-2.5 2.5H15M9 20.2H6.3a2.5 2.5 0 0 1-2.5-2.5V15"/><path d="M8.2 9h7.6M8.2 12h7.6M8.2 15h4.4"/></g></symbol>
+      <symbol id="i-capture" viewBox="0 0 24 24"><g fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M3.8 9V6.3a2.5 2.5 0 0 1 2.5-2.5H9M15 3.8h2.7a2.5 2.5 0 0 1 2.5 2.5V9M20.2 15v2.7a2.5 2.5 0 0 1-2.5 2.5H15M9 20.2H6.3a2.5 2.5 0 0 1-2.5-2.5V15"/><path d="M12 8.5v7M8.5 12h7"/></g></symbol>
+      <symbol id="i-monitor" viewBox="0 0 24 24"><g fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><rect x="2.5" y="3.5" width="19" height="13.5" rx="2.8"/><path d="M12 17v3.5M8 20.5h8"/></g></symbol>
+      <symbol id="i-lock" viewBox="0 0 24 24"><g fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><rect x="5" y="10.5" width="14" height="10" rx="2.8"/><path d="M8.5 10.5V8a3.5 3.5 0 0 1 7 0v2.5"/></g></symbol>
+      <symbol id="i-clock" viewBox="0 0 24 24"><g fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="8.5"/><path d="M12 7.5V12l3.2 2"/></g></symbol>
+      <symbol id="i-shield" viewBox="0 0 24 24"><g fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M12 3l7 2.8v5.4c0 4.4-3 8-7 9.8-4-1.8-7-5.4-7-9.8V5.8z"/><path d="M8.8 12.2l2.2 2.2 4.2-4.4"/></g></symbol>
+      <symbol id="i-check" viewBox="0 0 24 24"><path d="M5 12.5l4.5 4.5L19 7.5" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"/></symbol>
+      <symbol id="i-download" viewBox="0 0 24 24"><g fill="none" stroke="currentColor" stroke-width="1.9" stroke-linecap="round" stroke-linejoin="round"><path d="M12 3.5v11M7.8 10.4l4.2 4.2 4.2-4.2"/><path d="M4.5 15v2.5A2.5 2.5 0 0 0 7 20h10a2.5 2.5 0 0 0 2.5-2.5V15"/></g></symbol>
+      <symbol id="i-copy" viewBox="0 0 24 24"><g fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><rect x="8.5" y="8.5" width="12" height="12" rx="2.8"/><path d="M15.5 8.4V6.3a2.8 2.8 0 0 0-2.8-2.8H6.3a2.8 2.8 0 0 0-2.8 2.8v6.4a2.8 2.8 0 0 0 2.8 2.8h2.1"/></g></symbol>
+    </defs>
+  </svg>
+
+  <div class="backdrop" aria-hidden="true"><div class="blob"></div><div class="blob"></div><div class="blob"></div></div>
+
+  <header class="nav glass">
+    <a class="brand" href="#top"><img src="/img/icon-256.png" alt="" width="30" height="30">LiteShot</a>
+    <nav class="nav-links" aria-label="Sections">
+      <a href="#how">How it works</a>
+      <a href="#features">Features</a>
+      <a href="#privacy">Privacy</a>
+      <a href="#shortcuts">Shortcuts</a>
+      <a href="#faq">FAQ</a>
+    </nav>
+    <a class="btn btn-primary" href="#download">Download</a>
+  </header>
+
+  <main id="top">
+    <section class="hero wrap">
+      <span class="eyebrow glass"><b>NEW</b> Free and open source · blur names and faces</span>
+      <h1>Screenshots,<br><span class="shine">in glass.</span></h1>
+      <p class="lede">The two-click screenshot tool for Windows, rebuilt from scratch. Mark it up, blur what's private, and share a link that deletes itself.</p>
+      <div class="cta">
+        <a class="btn btn-primary" href="/download" data-download="msi"><svg class="icon"><use href="#i-download"/></svg>Download for Windows</a>
+        <a class="btn btn-glass glass" href="/download/portable" data-download="portable">Portable .exe</a>
+      </div>
+      <p class="meta" data-release>Free and open source · Windows 10 and 11 · No account</p>
+      <p class="press"><span class="keycap">PrtScn</span> Drag over anything. Copy, save or share.</p>
+
+      <div class="stage">
+        <div class="shot glass" id="shot"><img src="/img/editor.webp" alt="The LiteShot editor over a report: a highlighted line, a pixelated account number, an arrow, numbered steps and a label, with glass toolbars beside and below the selection." width="1347" height="1195" fetchpriority="high"></div>
+        <div class="chip glass chip-a"><span class="dot dot-ok"><svg class="icon"><use href="#i-check"/></svg></span>Copied to clipboard</div>
+        <div class="chip glass chip-b"><span class="dot dot-privacy"><svg class="icon"><use href="#i-face"/></svg></span>3 names blurred</div>
+        <div class="chip glass chip-c"><span class="dot dot-link"><svg class="icon"><use href="#i-lock"/></svg></span>Link deletes in 24 h</div>
+      </div>
+
+      <div class="stats">
+        <div class="stat glass reveal"><strong>2 clicks</strong><span>from PrtScn to clipboard</span></div>
+        <div class="stat glass reveal"><strong>10 tools</strong><span>arrows to auto-blur</span></div>
+        <div class="stat glass reveal"><strong>24 h</strong><span>and shared links vanish</span></div>
+        <div class="stat glass reveal"><strong>0</strong><span>accounts to create</span></div>
+      </div>
+    </section>
+
+    <section id="how" class="wrap">
+      <p class="kicker">See it work</p>
+      <h2>From PrtScn to a private link<br>in four steps.</h2>
+      <p class="section-lede">Every picture here is the real LiteShot, rendered by the app's own code on a staged desktop, and the last one is the real fortefile.com viewer opening a real encrypted link.</p>
+      <div class="steps glass" data-steps>
+        <div class="step-tabs" role="tablist" aria-label="How LiteShot works">
+          <button type="button" role="tab" id="tab-1" aria-controls="step-1" aria-selected="true"><b>1</b><span><strong>Press PrtScn</strong>The screen freezes and dims. Hover a window to outline it; the loupe shows the exact pixel and its color.</span><i class="bar"></i></button>
+          <button type="button" role="tab" id="tab-2" aria-controls="step-2" aria-selected="false" tabindex="-1"><b>2</b><span><strong>Click or drag</strong>One click captures that window, or drag over any area. The tools appear right beside it.</span><i class="bar"></i></button>
+          <button type="button" role="tab" id="tab-3" aria-controls="step-3" aria-selected="false" tabindex="-1"><b>3</b><span><strong>Mark it up</strong>Arrows, labels, numbered steps and boxes. Pixelate the account numbers before anyone sees them.</span><i class="bar"></i></button>
+          <button type="button" role="tab" id="tab-4" aria-controls="step-4" aria-selected="false" tabindex="-1"><b>4</b><span><strong>Share a private link</strong>Ctrl+D encrypts it on your PC, uploads it to fortefile.com and copies the link. It deletes itself in 24 hours.</span><i class="bar"></i></button>
+        </div>
+        <div class="step-stage">
+          <figure role="tabpanel" id="step-1" aria-labelledby="tab-1"><img src="/img/how-1-capture.webp" alt="The LiteShot capture screen: the desktop is frozen and dimmed except a chat window under the cursor, which is outlined, with a round pixel loupe showing coordinates and the color #FFFFFF." width="1600" height="1000" loading="lazy"></figure>
+          <figure role="tabpanel" id="step-2" aria-labelledby="tab-2" hidden><img src="/img/how-2-select.webp" alt="The chat window selected with one click, with the vertical tools toolbar to its right and the actions toolbar below it." width="1600" height="1000" loading="lazy"></figure>
+          <figure role="tabpanel" id="step-3" aria-labelledby="tab-3" hidden><img src="/img/how-3-markup.webp" alt="A Q3 dashboard marked up in LiteShot: an orange arrow and a Best quarter yet! label pointing at revenue up 24%, a box around the last three bars with step 1, and pixelated account numbers with step 2." width="1237" height="1009" loading="lazy"></figure>
+          <figure role="tabpanel" id="step-4" aria-labelledby="tab-4" hidden><img src="/img/how-4-share.webp" alt="The fortefile.com viewer showing the marked-up dashboard after decrypting it in the browser, with Deletes in 23 h 59 min, Download and Copy image controls." width="1600" height="1000" loading="lazy"></figure>
+        </div>
+      </div>
+    </section>
+
+    <section class="wrap">
+      <div class="split">
+        <div class="reveal">
+          <p class="kicker">Privacy</p>
+          <h2>Names blur themselves.</h2>
+          <p class="section-lede">Turn on <b>Blur names automatically</b> and LiteShot reads the screen the moment you capture, finds anything that looks like a person's name and blurs it. Drag the slider to compare.</p>
+          <ul>
+            <li><svg class="icon"><use href="#i-check"/></svg><span><b>Runs on your PC</b>Windows' own text recognition, so nothing is uploaded to find them.</span></li>
+            <li><svg class="icon"><use href="#i-check"/></svg><span><b>Your call</b>Ctrl+Z brings them all back; click one blur and press Delete to unblur just that name.</span></li>
+            <li><svg class="icon"><use href="#i-check"/></svg><span><b>Faces too</b>Press F and every face in the selection gets an oval blur.</span></li>
+          </ul>
+        </div>
+        <div class="compare glass reveal" data-compare>
+          <img src="/img/how-names-before.webp" alt="A chat thread with the names Sarah Johnson, Dr. Patel, Priya Patel, Marcus Lee, Wang Wei and Emma Davis readable." width="810" height="471" loading="lazy">
+          <div class="after"><img src="/img/how-names-after.webp" alt="The same chat thread captured by LiteShot with every name blurred and the messages still readable." width="810" height="471" loading="lazy"></div>
+          <span class="handle" aria-hidden="true"></span>
+          <span class="tag tag-l">Before</span><span class="tag tag-r">After</span>
+          <input type="range" min="0" max="100" value="50" aria-label="Compare before and after: drag to reveal the blurred names">
+        </div>
+      </div>
+    </section>
+
+    <section id="features" class="wrap">
+      <p class="kicker">Features</p>
+      <h2>Everything Lightshot did.<br>Then a lot more.</h2>
+      <p class="section-lede">The same muscle memory: press PrtScn, drag, copy. Everything else is new.</p>
+
+      <div class="bento">
+        <article class="card glass span-4 reveal">
+          <div class="badge orange"><svg class="icon"><use href="#i-pen"/></svg></div>
+          <h3>Mark it up in seconds</h3>
+          <p>Pen, line, arrow, box, circle, highlighter, numbered steps and text with ten built-in fonts — or your own. Click any drawing to move it, recolor it or resize it.</p>
+          <div class="tools glass" aria-hidden="true">
+            <span><svg class="icon"><use href="#i-pen"/></svg></span><span><svg class="icon"><use href="#i-line"/></svg></span><span class="on"><svg class="icon"><use href="#i-arrow"/></svg></span><span><svg class="icon"><use href="#i-rect"/></svg></span><span><svg class="icon"><use href="#i-circle"/></svg></span><span><svg class="icon"><use href="#i-marker"/></svg></span><span><svg class="icon"><use href="#i-text"/></svg></span><span><svg class="icon"><use href="#i-counter"/></svg></span>
+          </div>
+          <div class="art flush"><img src="/img/text.webp" alt="The text style bar: font picker set to Pacifico, size 34, bold and italic, alignment, label style and color, above an orange label reading Ship it on Friday." width="990" height="263" loading="lazy"></div>
+        </article>
+
+        <article class="card glass span-2 reveal">
+          <div class="badge slate"><svg class="icon"><use href="#i-capture"/></svg></div>
+          <h3>Snaps to windows</h3>
+          <p>Hover a window and click once to capture exactly that window. Ctrl+PrtScn reopens the area you used last.</p>
+        </article>
+
+        <article class="card glass span-3 reveal" id="privacy">
+          <div class="badge violet"><svg class="icon"><use href="#i-face"/></svg></div>
+          <h3>Private by default</h3>
+          <p>Names are blurred the moment you capture, and one click blurs every face. It all runs on your PC — nothing is uploaded to find them.</p>
+          <div class="art flush"><img src="/img/privacy.webp" alt="A chat captured in LiteShot with the people's names blurred automatically, and the Blur faces button showing its tooltip." width="1327" height="949" loading="lazy"></div>
+        </article>
+
+        <article class="card glass span-3 reveal">
+          <div class="badge pink"><svg class="icon"><use href="#i-sparkles"/></svg></div>
+          <h3>Edit with AI, or make it move</h3>
+          <p>Describe a change — "remove the background" — or turn the screenshot into a short video. Powered by FLUX, Nano Banana, Seedance and Kling through your SyncNode key.</p>
+          <div class="art flush"><img src="/img/ai.webp" alt="The Edit with AI prompt with suggestion chips and a Generate button, floating above the actions toolbar." width="882" height="515" loading="lazy"></div>
+        </article>
+
+        <article class="card glass span-4 reveal">
+          <div class="badge blue"><svg class="icon"><use href="#i-lock"/></svg></div>
+          <h3>Links that delete themselves</h3>
+          <p>Uploads are encrypted on your PC before they leave it and hosted on fortefile.com. The key lives only in your link, so nobody else — us included — can open the file, and it's gone after 24 hours. Delete it sooner from the tray menu.</p>
+          <div class="link-demo">
+            <div class="link-pill glass"><svg class="icon"><use href="#i-lock"/></svg><span>fortefile.com/f/k9Q2vX7mLw0aB3Tr<em>#key-stays-in-the-link</em></span></div>
+            <div class="countdown">Deletes in <strong data-countdown>24:00:00</strong></div>
+          </div>
+        </article>
+
+        <article class="card glass span-2 reveal">
+          <div class="badge blue"><svg class="icon"><use href="#i-shield"/></svg></div>
+          <h3>Signed updates</h3>
+          <p>Turn on automatic updates and LiteShot installs new versions while it's idle — only ones signed by Devgm.</p>
+        </article>
+
+        <article class="card glass span-3 reveal">
+          <div class="badge green"><svg class="icon"><use href="#i-ocr"/></svg></div>
+          <h3>Copy the text</h3>
+          <p>Pull text out of any screenshot with the recognition built into Windows. Works offline. This is what it read from the chat above:</p>
+          <pre class="ocr glass"><span class="ocr-chip"><svg class="icon"><use href="#i-check"/></svg>Copied</span>Sarah Johnson
+10:42 AM
+The new glass toolbar looks great. Can you send the
+Q3 numbers to Dr. Patel before Friday?
+Priya Patel
+10:44 AM
+On it. Marcus Lee already shared the draft.</pre>
+        </article>
+
+        <article class="card glass span-3 reveal">
+          <div class="badge orange"><svg class="icon"><use href="#i-pin"/></svg></div>
+          <h3>Pin to screen</h3>
+          <p>Float a screenshot above every window while you work. Scroll to zoom, Ctrl+scroll to fade, drag it anywhere.</p>
+          <div class="art flush"><img src="/img/how-pin.webp" alt="The Q3 KPI cards pinned as a floating screenshot above a chat window." width="1400" height="983" loading="lazy"></div>
+        </article>
+
+        <article class="card glass span-2 reveal">
+          <div class="badge slate"><svg class="icon"><use href="#i-monitor"/></svg></div>
+          <h3>Every monitor, pixel-exact</h3>
+          <p>Mixed DPI, multiple screens, a pixel loupe with the hex color under your cursor.</p>
+        </article>
+
+        <article class="card glass span-2 reveal">
+          <div class="badge violet"><svg class="icon"><use href="#i-copy"/></svg></div>
+          <h3>Free and open source</h3>
+          <p>No ads, no account, no trial. LiteShot is MIT-licensed: read the code, build it yourself, make it better.</p>
+        </article>
+
+        <article class="card glass span-2 reveal">
+          <div class="badge pink"><svg class="icon"><use href="#i-capture"/></svg></div>
+          <h3>Keyboard first</h3>
+          <p>Every tool and action has a key, and the global shortcuts are yours to change. <a href="#shortcuts">See them all</a>.</p>
+        </article>
+      </div>
+    </section>
+
+    <section class="wrap">
+      <div class="split">
+        <div class="reveal">
+          <p class="kicker">Design</p>
+          <h2>Glass where you touch.<br>Crisp where you look.</h2>
+          <p class="section-lede">Toolbars float over your screenshot like lenses and adapt to what's behind them. Your capture is never tinted or blurred.</p>
+          <ul>
+            <li><svg class="icon"><use href="#i-check"/></svg><span><b>Light or dark, per panel</b>Over a bright page the glass turns light; over a dark one, smoky.</span></li>
+            <li><svg class="icon"><use href="#i-check"/></svg><span><b>Your accent color</b>Selected tools and switches follow your Windows accent.</span></li>
+            <li><svg class="icon"><use href="#i-check"/></svg><span><b>Accessible</b>Reduced transparency, high contrast and reduced motion are all respected.</span></li>
+            <li><svg class="icon"><use href="#i-check"/></svg><span><b>At home on Windows 11</b>Mica, rounded corners and native-feeling settings.</span></li>
+          </ul>
+        </div>
+        <div class="window glass reveal"><img src="/img/settings.webp" alt="LiteShot settings on the Capture page, with switches for the magnifier, window detection, the mouse pointer and blurring names automatically." width="1342" height="956" loading="lazy"></div>
+      </div>
+    </section>
+
+    <section id="shortcuts" class="wrap">
+      <p class="kicker">Shortcuts</p>
+      <h2>Hands on the keyboard.</h2>
+      <p class="section-lede">Every tool and action has a key. The global ones can be changed in Settings.</p>
+      <div class="keys">
+        <div class="key-row glass"><span>Capture an area</span><kbd><i>PrtScn</i></kbd></div>
+        <div class="key-row glass"><span>Full screen, saved</span><kbd><i>Shift</i><i>PrtScn</i></kbd></div>
+        <div class="key-row glass"><span>Last area again</span><kbd><i>Ctrl</i><i>PrtScn</i></kbd></div>
+        <div class="key-row glass"><span>Copy and close</span><kbd><i>Ctrl</i><i>C</i></kbd></div>
+        <div class="key-row glass"><span>Save</span><kbd><i>Ctrl</i><i>S</i></kbd></div>
+        <div class="key-row glass"><span>Upload, copy link</span><kbd><i>Ctrl</i><i>D</i></kbd></div>
+        <div class="key-row glass"><span>Blur faces</span><kbd><i>F</i></kbd></div>
+        <div class="key-row glass"><span>Copy text (OCR)</span><kbd><i>Ctrl</i><i>Shift</i><i>C</i></kbd></div>
+        <div class="key-row glass"><span>Pin to screen</span><kbd><i>Ctrl</i><i>T</i></kbd></div>
+        <div class="key-row glass"><span>Arrow, box, text…</span><kbd><i>A</i><i>R</i><i>T</i></kbd></div>
+        <div class="key-row glass"><span>Undo, redo</span><kbd><i>Ctrl</i><i>Z</i><i>Y</i></kbd></div>
+        <div class="key-row glass"><span>Cancel</span><kbd><i>Esc</i></kbd></div>
+      </div>
+    </section>
+
+    <section id="download" class="wrap">
+      <div class="download glass reveal">
+        <img src="/img/icon-256.png" alt="" width="150" height="150">
+        <div>
+          <p class="kicker">Download</p>
+          <h2>Get LiteShot.</h2>
+          <p class="section-lede tight">Free for Windows 10 and 11. The installer adds LiteShot to Start and runs it with Windows; the portable exe runs from anywhere.</p>
+          <div class="cta">
+            <a class="btn btn-primary" href="/download" data-download="msi"><svg class="icon"><use href="#i-download"/></svg><span data-label="msi">Installer (.msi)</span></a>
+            <a class="btn btn-glass glass" href="/download/portable" data-download="portable"><span data-label="portable">Portable (.exe)</span></a>
+          </div>
+          <p class="fine" data-hash>Windows may warn that the publisher is unknown until our code-signing certificate arrives — choose More info › Run anyway.</p>
+        </div>
+      </div>
+    </section>
+
+    <section id="faq" class="wrap">
+      <h2 class="center">Questions</h2>
+      <div class="faq">
+        <details class="glass"><summary>Is it free?</summary><p>Yes, and open source under the MIT license. No account, no trial, no ads. AI features use your own SyncNode key, so you pay SyncNode and Replicate for what you use.</p></details>
+        <details class="glass"><summary>Does LiteShot upload my screenshots?</summary><p>Only when you press Upload or Share. Name and face blurring, text recognition and everything else run on your PC, and uploads are encrypted before they leave it. The one exception is Search similar images: Google has to see the picture, so that upload isn't encrypted and is deleted after an hour.</p></details>
+        <details class="glass"><summary>Who can open my links?</summary><p>Anyone you send the link to, until it expires. The decryption key is the part after the # in the link; browsers never send it to the server, so fortefile.com only ever stores scrambled data.</p></details>
+        <details class="glass"><summary>Do I need to install .NET?</summary><p>No. Both the installer and the portable exe include everything LiteShot needs.</p></details>
+        <details class="glass"><summary>How do updates work?</summary><p>Check for updates in Settings › General, or turn on automatic updates. Every release is signed by Devgm, LLC, and LiteShot refuses anything that isn't.</p></details>
+        <details class="glass"><summary>Is this Lightshot?</summary><p>No. LiteShot is an independent app by Devgm, LLC, inspired by the classic two-click workflow. It isn't affiliated with Lightshot or Skillbrains.</p></details>
+      </div>
+    </section>
+  </main>
+
+  <footer class="wrap">
+    <div class="foot">
+      <span>© 2026 Devgm, LLC</span>
+      <nav aria-label="Footer">
+        <a href="https://fortefile.com">fortefile.com</a>
+        <a href="#download">Download</a>
+        <a href="#faq">FAQ</a>
+      </nav>
+    </div>
+  </footer>
+</body>
+</html>

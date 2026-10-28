@@ -1,0 +1,29 @@
+# LiteShot update server (Cloudflare Worker + R2).
+#
+# One-time setup:
+#   npx wrangler login
+#   npx wrangler r2 bucket create liteshot-releases
+#   npx wrangler secret put PUBLISH_TOKEN      # paste a long random token
+#   npm run deploy
+#
+# Local dev: put PUBLISH_TOKEN=<token> in .dev.vars (see .dev.vars.example), then `npm run dev`.
+# Local R2 data lives in .wrangler/state.
+
+name = "liteshot-updates"
+account_id = "166e8364c6d1ed80ed50a789f0da5f9d"   # Devgm, LLC (Admin@devgm.com)
+main = "src/index.ts"
+compatibility_date = "2025-07-01"
+
+# The website (public/) is served as static assets; everything else reaches the worker.
+[assets]
+directory = "./public"
+binding = "ASSETS"
+
+[[r2_buckets]]
+binding = "RELEASES"
+bucket_name = "liteshot-releases"
+
+[dev]
+ip = "127.0.0.1"
+port = 8788
+inspector_port = 9239

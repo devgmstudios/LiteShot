@@ -1,0 +1,42 @@
+<Project Sdk="Microsoft.NET.Sdk">
+
+  <PropertyGroup>
+    <OutputType>WinExe</OutputType>
+    <TargetFramework>net8.0-windows10.0.19041.0</TargetFramework>
+    <SupportedOSPlatformVersion>10.0.17763.0</SupportedOSPlatformVersion>
+    <UseWindowsForms>true</UseWindowsForms>
+    <Nullable>enable</Nullable>
+    <ImplicitUsings>enable</ImplicitUsings>
+    <AllowUnsafeBlocks>true</AllowUnsafeBlocks>
+    <ApplicationHighDpiMode>PerMonitorV2</ApplicationHighDpiMode>
+    <ApplicationVisualStyles>true</ApplicationVisualStyles>
+    <ApplicationIcon>app.ico</ApplicationIcon>
+    <AssemblyName>LiteShot</AssemblyName>
+    <RootNamespace>LiteShot</RootNamespace>
+    <Product>LiteShot</Product>
+    <Description>LiteShot screenshot tool</Description>
+    <Company>Devgm, LLC</Company>
+    <Authors>Devgm, LLC</Authors>
+    <Copyright>© 2026 Devgm, LLC. All rights reserved.</Copyright>
+    <Version>1.1.0</Version>
+    <Platforms>x64</Platforms>
+    <PlatformTarget>x64</PlatformTarget>
+    <RuntimeIdentifier>win-x64</RuntimeIdentifier>
+    <SelfContained>false</SelfContained>
+    <!-- The update server (server/, a Cloudflare Worker). Set it after `npm run deploy`, or pass -UpdateServer to build.ps1. -->
+    <UpdateServer Condition="'$(UpdateServer)' == ''">https://liteshot-updates.tight-dawn-4128.workers.dev</UpdateServer>
+  </PropertyGroup>
+
+  <ItemGroup>
+    <EmbeddedResource Include="app.ico" LogicalName="LiteShot.app.ico" />
+    <EmbeddedResource Include="Fonts\*.ttf" LogicalName="LiteShot.Fonts.%(Filename)%(Extension)" />
+    <EmbeddedResource Include="update-public-key.pem" LogicalName="LiteShot.update-public-key.pem" Condition="Exists('update-public-key.pem')" />
+    <AssemblyMetadata Include="UpdateServer" Value="$(UpdateServer)" />
+    <InternalsVisibleTo Include="LiteShot.Harness" />
+  </ItemGroup>
+
+  <ItemGroup>
+    <PackageReference Include="System.Security.Cryptography.ProtectedData" Version="8.0.0" />
+  </ItemGroup>
+
+</Project>

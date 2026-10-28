@@ -1,0 +1,17 @@
+{
+  "name": "fortefile",
+  "version": "1.0.0",
+  "private": true,
+  "type": "module",
+  "scripts": {
+    "dev": "wrangler dev --test-scheduled --var TEST_HOOKS:1",
+    "deploy": "wrangler deploy",
+    "typecheck": "tsc --noEmit",
+    "test": "node test/smoke.mjs"
+  },
+  "devDependencies": {
+    "@cloudflare/workers-types": "4.20250709.0",
+    "typescript": "5.8.3",
+    "wrangler": "4.24.3"
+  }
+}

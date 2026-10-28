@@ -1,0 +1,56 @@
+# fortefile.com: encrypted, self-deleting file links (Cloudflare Worker + R2 + static assets).
+#
+# One-time setup (needs a Cloudflare login: `npx wrangler login`):
+#   npx wrangler r2 bucket create fortefile-files
+#   # Backstop in case the hourly cron ever stops: R2 itself deletes anything under files/ after 1 day.
+#   npx wrangler r2 bucket lifecycle add fortefile-files expire-after-1-day files/ --expire-days 1 --force
+#   npx wrangler r2 bucket lifecycle list fortefile-files
+#   npm run deploy
+#
+# Custom domain: uncomment `routes` below and `npm run deploy` again. fortefile.com must be a zone on the
+# same Cloudflare account; wrangler then creates the DNS records and certificates for both hostnames.
+#
+# Local dev: `npm run dev` (port 8790, with /__scheduled and the TEST_HOOKS test-only expiry override),
+# then `npm test` in another terminal. Local R2 data lives in .wrangler/state.
+
+name = "fortefile"
+account_id = "166e8364c6d1ed80ed50a789f0da5f9d"   # Devgm, LLC (Admin@devgm.com)
+main = "src/index.ts"
+compatibility_date = "2025-07-01"
+# Keep the workers.dev address alongside fortefile.com (wrangler turns it off by default once routes exist).
+workers_dev = true
+
+routes = [
+  { pattern = "fortefile.com/*", zone_name = "fortefile.com" },
+  { pattern = "www.fortefile.com/*", zone_name = "fortefile.com" },
+]
+
+[[r2_buckets]]
+binding = "FILES"
+bucket_name = "fortefile-files"
+
+# Every request reaches the worker first (API routing, /f/{id}, security headers); everything else is
+# passed on to the static files in public/ through env.ASSETS.
+[assets]
+directory = "public"
+binding = "ASSETS"
+run_worker_first = true
+not_found_handling = "404-page"
+
+# Hourly: delete every file whose expiry has passed.
+[triggers]
+crons = ["0 * * * *"]
+
+# Per-IP upload limit: 30 uploads per 60 s. Wrangler 4.24.3 only knows the `unsafe` form of the
+# rate-limiting binding (it works in `wrangler dev` too). namespace_id is any positive integer that is
+# unique within the Cloudflare account. The worker runs without it if this block is removed.
+[[unsafe.bindings]]
+name = "UPLOAD_LIMITER"
+type = "ratelimit"
+namespace_id = "4101"
+simple = { limit = 30, period = 60 }
+
+[dev]
+ip = "127.0.0.1"
+port = 8790
+inspector_port = 9240
