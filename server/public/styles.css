@@ -240,6 +240,11 @@ h2 { font-size: clamp(2rem, 5vw, 3.4rem); line-height: 1.04; letter-spacing: -0.
   box-shadow: inset 0 1px 0 rgba(255, 255, 255, 0.45), 0 8px 18px -8px var(--c2);
 }
 .badge .icon { width: 24px; height: 24px; }
+.badge[data-lottie] { width: 56px; height: 56px; border-radius: 17px; position: relative; }
+.badge .lottie { position: absolute; inset: 7px; }
+.badge .lottie svg { display: block; }
+.badge.big { width: 68px; height: 68px; border-radius: 20px; margin-bottom: 18px; }
+.badge.big .lottie { inset: 8px; }
 .orange { --c1: #ffad5c; --c2: #f26b1d; }
 .pink { --c1: #ff7eb0; --c2: #e23d7c; }
 .violet { --c1: #a594ff; --c2: #6a4cf0; }

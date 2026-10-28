@@ -33,6 +33,7 @@ internal sealed partial class CaptureOverlay
         if (hasSel)
         {
             if (sel.IntersectsWith(clip)) DrawAnnotations(g);
+            DrawBrushCursor(g);
             DrawSelectionFrame(g, sel, handles: !(dragMoved && drag is DragMode.NewSelection or DragMode.MoveSelection));
             DrawSizeLabel(g, sel);
 

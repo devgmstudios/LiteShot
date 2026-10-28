@@ -86,6 +86,39 @@ internal sealed partial class CaptureOverlay
         ShowFlash(fresh.Count == 1 ? "Blurred 1 face" : $"Blurred {fresh.Count} faces");
     }
 
+    // ───────────────────────────── blur brush cursor ─────────────────────────────
+
+    Rectangle lastBrush;
+
+    /// <summary>A circle the size of the blur brush follows the pointer inside the selection.</summary>
+    Rectangle BrushCursorRect()
+    {
+        if (tool != Tool.BlurBrush || !hasSel || !sel.Contains(mouse) || drag is not (DragMode.None or DragMode.Draw)) return Rectangle.Empty;
+        float r = LiveSize(Tool.BlurBrush) / 2;
+        return Ui.Outer(new RectangleF(mouse.X - r, mouse.Y - r, r * 2, r * 2), 3);
+    }
+
+    void UpdateBrushCursor()
+    {
+        var r = BrushCursorRect();
+        if (r == lastBrush) return;
+        InvalidateRect(lastBrush);
+        InvalidateRect(r);
+        lastBrush = r;
+    }
+
+    void DrawBrushCursor(Graphics g)
+    {
+        var r = BrushCursorRect();
+        if (r.IsEmpty) return;
+        float d = LiveSize(Tool.BlurBrush);
+        var circle = new RectangleF(mouse.X - d / 2, mouse.Y - d / 2, d, d);
+        using var shade = new Pen(Color.FromArgb(120, 0, 0, 0), 3f);
+        using var ring = new Pen(Color.FromArgb(235, 255, 255, 255), 1.4f);
+        g.DrawEllipse(shade, circle);
+        g.DrawEllipse(ring, circle);
+    }
+
     static float Overlap(RectangleF a, RectangleF b)
     {
         var i = RectangleF.Intersect(a, b);

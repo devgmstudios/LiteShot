@@ -226,7 +226,7 @@ internal sealed class BlurShape : TwoPointShape
         g.Restore(state);
     }
 
-    static Bitmap Build(Bitmap src, Rectangle r, int block)
+    internal static Bitmap Build(Bitmap src, Rectangle r, int block)
     {
         int w = Math.Max(1, (r.Width + block - 1) / block), h = Math.Max(1, (r.Height + block - 1) / block);
         using var small = new Bitmap(w, h, PixelFormat.Format32bppArgb);
@@ -292,6 +292,81 @@ internal sealed class BlurShape : TwoPointShape
         var r = RectangleF.Inflate(Rect, tol, tol);
         float nx = (p.X - (r.X + r.Width / 2)) / (r.Width / 2), ny = (p.Y - (r.Y + r.Height / 2)) / (r.Height / 2);
         return nx * nx + ny * ny <= 1;
+    }
+}
+
+/// <summary>
+/// FacePrivacy.ai's blur brush: wherever the round brush goes, a strong blur of the picture underneath shows through —
+/// the same approach as their free face blur tool. <see cref="Annotation.Size"/> is the brush diameter.
+/// </summary>
+internal sealed class BlurBrushShape : Annotation
+{
+    public List<PointF> Points = new();
+    public int Strength = 12;
+
+    // One blurred copy of the whole capture per strength, shared by every stroke: painting stays fast.
+    static readonly System.Runtime.CompilerServices.ConditionalWeakTable<Bitmap, Dictionary<int, Bitmap>> Blurred = new();
+
+    protected override void DeepCopy() => Points = new List<PointF>(Points);
+
+    public override RectangleF Bounds => BoundsOf(0, Points.Count);
+
+    /// <summary>The area the last few points touched, for repainting while the brush moves.</summary>
+    public RectangleF TailBounds(int count) => BoundsOf(Math.Max(0, Points.Count - count), Points.Count);
+
+    RectangleF BoundsOf(int from, int to)
+    {
+        if (to <= from) return RectangleF.Empty;
+        float l = float.MaxValue, t = float.MaxValue, r = float.MinValue, b = float.MinValue;
+        for (int i = from; i < to; i++)
+        {
+            var p = Points[i];
+            l = Math.Min(l, p.X); t = Math.Min(t, p.Y); r = Math.Max(r, p.X); b = Math.Max(b, p.Y);
+        }
+        float pad = Size / 2 + 2;
+        return RectangleF.FromLTRB(l - pad, t - pad, r + pad, b + pad);
+    }
+
+    GraphicsPath Outline()
+    {
+        var path = new GraphicsPath(FillMode.Winding);
+        if (Points.Count == 1)
+        {
+            path.AddEllipse(Points[0].X - Size / 2, Points[0].Y - Size / 2, Size, Size);
+            return path;
+        }
+        path.AddLines(Points.ToArray());
+        using var pen = new Pen(Color.Black, Size) { StartCap = LineCap.Round, EndCap = LineCap.Round, LineJoin = LineJoin.Round };
+        path.Widen(pen);
+        return path;
+    }
+
+    public override void Draw(Graphics g, Bitmap source)
+    {
+        if (Points.Count == 0) return;
+        var all = new Rectangle(Point.Empty, source.Size);
+        var cache = Blurred.GetOrCreateValue(source);
+        if (!cache.TryGetValue(Strength, out var blurred))
+            cache[Strength] = blurred = BlurShape.Build(source, all, Strength);
+        var state = g.Save();
+        using (var outline = Outline()) g.SetClip(outline, CombineMode.Intersect);
+        var r = Rectangle.Intersect(Rectangle.Ceiling(Bounds), all);
+        if (r.Width > 0 && r.Height > 0) g.DrawImage(blurred, r, r, GraphicsUnit.Pixel);
+        g.Restore(state);
+    }
+
+    public override bool Hit(PointF p, float tol)
+    {
+        float limit = Size / 2 + tol;
+        if (Points.Count == 1) return DistToSegment(p, Points[0], Points[0]) <= limit;
+        for (int i = 1; i < Points.Count; i++)
+            if (DistToSegment(p, Points[i - 1], Points[i]) <= limit) return true;
+        return false;
+    }
+
+    public override void Move(float dx, float dy)
+    {
+        for (int i = 0; i < Points.Count; i++) Points[i] = new PointF(Points[i].X + dx, Points[i].Y + dy);
     }
 }
 

@@ -4,7 +4,7 @@ using static LiteShot.Native;
 
 namespace LiteShot.Overlay;
 
-internal enum Tool { None, Pen, Line, Arrow, Rect, Ellipse, Marker, Text, Counter, Pixelate }
+internal enum Tool { None, Pen, Line, Arrow, Rect, Ellipse, Marker, Text, Counter, Pixelate, BlurBrush }
 
 internal enum DragMode { None, NewSelection, MoveSelection, Resize, Draw, MoveShape }
 
@@ -133,11 +133,13 @@ internal sealed partial class CaptureOverlay : Form
         Tool.Text => 22,
         Tool.Counter => 14,
         Tool.Pixelate => 10,
+        Tool.BlurBrush => 40,
         _ => 3,
     };
 
     static (float Min, float Max, float Step) SizeRange(Tool t) => t switch
     {
+        Tool.BlurBrush => (10, 160, 4),
         Tool.Text => (8, 160, 2),
         Tool.Marker => (4, 80, 2),
         Tool.Counter => (8, 48, 2),
@@ -151,6 +153,7 @@ internal sealed partial class CaptureOverlay : Form
         Tool.Marker => new[] { 8f, 12, 16, 24, 32 },
         Tool.Counter => new[] { 10f, 12, 14, 18, 24 },
         Tool.Pixelate => new[] { 5f, 8, 10, 14, 20 },
+        Tool.BlurBrush => new[] { 24f, 32, 40, 60, 90 },
         _ => new[] { 2f, 3, 5, 8, 12 },
     };
 
@@ -159,6 +162,7 @@ internal sealed partial class CaptureOverlay : Form
         Tool.Text => "Font size",
         Tool.Counter => "Badge size",
         Tool.Pixelate => "Block size",
+        Tool.BlurBrush => "Brush size",
         Tool.Marker => "Marker width",
         _ => "Stroke width",
     };
@@ -171,6 +175,7 @@ internal sealed partial class CaptureOverlay : Form
         RectShape => Tool.Rect,
         EllipseShape => Tool.Ellipse,
         PixelateShape or BlurShape => Tool.Pixelate,
+        BlurBrushShape => Tool.BlurBrush,
         TextShape => Tool.Text,
         CounterShape => Tool.Counter,
         _ => Tool.Pen,

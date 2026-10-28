@@ -16,6 +16,7 @@ internal static class PrivacyAndUpdates
     {
         Names(check);
         NamesOnScreen(outDir, newOverlay, desktop, check);
+        BlurBrush(outDir, newOverlay, desktop, check);
         Faces(outDir, check);
         if (updateServer != null) Updates(updateServer, check);
         else Console.WriteLine("  (skipped updater checks: start the local server with `npm run dev` in server/ and pass --update-server)");
@@ -131,6 +132,40 @@ internal static class PrivacyAndUpdates
             o.Dispose();
         }
         finally { settings.AutoBlurNames = before; }
+    }
+
+    /// <summary>FacePrivacy.ai's blur brush: a stroke over a name blurs what's under it, and undo takes it away.</summary>
+    static void BlurBrush(string outDir, Func<Bitmap, CaptureOverlay> newOverlay, Bitmap desktop, Action<bool, string> check)
+    {
+        using var chat = ChatImage(out var where);
+        using var screen = (Bitmap)desktop.Clone();
+        var at = new Point(120, 140);
+        using (var g = Graphics.FromImage(screen)) g.DrawImage(chat, at.X, at.Y, chat.Width, chat.Height);
+        var o = newOverlay(screen);
+        var sel = new Rectangle(at.X, at.Y, chat.Width, chat.Height);
+        Set(o, "sel", sel);
+        Set(o, "hasSel", true);
+        Call(o, "SetTool", Tool.BlurBrush);
+        var name = where["Sarah Johnson"];
+        var from = new Point(at.X + (int)name.Left + 4, at.Y + (int)(name.Top + name.Height / 2));
+        var to = new Point(at.X + (int)name.Right - 4, from.Y);
+        Call(o, "OnMouseDown", new MouseEventArgs(MouseButtons.Left, 1, from.X, from.Y, 0));
+        for (int i = 1; i <= 10; i++)
+            Call(o, "OnMouseMove", new MouseEventArgs(MouseButtons.Left, 0, from.X + (to.X - from.X) * i / 10, from.Y, 0));
+        Call(o, "OnMouseUp", new MouseEventArgs(MouseButtons.Left, 1, to.X, to.Y, 0));
+        var shapes = Get<List<Annotation>>(o, "shapes");
+        var brush = shapes.OfType<BlurBrushShape>().FirstOrDefault();
+        check(brush != null && brush.Points.Count >= 5, $"blur brush stroke recorded ({brush?.Points.Count ?? 0} points)");
+        using (var result = (Bitmap)Call(o, "RenderResult")!)
+        {
+            check(Difference(chat, result, Rectangle.Round(name)) > 8, "the brush blurs the name under it");
+            var clean = Rectangle.Round(where["line2:Meeting notes from the design review"]);
+            check(Difference(chat, result, clean) < 1, "pixels away from the brush stay sharp");
+            result.Save(Path.Combine(outDir, "23-blur-brush.png"), ImageFormat.Png);
+        }
+        Call(o, "Undo");
+        check(!Get<List<Annotation>>(o, "shapes").OfType<BlurBrushShape>().Any(), "undo removes the brush stroke");
+        o.Dispose();
     }
 
     static double Difference(Bitmap a, Bitmap b, Rectangle r)

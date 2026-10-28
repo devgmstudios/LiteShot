@@ -156,6 +156,28 @@ internal static class Icons
         g.DrawArc(p, 8.2f, 10.2f, 7.6f, 5.6f, 25, 130);
     }
 
+    /// <summary>A round brush leaving a soft trail: FacePrivacy.ai's blur brush.</summary>
+    public static void BlurBrush(Graphics g, Pen p, Brush f)
+    {
+        Rotated(g, 45, () =>
+        {
+            using var handle = new GraphicsPath();
+            handle.AddLine(10.4f, 1.8f, 13.6f, 1.8f);
+            handle.AddLine(13.6f, 1.8f, 13.2f, 9.6f);
+            handle.AddLine(13.2f, 9.6f, 10.8f, 9.6f);
+            handle.CloseFigure();
+            g.DrawPath(p, handle);
+            using var tip = new GraphicsPath();
+            tip.AddLine(9.6f, 9.6f, 14.4f, 9.6f);
+            tip.AddBezier(14.4f, 9.6f, 15.6f, 13.6f, 14.2f, 16.6f, 12f, 18.8f);
+            tip.AddBezier(12f, 18.8f, 9.8f, 16.6f, 8.4f, 13.6f, 9.6f, 9.6f);
+            tip.CloseFigure();
+            g.FillPath(f, tip);
+        });
+        foreach (var (x, y, r) in new[] { (4.2f, 20.4f, 1.5f), (8.2f, 21.2f, 1.1f), (2.6f, 16.6f, 1.1f) })
+            g.FillEllipse(f, x - r, y - r, r * 2, r * 2);
+    }
+
     /// <summary>arrow.uturn.backward</summary>
     public static void Undo(Graphics g, Pen p, Brush f)
     {

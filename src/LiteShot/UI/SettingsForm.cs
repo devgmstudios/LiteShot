@@ -163,11 +163,13 @@ internal sealed class SettingsForm : Form
             .Add(new SettingRow(theme, "Include the mouse pointer", "Draws the pointer into captured screenshots.",
                 Toggle(Settings.CaptureCursor, v => Settings.CaptureCursor = v))));
         add(Section("Privacy"));
+        var faceprivacy = new PillButton(theme, "FacePrivacy.ai", 128);
+        faceprivacy.Click += (_, _) => ImageOutput.OpenUrl("https://faceprivacy.ai/blur/");
         add(new Card(theme)
             .Add(new SettingRow(theme, "Blur names automatically",
                 "Blurs text that looks like a person's name as you capture. Ctrl+Z brings it back.",
                 Toggle(Settings.AutoBlurNames, v => Settings.AutoBlurNames = v)))
-            .Add(new SettingRow(theme, "Blur faces", "In the editor, press F or click the face next to Pixelate. All of it runs on your PC.", (Control?)null)));
+            .Add(new SettingRow(theme, "Blur faces · FacePrivacy.ai", "Press F to blur every face, or paint over one with the blur brush (U). Runs on your PC.", faceprivacy)));
         return page;
     }
 

@@ -152,6 +152,7 @@ internal sealed partial class CaptureOverlay
                 break;
         }
         lastMouse = p;
+        UpdateBrushCursor();
         UpdateView();
     }
 
@@ -600,6 +601,7 @@ internal sealed partial class CaptureOverlay
                 Keys.T => Tool.Text,
                 Keys.N => Tool.Counter,
                 Keys.B => Tool.Pixelate,
+                Keys.U => Tool.BlurBrush,
                 _ => null,
             };
             if (t is Tool tt) { SetTool(tt); return true; }

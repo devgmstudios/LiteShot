@@ -16,7 +16,7 @@ internal sealed partial class CaptureOverlay
         };
 
         colorButton = new ToolButton { Tip = "Color and size", OnClick = () => TogglePalette(colorButton), CustomPaint = PaintColorButton };
-        blurFacesButton = new ToolButton { Tip = "Blur faces", Shortcut = "F", Glyph = Icons.FaceBlur, OnClick = BlurFaces, IsActive = () => findingFaces };
+        blurFacesButton = new ToolButton { Tip = "Blur faces · FacePrivacy.ai", Shortcut = "F", Glyph = Icons.FaceBlur, OnClick = BlurFaces, IsActive = () => findingFaces };
         return new Toolbar(vertical: true)
             .Group(
                 T(Tool.Pen, "Pen", "P", Icons.Pen),
@@ -29,6 +29,7 @@ internal sealed partial class CaptureOverlay
                 T(Tool.Counter, "Step number", "N", Icons.Counter))
             .Group(
                 T(Tool.Pixelate, "Pixelate", "B", Icons.Pixelate),
+                T(Tool.BlurBrush, "Blur brush · FacePrivacy.ai", "U", Icons.BlurBrush),
                 blurFacesButton)
             .Group(colorButton)
             .Group(
@@ -168,6 +169,7 @@ internal sealed partial class CaptureOverlay
             Tool.Rect => new RectShape { A = p, B = p },
             Tool.Ellipse => new EllipseShape { A = p, B = p },
             Tool.Pixelate => new PixelateShape { A = p, B = p },
+            Tool.BlurBrush => new BlurBrushShape { Points = { p }, Strength = Math.Max(6, (int)MathF.Round(12 * S)) },
             Tool.Counter => new CounterShape { Center = p, Number = NextNumber() },
             _ => null,
         };
@@ -202,6 +204,12 @@ internal sealed partial class CaptureOverlay
                     if (Math.Abs(last.X - p.X) + Math.Abs(last.Y - p.Y) >= 2) s.Points.Add(p);
                 }
                 after = s.TailBounds(4);
+                break;
+            case BlurBrushShape brush:
+                before = brush.TailBounds(3);
+                var tip = brush.Points[^1];
+                if (Math.Abs(tip.X - p.X) + Math.Abs(tip.Y - p.Y) >= 2) brush.Points.Add(p);
+                after = brush.TailBounds(3);
                 break;
             case CounterShape c:
                 before = c.Bounds;

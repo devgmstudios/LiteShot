@@ -91,6 +91,38 @@ for (const box of document.querySelectorAll('[data-compare]')) {
   apply();
 }
 
+// Feature animations (Lottie): the player loads with the first one that scrolls into view; the static icon stays
+// until its animation is ready, and reduced motion gets a still frame.
+const animated = document.querySelectorAll('[data-lottie]');
+if (animated.length) {
+  let player;
+  const loadPlayer = () => (player ??= new Promise((resolve, reject) => {
+    const script = document.createElement('script');
+    script.src = '/vendor/lottie_light.min.js';
+    script.onload = () => resolve(window.lottie);
+    script.onerror = reject;
+    document.head.append(script);
+  }));
+  const watch = new IntersectionObserver((entries) => {
+    for (const entry of entries) {
+      if (!entry.isIntersecting) continue;
+      watch.unobserve(entry.target);
+      const badge = entry.target;
+      loadPlayer().then((lottie) => {
+        const box = document.createElement('div');
+        box.className = 'lottie';
+        badge.append(box);
+        const anim = lottie.loadAnimation({ container: box, renderer: 'svg', loop: !still, autoplay: !still, path: `/lottie/${badge.dataset.lottie}.json` });
+        anim.addEventListener('DOMLoaded', () => {
+          badge.querySelector('svg.icon')?.remove();
+          if (still) anim.goToAndStop(120, true);
+        });
+      }).catch(() => { /* keep the static icon */ });
+    }
+  }, { rootMargin: '0px 0px -5% 0px' });
+  animated.forEach((el) => watch.observe(el));
+}
+
 // A shared link's life, counting down from 24 hours.
 const clock = document.querySelector('[data-countdown]');
 if (clock) {
