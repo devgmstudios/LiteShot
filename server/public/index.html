@@ -17,6 +17,7 @@
   <meta name="twitter:card" content="summary_large_image">
   <link rel="icon" href="/favicon.ico" sizes="any">
   <link rel="apple-touch-icon" href="/img/apple-touch-icon.png">
+  <script src="/boot.js"></script>
   <link rel="stylesheet" href="/styles.css">
   <script src="/app.js" defer></script>
 </head>
@@ -56,6 +57,7 @@
     <nav class="nav-links" aria-label="Sections">
       <a href="#how">How it works</a>
       <a href="#features">Features</a>
+      <a href="#blur">Blur</a>
       <a href="#privacy">Privacy</a>
       <a href="#shortcuts">Shortcuts</a>
       <a href="#faq">FAQ</a>
@@ -65,17 +67,26 @@
 
   <main id="top">
     <section class="hero wrap">
-      <span class="eyebrow glass"><b>NEW</b> Free and open source · blur names and faces</span>
-      <h1>Screenshots,<br><span class="shine">in glass.</span></h1>
-      <p class="lede">The two-click screenshot tool for Windows, rebuilt from scratch. Mark it up, blur what's private, and share a link that deletes itself.</p>
-      <div class="cta">
-        <a class="btn btn-primary" href="/download" data-download="msi"><svg class="icon"><use href="#i-download"/></svg>Download for Windows</a>
-        <a class="btn btn-glass glass" href="/download/portable" data-download="portable">Portable .exe</a>
+      <div class="spot" aria-hidden="true"></div>
+      <span class="eyebrow glass rise d1"><b>NEW</b> Free and open source · blur names and faces</span>
+      <h1 class="headline" aria-label="Screenshots, in glass.">
+        <span class="line" data-split aria-hidden="true">Screenshots,</span>
+        <span class="line rise d2" aria-hidden="true"><span class="shine">in glass.</span></span>
+      </h1>
+      <p class="lede rise d3">The two-click screenshot tool for Windows, rebuilt from scratch. Mark it up, blur what's private, and share a link that deletes itself.</p>
+      <div class="cta rise d4">
+        <a class="btn btn-primary magnetic" href="/download" data-download="msi"><svg class="icon"><use href="#i-download"/></svg>Download for Windows</a>
+        <a class="btn btn-glass glass magnetic" href="/download/portable" data-download="portable">Portable .exe</a>
       </div>
-      <p class="meta" data-release>Free and open source · Windows 10 and 11 · No account</p>
-      <p class="press"><span class="keycap">PrtScn</span> Drag over anything. Copy, save or share.</p>
+      <ul class="chips rise d5" aria-label="About LiteShot">
+        <li class="glass"><span class="live" aria-hidden="true"></span><span data-version>Free download</span></li>
+        <li class="glass">Windows 10 &amp; 11</li>
+        <li class="glass">Free &amp; open source</li>
+        <li class="glass">No account</li>
+      </ul>
+      <p class="press rise d6"><span class="keycap">PrtScn</span> Drag over anything. Copy, save or share.</p>
 
-      <div class="stage">
+      <div class="stage rise d7">
         <div class="shot glass" id="shot"><img src="/img/editor.webp" alt="The LiteShot editor over a report: a highlighted line, a pixelated account number, an arrow, numbered steps and a label, with glass toolbars beside and below the selection." width="1347" height="1195" fetchpriority="high"></div>
         <div class="chip glass chip-a"><span class="dot dot-ok"><svg class="icon"><use href="#i-check"/></svg></span>Copied to clipboard</div>
         <div class="chip glass chip-b"><span class="dot dot-privacy"><svg class="icon"><use href="#i-face"/></svg></span>3 names blurred</div>
@@ -129,6 +140,34 @@
           <span class="handle" aria-hidden="true"></span>
           <span class="tag tag-l">Before</span><span class="tag tag-r">After</span>
           <input type="range" min="0" max="100" value="50" aria-label="Compare before and after: drag to reveal the blurred names">
+        </div>
+      </div>
+    </section>
+
+    <section id="blur" class="wrap">
+      <div class="split flip">
+        <div class="blur-demo glass reveal" data-blur-demo="/img/how-names-before.webp">
+          <div class="demo-canvas">
+            <canvas width="810" height="471" role="img" aria-label="A chat thread. Drag across it to blur parts of it with the blur brush."></canvas>
+            <span class="brush-ring" aria-hidden="true"></span>
+            <span class="demo-hint" aria-hidden="true">Drag over the names</span>
+          </div>
+          <div class="demo-bar">
+            <label>Brush <input type="range" min="16" max="96" value="44" data-brush aria-label="Brush size"></label>
+            <button type="button" class="btn btn-glass glass" data-reset>Reset</button>
+          </div>
+        </div>
+        <div class="reveal">
+          <div data-lottie="faces" class="badge violet big"><svg class="icon"><use href="#i-face"/></svg></div>
+          <p class="kicker">Blur by FacePrivacy.ai</p>
+          <h2>Paint privacy on.</h2>
+          <p class="section-lede">LiteShot's face blur comes from <a href="https://faceprivacy.ai/blur/">FacePrivacy.ai</a>. Press <b>F</b> and every face in the selection is found and blurred, or press <b>U</b> and paint over anything with their blur brush. Try the brush right here.</p>
+          <ul>
+            <li><svg class="icon"><use href="#i-check"/></svg><span><b>Faces, found for you</b>One key blurs every face it finds, each with a soft oval.</span></li>
+            <li><svg class="icon"><use href="#i-check"/></svg><span><b>A brush for everything else</b>Names, emails, addresses, a license plate: paint over it and it's gone.</span></li>
+            <li><svg class="icon"><use href="#i-check"/></svg><span><b>Stays on your PC</b>Nothing is uploaded to blur it, and Ctrl+Z undoes any stroke.</span></li>
+          </ul>
+          <a class="btn btn-glass glass magnetic" href="https://faceprivacy.ai/blur/">Try FacePrivacy's free blur tool</a>
         </div>
       </div>
     </section>

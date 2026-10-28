@@ -26,6 +26,10 @@
   --key: rgba(255, 255, 255, 0.8);
   --key-side: rgba(0, 0, 0, 0.12);
 
+  /* Springs, in the spirit of motion.dev: a soft one for entrances, a lively one for things you touch. */
+  --spring-soft: linear(0, 0.006, 0.025 2.8%, 0.101 6.1%, 0.539 18.9%, 0.721 25.3%, 0.849 31.5%, 0.937 38.1%, 0.968 41.8%, 0.991 45.7%, 1.006 50.1%, 1.015 55%, 1.017 63.9%, 1.001 85.2%, 1);
+  --spring: linear(0, 0.009, 0.035 2.1%, 0.141 4.4%, 0.723 12.9%, 0.938 16.7%, 1.017 19.4%, 1.067, 1.099 24.3%, 1.108 26%, 1.103 27.8%, 1.077 30.9%, 1.035 36.4%, 1.006 41.3%, 0.993 45.2%, 0.989 50.5%, 0.997 60.8%, 1.001 74.6%, 1);
+
   --radius: 28px;
   --radius-sm: 18px;
   --max: 1180px;
@@ -57,6 +61,7 @@
     --key: rgba(255, 255, 255, 0.12);
     --key-side: rgba(0, 0, 0, 0.5);
   }
+  .spot { background: radial-gradient(560px circle at var(--mx, 50%) var(--my, 35%), rgba(255, 170, 110, 0.16), transparent 65%); }
 }
 
 * { box-sizing: border-box; }
@@ -117,20 +122,23 @@ a { color: inherit; }
 /* ───────── buttons ───────── */
 
 .btn {
+  --tx: 0px; --ty: 0px; --lift: 0px; --press: 1;
   display: inline-flex; align-items: center; justify-content: center; gap: 0.55em;
   min-height: 48px; padding: 0 1.4em;
   border-radius: 999px; border: 0;
   font: 600 1rem/1 var(--font); text-decoration: none; cursor: pointer;
-  transition: transform 0.2s ease, box-shadow 0.2s ease, background 0.2s ease;
+  transform: translate3d(var(--tx), calc(var(--ty) + var(--lift)), 0) scale(var(--press));
+  transition: transform 0.7s var(--spring), box-shadow 0.25s ease, background 0.25s ease;
 }
-.btn:active { transform: scale(0.97); }
+.btn.pulling { transition: transform 0.18s ease-out, box-shadow 0.25s ease, background 0.25s ease; }
+.btn:active { --press: 0.97; }
 .btn:focus-visible, a:focus-visible, summary:focus-visible { outline: 3px solid var(--accent); outline-offset: 3px; }
 .btn-primary {
   color: var(--accent-ink);
   background: linear-gradient(180deg, var(--accent-2), var(--accent));
   box-shadow: inset 0 1px 0 rgba(255, 255, 255, 0.45), 0 10px 28px -10px var(--accent);
 }
-.btn-primary:hover { box-shadow: inset 0 1px 0 rgba(255, 255, 255, 0.45), 0 14px 34px -10px var(--accent); transform: translateY(-1px); }
+.btn-primary:hover { box-shadow: inset 0 1px 0 rgba(255, 255, 255, 0.45), 0 16px 38px -10px var(--accent); --lift: -2px; }
 .btn-glass { color: var(--text); }
 .btn-glass:hover { background: var(--glass-strong); }
 .btn[aria-disabled="true"] { opacity: 0.55; pointer-events: none; }
@@ -142,6 +150,14 @@ a { color: inherit; }
   width: min(var(--max), 100% - 24px);
   display: flex; align-items: center; gap: 8px;
   padding: 7px 7px 7px 14px; border-radius: 999px;
+  transition: top 0.5s var(--spring-soft), background 0.35s ease, box-shadow 0.35s ease;
+}
+.nav.scrolled {
+  top: 10px;
+  background: var(--glass-strong);
+  -webkit-backdrop-filter: blur(30px) saturate(190%);
+  backdrop-filter: blur(30px) saturate(190%);
+  box-shadow: 0 1px 1px rgba(0, 0, 0, 0.05), 0 18px 44px -20px var(--shadow);
 }
 .brand { display: flex; align-items: center; gap: 10px; font-weight: 650; font-size: 1.05rem; text-decoration: none; margin-right: auto; }
 .brand img { width: 30px; height: 30px; }
@@ -153,26 +169,71 @@ a { color: inherit; }
 
 /* ───────── hero ───────── */
 
-.hero { padding: clamp(120px, 18vh, 170px) 0 40px; text-align: center; }
+.hero { position: relative; padding: clamp(132px, 19vh, 196px) 0 48px; text-align: center; }
+
+/* A soft light that follows the pointer across the hero. */
+.spot {
+  position: absolute; z-index: -1; top: -160px; bottom: 0; left: 50%; width: 100vw; transform: translateX(-50%);
+  pointer-events: none; opacity: 0; transition: opacity 0.8s ease;
+  background: radial-gradient(560px circle at var(--mx, 50%) var(--my, 35%), rgba(255, 255, 255, 0.6), transparent 65%);
+}
+.hero.lit .spot { opacity: 1; }
+
 .eyebrow {
   display: inline-flex; align-items: center; gap: 8px;
   padding: 6px 14px 6px 8px; border-radius: 999px;
   font-size: 0.9rem; color: var(--text-2);
+  overflow: hidden;
 }
+.eyebrow.glass::before { inset: 0; }
+.eyebrow::after {
+  /* a sheen that sweeps across the pill now and then */
+  content: ""; position: absolute; inset: 0; border-radius: inherit; pointer-events: none;
+  background: linear-gradient(110deg, transparent 30%, rgba(255, 255, 255, 0.75) 48%, transparent 66%);
+  transform: translateX(-120%);
+  animation: sheen 7s ease-in-out 2.4s infinite;
+}
+@keyframes sheen { 0% { transform: translateX(-120%); } 18%, 100% { transform: translateX(120%); } }
 .eyebrow b { color: var(--accent-ink); background: var(--accent); padding: 2px 9px; border-radius: 999px; font-size: 0.78rem; letter-spacing: 0.02em; }
 h1 {
-  font-size: clamp(2.9rem, 8.6vw, 6.4rem); line-height: 0.98; letter-spacing: -0.045em; font-weight: 750;
-  margin: 22px 0 18px;
+  font-size: clamp(3rem, 9vw, 7rem); line-height: 1.04; letter-spacing: -0.032em; font-weight: 760;
+  margin: 28px auto 26px; text-wrap: balance;
 }
+h1 .line { display: block; }
 h1 .shine {
-  background: linear-gradient(100deg, var(--accent) 10%, #ff4f8b 50%, #8b6cff 90%);
+  display: inline-block; padding: 0 0.04em 0.12em; margin-bottom: -0.12em;
+  background: linear-gradient(100deg, var(--accent) 0%, #ff4f8b 28%, #8b6cff 55%, #ff4f8b 78%, var(--accent) 100%);
+  background-size: 220% 100%;
   -webkit-background-clip: text; background-clip: text; color: transparent;
+  animation: shimmer 10s ease-in-out infinite;
 }
-.lede { font-size: clamp(1.1rem, 2.2vw, 1.35rem); color: var(--text-2); max-width: 40ch; margin: 0 auto 30px; }
+@keyframes shimmer { 0%, 100% { background-position: 0% 50%; } 50% { background-position: 100% 50%; } }
+.headline .ch { display: inline-block; }
+.lede { font-size: clamp(1.12rem, 2vw, 1.38rem); line-height: 1.6; color: var(--text-2); max-width: 48ch; margin: 0 auto 38px; text-wrap: pretty; }
+
+/* Release facts as small glass chips. */
+.chips { list-style: none; display: flex; flex-wrap: wrap; justify-content: center; gap: 8px; margin: 26px auto 0; padding: 0; max-width: 640px; }
+.chips li.glass {
+  display: inline-flex; align-items: center; gap: 8px; padding: 7px 14px; border-radius: 999px;
+  font-size: 0.86rem; font-weight: 550; color: var(--text-2);
+  box-shadow: 0 1px 1px rgba(0, 0, 0, 0.03), 0 8px 22px -14px var(--shadow);
+}
+.live { width: 8px; height: 8px; border-radius: 50%; background: #18a957; animation: live 2.4s ease-out infinite; }
+@keyframes live { 0% { box-shadow: 0 0 0 0 rgba(24, 169, 87, 0.5); } 80%, 100% { box-shadow: 0 0 0 7px rgba(24, 169, 87, 0); } }
+
+/* Entrance: everything in the hero arrives in sequence; held back only when JS is there to play it. */
+.d1 { --d: 0s; } .d2 { --d: 0.55s; } .d3 { --d: 0.72s; } .d4 { --d: 0.86s; } .d5 { --d: 1s; } .d6 { --d: 1.12s; } .d7 { --d: 1.25s; }
+@media (prefers-reduced-motion: no-preference) {
+  .js .hero .rise, .js [data-split]:not(.split), .js .headline .ch { opacity: 0; }
+  .js.go .hero .rise { animation: rise 1s var(--spring-soft) both; animation-delay: var(--d, 0s); }
+  .js.go .headline .ch { animation: letter 1.05s var(--spring-soft) both; animation-delay: calc(0.15s + var(--i) * 32ms); }
+}
+@keyframes rise { from { opacity: 0; transform: translateY(22px); filter: blur(10px); } to { opacity: 1; transform: none; filter: none; } }
+@keyframes letter { from { opacity: 0; transform: translateY(0.42em) scale(0.96); filter: blur(12px); } to { opacity: 1; transform: none; filter: none; } }
 .cta { display: flex; flex-wrap: wrap; gap: 12px; justify-content: center; }
 .meta { margin-top: 16px; color: var(--text-3); font-size: 0.9rem; }
 
-.press { display: inline-flex; align-items: center; gap: 12px; margin: 34px auto 0; color: var(--text-2); font-size: 0.95rem; }
+.press { display: inline-flex; align-items: center; gap: 12px; margin: 40px auto 0; color: var(--text-2); font-size: 0.95rem; }
 .keycap {
   display: inline-grid; place-items: center; min-width: 64px; height: 44px; padding: 0 14px;
   border-radius: 12px; font: 600 0.9rem/1 var(--font); color: var(--text);
@@ -314,6 +375,34 @@ h2 { font-size: clamp(2rem, 5vw, 3.4rem); line-height: 1.04; letter-spacing: -0.
 .compare input:focus-visible ~ .handle, .compare:has(input:focus-visible) .handle { box-shadow: 0 0 0 3px var(--accent); }
 .tag { position: absolute; top: 12px; padding: 4px 12px; border-radius: 999px; font-size: 0.8rem; font-weight: 650; color: #fff; background: rgba(20, 16, 30, 0.6); pointer-events: none; }
 .tag-l { left: 12px; } .tag-r { right: 12px; }
+
+/* live blur brush (FacePrivacy.ai) */
+.split.flip { grid-template-columns: 1.25fr 1fr; }
+@media (max-width: 900px) { .split.flip { grid-template-columns: 1fr; } }
+.blur-demo { padding: 10px; border-radius: 26px; }
+.demo-canvas { position: relative; border-radius: 18px; overflow: hidden; background: #fff; }
+.demo-canvas canvas { display: block; width: 100%; height: auto; touch-action: none; cursor: none; }
+@media (pointer: coarse) { .demo-canvas canvas { cursor: auto; } .brush-ring { display: none; } }
+.brush-ring {
+  --size: 44px;
+  position: absolute; left: var(--x, -100px); top: var(--y, -100px); width: var(--size); height: var(--size);
+  transform: translate(-50%, -50%); border-radius: 50%; pointer-events: none; opacity: 0;
+  border: 2px solid rgba(255, 255, 255, 0.95); box-shadow: 0 0 0 1px rgba(0, 0, 0, 0.35), 0 6px 16px rgba(0, 0, 0, 0.18);
+  transition: opacity 0.2s ease, width 0.35s var(--spring), height 0.35s var(--spring);
+}
+.demo-canvas:hover .brush-ring { opacity: 1; }
+.demo-hint {
+  position: absolute; top: 16px; left: 50%; transform: translateX(-50%); pointer-events: none;
+  padding: 6px 14px; border-radius: 999px; font-size: 0.82rem; font-weight: 600; color: #fff;
+  background: rgba(20, 16, 30, 0.62); -webkit-backdrop-filter: blur(10px); backdrop-filter: blur(10px);
+  transition: opacity 0.4s ease;
+}
+.blur-demo.used .demo-hint { opacity: 0; }
+.demo-bar { display: flex; flex-wrap: wrap; gap: 14px; align-items: center; justify-content: space-between; padding: 12px 8px 4px 10px; }
+.demo-bar label { display: flex; align-items: center; gap: 12px; font-size: 0.9rem; font-weight: 600; color: var(--text-2); }
+.demo-bar input[type="range"] { accent-color: var(--accent); width: 150px; }
+.demo-bar .btn { min-height: 36px; padding: 0 16px; font-size: 0.9rem; }
+.split .btn { margin-top: 26px; }
 
 /* OCR output */
 .ocr { position: relative; margin: 20px 0 0; padding: 18px 18px 18px; border-radius: 16px; font: 0.86rem/1.6 var(--mono); white-space: pre-wrap; color: var(--text); overflow: hidden; }

@@ -8,8 +8,7 @@
     const info = JSON.parse(payload);
     const mb = (n) => `${(n / 1048576).toFixed(0)} MB`;
     const file = (kind) => info.files.find((f) => f.kind === kind);
-    for (const el of document.querySelectorAll('[data-release]'))
-      el.textContent = `Version ${info.version} · Free · Windows 10 and 11 · No account`;
+    for (const el of document.querySelectorAll('[data-version]')) el.textContent = `Version ${info.version}`;
     for (const kind of ['msi', 'portable']) {
       const f = file(kind);
       const label = document.querySelector(`[data-label="${kind}"]`);
@@ -27,11 +26,79 @@
     }
   } catch {
     for (const el of document.querySelectorAll('[data-download]')) el.setAttribute('aria-disabled', 'true');
-    for (const el of document.querySelectorAll('[data-release]')) el.textContent = 'Coming soon · Free · Windows 10 and 11';
+    for (const el of document.querySelectorAll('[data-version]')) el.textContent = 'Coming soon';
   }
 })();
 
 const still = matchMedia('(prefers-reduced-motion: reduce)').matches;
+
+// Hero entrance: "Screenshots," rises letter by letter out of a blur, then the rest follows on a spring.
+for (const el of document.querySelectorAll('[data-split]')) {
+  const text = el.textContent;
+  el.textContent = '';
+  [...text].forEach((c, i) => {
+    const ch = document.createElement('span');
+    ch.className = 'ch';
+    ch.textContent = c;
+    ch.style.setProperty('--i', i);
+    el.append(ch);
+  });
+  el.classList.add('split');
+}
+{
+  // Start once the fonts are in, so letters don't shift mid-flight; never wait more than a second.
+  let started = false;
+  const go = () => { if (!started) { started = true; requestAnimationFrame(() => document.documentElement.classList.add('go')); } };
+  (document.fonts?.ready ?? Promise.resolve()).then(go);
+  setTimeout(go, 1000);
+}
+
+// The nav frosts over once the page scrolls under it.
+const nav = document.querySelector('.nav');
+if (nav) {
+  const frost = () => nav.classList.toggle('scrolled', scrollY > 12);
+  addEventListener('scroll', frost, { passive: true });
+  frost();
+}
+
+if (!still && matchMedia('(pointer: fine)').matches) {
+  // Buttons lean toward the pointer and spring back when it leaves.
+  for (const b of document.querySelectorAll('.magnetic')) {
+    b.addEventListener('pointermove', (e) => {
+      const r = b.getBoundingClientRect();
+      b.classList.add('pulling');
+      b.style.setProperty('--tx', `${(((e.clientX - r.left) / r.width - 0.5) * 12).toFixed(1)}px`);
+      b.style.setProperty('--ty', `${(((e.clientY - r.top) / r.height - 0.5) * 8).toFixed(1)}px`);
+    });
+    b.addEventListener('pointerleave', () => {
+      b.classList.remove('pulling');
+      b.style.setProperty('--tx', '0px');
+      b.style.setProperty('--ty', '0px');
+    });
+  }
+
+  // A soft light follows the pointer across the hero, eased so it trails a little.
+  const hero = document.querySelector('.hero');
+  const spot = hero?.querySelector('.spot');
+  if (hero && spot) {
+    let tx = 0, ty = 0, x = 0, y = 0, raf = 0;
+    const step = () => {
+      x += (tx - x) * 0.14;
+      y += (ty - y) * 0.14;
+      spot.style.setProperty('--mx', `${x.toFixed(1)}px`);
+      spot.style.setProperty('--my', `${y.toFixed(1)}px`);
+      raf = Math.abs(tx - x) + Math.abs(ty - y) > 0.5 ? requestAnimationFrame(step) : 0;
+    };
+    hero.addEventListener('pointermove', (e) => {
+      const r = spot.getBoundingClientRect();
+      tx = e.clientX - r.left;
+      ty = e.clientY - r.top;
+      if (!hero.classList.contains('lit')) { x = tx; y = ty; hero.classList.add('lit'); }
+      if (!raf) raf = requestAnimationFrame(step);
+    });
+    hero.addEventListener('pointerleave', () => hero.classList.remove('lit'));
+  }
+}
 
 // The hero shot starts tilted back and settles flat as you scroll toward it.
 const shot = document.getElementById('shot');
@@ -121,6 +188,80 @@ if (animated.length) {
     }
   }, { rootMargin: '0px 0px -5% 0px' });
   animated.forEach((el) => watch.observe(el));
+}
+
+// FacePrivacy.ai's blur brush, live: paint over the picture and a blurred copy shows through the brush.
+for (const demo of document.querySelectorAll('[data-blur-demo]')) {
+  const canvas = demo.querySelector('canvas');
+  const ctx = canvas.getContext('2d');
+  const size = demo.querySelector('[data-brush]');
+  const ring = demo.querySelector('.brush-ring');
+  const blurred = document.createElement('canvas');
+  const img = new Image();
+  let painting = false, last = null;
+  const original = () => ctx.drawImage(img, 0, 0, canvas.width, canvas.height);
+  img.onload = () => {
+    canvas.width = blurred.width = img.naturalWidth;
+    canvas.height = blurred.height = img.naturalHeight;
+    // Shrink, then grow back in two smooth steps: a strong blur that works in every browser.
+    let source = img;
+    for (const k of [14, 4, 1]) {
+      const step = document.createElement('canvas');
+      step.width = Math.ceil(canvas.width / k);
+      step.height = Math.ceil(canvas.height / k);
+      const s = step.getContext('2d');
+      s.imageSmoothingQuality = 'high';
+      s.drawImage(source, 0, 0, step.width, step.height);
+      source = step;
+    }
+    blurred.getContext('2d').drawImage(source, 0, 0);
+    original();
+  };
+  img.src = demo.dataset.blurDemo;
+
+  const scale = () => canvas.width / canvas.getBoundingClientRect().width;
+  const at = (e) => {
+    const r = canvas.getBoundingClientRect();
+    return { x: (e.clientX - r.left) * scale(), y: (e.clientY - r.top) * scale() };
+  };
+  const dab = (x, y, radius) => {
+    ctx.save();
+    ctx.beginPath();
+    ctx.arc(x, y, radius, 0, Math.PI * 2);
+    ctx.clip();
+    ctx.drawImage(blurred, 0, 0);
+    ctx.restore();
+  };
+  const paint = (p) => {
+    const radius = (size.value * scale()) / 2;
+    if (!last) dab(p.x, p.y, radius);
+    else {
+      // Fill the gap between pointer events so fast strokes stay continuous.
+      const dx = p.x - last.x, dy = p.y - last.y, n = Math.max(1, Math.ceil(Math.hypot(dx, dy) / (radius / 3)));
+      for (let i = 1; i <= n; i++) dab(last.x + (dx * i) / n, last.y + (dy * i) / n, radius);
+    }
+    last = p;
+  };
+  const moveRing = (e) => {
+    const r = canvas.getBoundingClientRect();
+    ring.style.setProperty('--x', `${e.clientX - r.left}px`);
+    ring.style.setProperty('--y', `${e.clientY - r.top}px`);
+    ring.style.setProperty('--size', `${size.value}px`);
+  };
+  canvas.addEventListener('pointerdown', (e) => {
+    painting = true;
+    last = null;
+    canvas.setPointerCapture(e.pointerId);
+    demo.classList.add('used');
+    paint(at(e));
+  });
+  canvas.addEventListener('pointermove', (e) => {
+    moveRing(e);
+    if (painting) paint(at(e));
+  });
+  for (const type of ['pointerup', 'pointercancel']) canvas.addEventListener(type, () => { painting = false; last = null; });
+  size.addEventListener('input', () => ring.style.setProperty('--size', `${size.value}px`));
+  demo.querySelector('[data-reset]').addEventListener('click', () => { original(); demo.classList.remove('used'); });
 }
 
 // A shared link's life, counting down from 24 hours.
