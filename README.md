@@ -2,7 +2,7 @@
 
 A remake of the Lightshot screenshot tool for Windows by **Devgm, LLC**, with the same two-click workflow, more tools, AI editing and a glass interface. Free and open source under the [MIT license](LICENSE).
 
-Website: https://liteshot-updates.tight-dawn-4128.workers.dev · Encrypted uploads: [fortefile.com](https://fortefile.com)
+Website: [liteshot.app](https://liteshot.app) · Encrypted uploads: [fortefile.com](https://fortefile.com)
 
 Press **PrtScn**, drag over an area (or click a window), annotate, then copy, save, upload, pin, pull out the text, edit it with AI or turn it into a video.
 
@@ -134,7 +134,7 @@ dotnet run --project tools/LiteShot.Publish -c Release -- publish --server https
 
 ## The website
 
-`server/public/` is the LiteShot site, served by the same Worker as updates: https://liteshot-updates.tight-dawn-4128.workers.dev (until a domain such as liteshot.app is attached). Its download buttons, `/download` and `/download/portable`, always point at the newest signed release. The product shots come from the harness: `dotnet run --project tests/LiteShot.Harness -- <folder> --site`.
+`server/public/` is the LiteShot site, served by the same Worker as updates at https://liteshot.app (also https://liteshot-updates.tight-dawn-4128.workers.dev, which LiteShot uses for update checks). Its download buttons, `/download` and `/download/portable`, always point at the newest signed release. The product shots come from the harness: `dotnet run --project tests/LiteShot.Harness -- <folder> --site`.
 
 ## fortefile.com
 

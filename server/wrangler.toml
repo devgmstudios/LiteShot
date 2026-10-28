@@ -13,6 +13,12 @@ name = "liteshot-updates"
 account_id = "166e8364c6d1ed80ed50a789f0da5f9d"   # Devgm, LLC (Admin@devgm.com)
 main = "src/index.ts"
 compatibility_date = "2025-07-01"
+# The site lives on liteshot.app; the workers.dev address stays on because LiteShot 1.1.0 checks it for updates.
+workers_dev = true
+routes = [
+  { pattern = "liteshot.app", custom_domain = true },
+  { pattern = "www.liteshot.app", custom_domain = true },
+]
 
 # The website (public/) is served as static assets; everything else reaches the worker.
 [assets]
