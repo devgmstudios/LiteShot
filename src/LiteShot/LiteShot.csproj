@@ -18,7 +18,7 @@
     <Company>Devgm, LLC</Company>
     <Authors>Devgm, LLC</Authors>
     <Copyright>© 2026 Devgm, LLC. All rights reserved.</Copyright>
-    <Version>1.1.0</Version>
+    <Version>1.1.1</Version>
     <Platforms>x64</Platforms>
     <PlatformTarget>x64</PlatformTarget>
     <RuntimeIdentifier>win-x64</RuntimeIdentifier>

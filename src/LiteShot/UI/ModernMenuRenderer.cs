@@ -40,6 +40,17 @@ internal sealed class ModernMenuRenderer : ToolStripProfessionalRenderer
 
     protected override void OnRenderImageMargin(ToolStripRenderEventArgs e) { }
 
+    /// <summary>Checked items get a small accent tile with a white check, like a Windows 11 toggle.</summary>
+    protected override void OnRenderItemCheck(ToolStripItemImageRenderEventArgs e)
+    {
+        var g = e.Graphics;
+        g.SmoothingMode = SmoothingMode.AntiAlias;
+        var r = RectangleF.Inflate(e.ImageRectangle, -1, -1);
+        using var tile = Ui.RoundRect(r, r.Height * 0.3f);
+        using (var b = new SolidBrush(SystemTheme.HighContrast ? SystemColors.Highlight : SystemTheme.Accent)) g.FillPath(b, tile);
+        Icons.Draw(g, RectangleF.Inflate(r, -1, -1), SystemTheme.HighContrast ? SystemColors.HighlightText : Color.White, Icons.Check, 2.6f);
+    }
+
     protected override void OnRenderMenuItemBackground(ToolStripItemRenderEventArgs e)
     {
         if (!e.Item.Selected || !e.Item.Enabled) return;

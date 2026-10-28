@@ -20,14 +20,27 @@ internal static class StartupRegistration
         }
     }
 
+    static string Command => $"\"{Environment.ProcessPath}\" --startup";
+
     public static void Set(bool enabled)
     {
         try
         {
             using var key = Registry.CurrentUser.CreateSubKey(RunKey);
-            if (enabled) key.SetValue(ValueName, $"\"{Environment.ProcessPath}\" --startup");
+            if (enabled) key.SetValue(ValueName, Command);
             else key.DeleteValue(ValueName, throwOnMissingValue: false);
         }
         catch { /* policy may block the Run key */ }
+    }
+
+    /// <summary>Keeps the startup entry pointing at this exe, for example after the portable exe was moved.</summary>
+    public static void Refresh()
+    {
+        try
+        {
+            using var key = Registry.CurrentUser.OpenSubKey(RunKey);
+            if (key?.GetValue(ValueName) is string current && !string.Equals(current, Command, StringComparison.OrdinalIgnoreCase)) Set(true);
+        }
+        catch { /* best effort */ }
     }
 }

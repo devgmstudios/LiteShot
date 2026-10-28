@@ -340,6 +340,9 @@ internal static class Icons
         g.DrawPath(p, back);
     }
 
+    /// <summary>checkmark</summary>
+    public static void Check(Graphics g, Pen p, Brush f) => g.DrawLines(p, P(5.5f, 12.5f, 10, 17, 18.5f, 7.5f));
+
     /// <summary>xmark</summary>
     public static void Close(Graphics g, Pen p, Brush f)
     {

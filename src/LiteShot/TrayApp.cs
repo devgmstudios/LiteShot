@@ -17,6 +17,7 @@ internal sealed class TrayApp : ApplicationContext
     readonly RegisteredWaitHandle captureWait, exitWait;
     readonly List<PinForm> pins = new();
     ToolStripMenuItem captureItem = null!, fullItem = null!, lastItem = null!, recentItem = null!, folderItem = null!, optionsItem = null!, exitItem = null!;
+    ToolStripMenuItem shortcutsItem = null!, startupItem = null!;
     CaptureOverlay? overlay;
     SettingsForm? settingsForm;
     Action? balloonClick;
@@ -50,6 +51,9 @@ internal sealed class TrayApp : ApplicationContext
         SystemEvents.UserPreferenceChanged += OnUserPreferenceChanged;
         updateTimer.Tick += (_, _) => AutoUpdateTick();
         Updater.CleanUp();
+        // Like Lightshot, LiteShot starts with Windows unless the user turns it off (tray menu or Settings).
+        if (!Settings.FirstRunShown) StartupRegistration.Set(true);
+        else StartupRegistration.Refresh();
         ApplySettings();
 
         if (justUpdated)
@@ -57,7 +61,7 @@ internal sealed class TrayApp : ApplicationContext
         else if (!hook.IsInstalled)
             Notify("Hotkeys unavailable", "LiteShot couldn't register its keyboard shortcuts. Use the tray icon to take screenshots.", error: true);
         else if (!launchedAtStartup || !Settings.FirstRunShown)
-            Notify("LiteShot is running", $"Press {HotkeyText.Format(Settings.HotkeyCapture)} to take a screenshot, or click the tray icon.", force: true);
+            Notify("LiteShot is running", $"Press {HotkeyText.Format(Settings.HotkeyCapture)} to take a screenshot, or click the tray icon. Change the key under Change shortcuts in the tray menu.", force: true);
         Settings.FirstRunShown = true;
         Settings.Save();
     }
@@ -82,13 +86,15 @@ internal sealed class TrayApp : ApplicationContext
         recentItem.DropDownOpening += (_, _) => FillRecentUploads();
         recentItem.DropDown.Renderer = new ModernMenuRenderer();
         folderItem = new ToolStripMenuItem("Open screenshots folder", null, (_, _) => ImageOutput.OpenFolder(Settings.SaveFolder));
+        shortcutsItem = new ToolStripMenuItem("Change shortcuts…", null, (_, _) => ShowSettings(SettingsForm.ShortcutsPage));
+        startupItem = new ToolStripMenuItem("Start with Windows", null, (_, _) => StartupRegistration.Set(!StartupRegistration.IsEnabled));
         optionsItem = new ToolStripMenuItem("Settings", null, (_, _) => ShowSettings());
         exitItem = new ToolStripMenuItem("Exit", null, (_, _) => Exit());
         m.Items.AddRange(new ToolStripItem[]
         {
             captureItem, fullItem, lastItem, new ToolStripSeparator(),
             recentItem, folderItem, new ToolStripSeparator(),
-            optionsItem, exitItem,
+            shortcutsItem, startupItem, optionsItem, exitItem,
         });
         foreach (ToolStripItem item in m.Items)
             if (item is ToolStripMenuItem) item.Padding = new Padding(4, 5, 4, 5);
@@ -116,6 +122,8 @@ internal sealed class TrayApp : ApplicationContext
         Set(recentItem, Icons.Clock);
         Set(folderItem, Icons.Folder);
         Set(optionsItem, Icons.Gear);
+        Set(shortcutsItem, Icons.Keyboard);
+        startupItem.Checked = StartupRegistration.IsEnabled;
         Set(exitItem, Icons.Power);
     }
 

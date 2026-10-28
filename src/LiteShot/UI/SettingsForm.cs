@@ -12,6 +12,7 @@ internal sealed class SettingsForm : Form
     readonly List<(NavButton Nav, Panel Page)> pages = new();
     static AppSettings Settings => AppSettings.Current;
 
+    public const int ShortcutsPage = 1;
     public const int CloudPage = 3;
 
     public SettingsForm(TrayApp host, int startPage = 0)
