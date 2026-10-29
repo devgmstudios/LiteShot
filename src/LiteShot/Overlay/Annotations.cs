@@ -194,6 +194,8 @@ internal sealed class PixelateShape : TwoPointShape
 internal sealed class BlurShape : TwoPointShape
 {
     public bool Oval;
+    /// <summary>Added by "Hide personal info"; switching it off removes these and keeps the user's own blurs.</summary>
+    public bool Auto;
     Bitmap? cache;
     Rectangle cacheRect;
     int cacheBlock;

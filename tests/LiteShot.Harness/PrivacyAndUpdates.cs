@@ -15,6 +15,8 @@ internal static class PrivacyAndUpdates
     public static void Run(string outDir, Func<Bitmap, CaptureOverlay> newOverlay, Bitmap desktop, Action<bool, string> check, string? updateServer)
     {
         Names(check);
+        PersonalDetails(check);
+        PersonalOnScreen(outDir, check);
         NamesOnScreen(outDir, newOverlay, desktop, check);
         BlurBrush(outDir, newOverlay, desktop, check);
         Faces(outDir, check);
@@ -102,8 +104,8 @@ internal static class PrivacyAndUpdates
 
         // In the editor: the scan runs when the overlay opens; copying waits for it; Ctrl+Z brings the names back.
         var settings = AppSettings.Current;
-        bool before = settings.AutoBlurNames;
-        settings.AutoBlurNames = true;
+        bool before = settings.HidePersonalInfo;
+        settings.HidePersonalInfo = true;
         try
         {
             using var screen = (Bitmap)desktop.Clone();
@@ -113,7 +115,7 @@ internal static class PrivacyAndUpdates
             var sel = new Rectangle(at.X, at.Y, chat.Width, chat.Height);
             Set(o, "sel", sel);
             Set(o, "hasSel", true);
-            Call(o, "StartNameScan");
+            Call(o, "StartPrivacyScan");
             using (var result = (Bitmap)Call(o, "RenderResult")!)
             {
                 var shapes = Get<List<Annotation>>(o, "shapes");
@@ -129,9 +131,22 @@ internal static class PrivacyAndUpdates
             check(!Get<List<Annotation>>(o, "shapes").OfType<BlurShape>().Any(), "Ctrl+Z removes the automatic blurs");
             Call(o, "Redo");
             check(Get<List<Annotation>>(o, "shapes").OfType<BlurShape>().Count() >= 4, "Ctrl+Y puts them back");
+
+            // The toolbar toggle: off removes only the automatic blurs (a hand-made one stays), on brings them back.
+            var mine = new BlurShape { A = new PointF(sel.X + 10, sel.Bottom - 40), B = new PointF(sel.X + 120, sel.Bottom - 10), Size = 8 };
+            Get<List<Annotation>>(o, "shapes").Add(mine);
+            Call(o, "ToggleHidePersonal");
+            var afterOff = Get<List<Annotation>>(o, "shapes").OfType<BlurShape>().ToList();
+            check(!settings.HidePersonalInfo && afterOff.Count == 1 && afterOff[0] == mine, "Hide personal info off: automatic blurs go, your own blur stays");
+            Call(o, "ToggleHidePersonal");
+            check(settings.HidePersonalInfo && Get<List<Annotation>>(o, "shapes").OfType<BlurShape>().Count(b => b.Auto) >= 4, "Hide personal info on again: the blurs come back");
             o.Dispose();
         }
-        finally { settings.AutoBlurNames = before; }
+        finally
+        {
+            settings.HidePersonalInfo = before;
+            settings.Save();
+        }
     }
 
     /// <summary>FacePrivacy.ai's blur brush: a stroke over a name blurs what's under it, and undo takes it away.</summary>
@@ -166,6 +181,44 @@ internal static class PrivacyAndUpdates
         Call(o, "Undo");
         check(!Get<List<Annotation>>(o, "shapes").OfType<BlurBrushShape>().Any(), "undo removes the brush stroke");
         o.Dispose();
+    }
+
+    /// <summary>Emails, phone, card and social security numbers and keywords; dates, times and amounts left alone.</summary>
+    internal static void PersonalDetails(Action<bool, string> check)
+    {
+        void Expect(string line, string[] keywords, params string[] wanted)
+        {
+            var words = line.Split(' ', StringSplitOptions.RemoveEmptyEntries);
+            var found = LiteShot.PersonalInfo.FindInLine(words, keywords)
+                .Select(s => string.Join(" ", words.Skip(s.Start).Take(s.Count)).Trim(',', '.', ':', '?')).Distinct().ToList();
+            bool ok = wanted.All(w => found.Contains(w)) && found.Count == wanted.Length;
+            check(ok, $"personal info in \"{line}\" → [{string.Join(" | ", found)}]");
+        }
+        string[] none = Array.Empty<string>();
+        Expect("Write to sarah.j@acme.com today", none, "sarah.j@acme.com");
+        Expect("Call (555) 123-4567 or +1 555 987 6543", none, "(555) 123-4567", "+1 555 987 6543");
+        Expect("Card 4111 1111 1111 1111 expires", none, "4111 1111 1111 1111");
+        Expect("SSN 123-45-6789 on file", none, "123-45-6789");
+        Expect("Ticket for Project Falcon at Acme Corp", new[] { "project falcon", "Acme Corp" }, "Project Falcon", "Acme Corp");
+        Expect("Meeting 10:42 AM on 2026-10-28, revenue up 24% to $4.2M", none);
+    }
+
+    static void PersonalOnScreen(string outDir, Action<bool, string> check)
+    {
+        using var bmp = new Bitmap(900, 120, PixelFormat.Format32bppArgb);
+        using (var g = Graphics.FromImage(bmp))
+        {
+            g.Clear(Color.White);
+            g.TextRenderingHint = System.Drawing.Text.TextRenderingHint.ClearTypeGridFit;
+            using var font = new Font("Segoe UI", 22, GraphicsUnit.Pixel);
+            g.DrawString("Reach me at jordan.miles@example.com or (555) 201-7788.", font, Brushes.Black, 20, 40);
+        }
+        var found = Task.Run(() => LiteShot.PersonalInfo.FindAsync(bmp, Array.Empty<string>(), faces: false)).GetAwaiter().GetResult();
+        check(found.Count >= 2 && found.All(f => !f.Face), $"OCR finds the email and phone number ({found.Count} areas)");
+        using var copy = (Bitmap)bmp.Clone();
+        int n = Task.Run(() => LiteShot.PersonalInfo.BlurAsync(copy, Array.Empty<string>())).GetAwaiter().GetResult();
+        copy.Save(Path.Combine(outDir, "24-personal-info.png"), ImageFormat.Png);
+        check(n >= 2, "personal details are blurred in place");
     }
 
     static double Difference(Bitmap a, Bitmap b, Rectangle r)

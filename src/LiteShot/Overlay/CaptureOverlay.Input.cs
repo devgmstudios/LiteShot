@@ -590,6 +590,7 @@ internal sealed partial class CaptureOverlay
             if (!hasSel) return false;
             if (code == Keys.V) { SetTool(Tool.None); return true; }
             if (code == Keys.F) { BlurFaces(); return true; }
+            if (code == Keys.H) { ToggleHidePersonal(); return true; }
             Tool? t = code switch
             {
                 Keys.P => Tool.Pen,

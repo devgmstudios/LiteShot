@@ -147,13 +147,33 @@ internal static class Icons
         g.DrawPath(p, path);
     }
 
-    /// <summary>face.dashed: blur faces</summary>
+    /// <summary>Blur faces: head and shoulders with a censor bar across the eyes.</summary>
     public static void FaceBlur(Graphics g, Pen p, Brush f)
     {
-        for (int i = 0; i < 12; i++) g.DrawArc(p, 3, 3, 18, 18, i * 30 + 6, 16);
-        g.FillEllipse(f, 8.4f, 8.6f, 2.2f, 3f);
-        g.FillEllipse(f, 13.4f, 8.6f, 2.2f, 3f);
-        g.DrawArc(p, 8.2f, 10.2f, 7.6f, 5.6f, 25, 130);
+        g.DrawEllipse(p, 7.6f, 4.6f, 8.8f, 8.8f);
+        using (var shoulders = new GraphicsPath())
+        {
+            shoulders.AddBezier(4.8f, 20.2f, 5.4f, 16.5f, 8.3f, 14.2f, 12, 14.2f);
+            shoulders.AddBezier(12, 14.2f, 15.7f, 14.2f, 18.6f, 16.5f, 19.2f, 20.2f);
+            g.DrawPath(p, shoulders);
+        }
+        using var bar = Round(5.4f, 7.3f, 13.2f, 3.5f, 1.75f);
+        g.FillPath(f, bar);
+    }
+
+    /// <summary>eye.slash: hide personal info</summary>
+    public static void HidePersonal(Graphics g, Pen p, Brush f)
+    {
+        using (var eye = new GraphicsPath())
+        {
+            eye.AddBezier(2.8f, 12, 5.2f, 7.6f, 8.4f, 5.6f, 12, 5.6f);
+            eye.AddBezier(12, 5.6f, 15.6f, 5.6f, 18.8f, 7.6f, 21.2f, 12);
+            eye.AddBezier(21.2f, 12, 18.8f, 16.4f, 15.6f, 18.4f, 12, 18.4f);
+            eye.AddBezier(12, 18.4f, 8.4f, 18.4f, 5.2f, 16.4f, 2.8f, 12);
+            g.DrawPath(p, eye);
+        }
+        g.DrawEllipse(p, 9.2f, 9.2f, 5.6f, 5.6f);
+        g.DrawLine(p, 4.5f, 3.8f, 19.5f, 20.2f);
     }
 
     /// <summary>A round brush leaving a soft trail: FacePrivacy.ai's blur brush.</summary>

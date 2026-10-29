@@ -73,6 +73,9 @@ internal static class AiService
 
     public static bool HasKey => !string.IsNullOrWhiteSpace(ApiKey);
 
+    /// <summary>The last four characters of the saved key, enough to recognize it without showing it.</summary>
+    public static string KeyHint => ApiKey is { Length: >= 4 } k ? k[^4..] : "";
+
     // ───────────────────────────── models ─────────────────────────────
 
     public static AiModel ModelFor(AiKind kind)

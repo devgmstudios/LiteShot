@@ -164,12 +164,22 @@ internal sealed class SettingsForm : Form
             .Add(new SettingRow(theme, "Include the mouse pointer", "Draws the pointer into captured screenshots.",
                 Toggle(Settings.CaptureCursor, v => Settings.CaptureCursor = v))));
         add(Section("Privacy"));
+        var keywords = new FieldBox(theme);
+        keywords.Box.Text = string.Join(", ", Settings.RedactKeywords);
+        Native.SetCueBanner(keywords.Box, "e.g. Acme Corp, Project Falcon");
+        keywords.Box.TextChanged += (_, _) =>
+        {
+            Settings.RedactKeywords = keywords.Box.Text.Split(',', StringSplitOptions.RemoveEmptyEntries | StringSplitOptions.TrimEntries)
+                .Where(k => k.Length >= 2).Distinct(StringComparer.OrdinalIgnoreCase).ToList();
+            Settings.Save();
+        };
         var faceprivacy = new PillButton(theme, "FacePrivacy.ai", 128);
         faceprivacy.Click += (_, _) => ImageOutput.OpenUrl("https://faceprivacy.ai/blur/");
         add(new Card(theme)
-            .Add(new SettingRow(theme, "Blur names automatically",
-                "Blurs text that looks like a person's name as you capture. Ctrl+Z brings it back.",
-                Toggle(Settings.AutoBlurNames, v => Settings.AutoBlurNames = v)))
+            .Add(new SettingRow(theme, "Hide personal info",
+                "Blurs names, faces, emails, phone and card numbers. H toggles it in the editor.",
+                Toggle(Settings.HidePersonalInfo, v => Settings.HidePersonalInfo = v)))
+            .Add(new SettingRow(theme, "Keywords to hide", "Also hidden on every capture, separated by commas: client names, project codes…", keywords, wide: true))
             .Add(new SettingRow(theme, "Blur faces · FacePrivacy.ai", "Press F to blur every face, or paint over one with the blur brush (U). Runs on your PC.", faceprivacy)));
         return page;
     }
@@ -313,9 +323,11 @@ internal sealed class SettingsForm : Form
                 "Uploads go to fortefile.com, encrypted on your PC first. Delete one sooner from Recent uploads in the tray menu.", lifetime, wide: true)));
 
         // SyncNode key: stored encrypted for this Windows user; Check shows the balance.
-        string keyHelp = "From syncnode.ai/api_keys. Save your Replicate token there too.";
-        string keyStatus = AiService.HasKey ? "Saved and encrypted for your Windows account. Use Check to see your balance." : keyHelp;
+        string keyHelp = "No key saved. Get one at syncnode.ai/api_keys and save your Replicate token there too.";
+        string Saved() => $"✓ Saved, ending in {AiService.KeyHint} · encrypted for your Windows account. Check shows your balance.";
+        string keyStatus = AiService.HasKey ? Saved() : keyHelp;
         SettingRow? keyRow = null;
+        PillButton? remove = null;
         var key = new FieldBox(theme);
         key.Box.UseSystemPasswordChar = true;
         key.Box.Text = AiService.ApiKey ?? "";
@@ -324,7 +336,8 @@ internal sealed class SettingsForm : Form
         {
             AiService.ApiKey = key.Box.Text;
             Settings.Save();
-            keyStatus = key.Box.Text.Trim().Length == 0 ? keyHelp : "Saved and encrypted for your Windows account. Use Check to see your balance.";
+            keyStatus = AiService.HasKey ? Saved() : keyHelp;
+            remove!.Enabled = AiService.HasKey;
             keyRow?.RefreshText();
         };
         var check = new PillButton(theme, "Check", 84, primary: true);
@@ -344,7 +357,17 @@ internal sealed class SettingsForm : Form
         };
         var getKey = new PillButton(theme, "Get a key", 104);
         getKey.Click += (_, _) => ImageOutput.OpenUrl("https://syncnode.ai/api_keys");
-        keyRow = new SettingRow(theme, "SyncNode API key", () => keyStatus, new FlowRow(theme, key, check, getKey), wide: true);
+        remove = new PillButton(theme, "Remove", 96) { Enabled = AiService.HasKey };
+        remove.Click += (_, _) =>
+        {
+            AiService.ApiKey = null;
+            Settings.Save();
+            key.Box.Text = "";
+            keyStatus = "Key removed from this PC.";
+            remove.Enabled = false;
+            keyRow?.RefreshText();
+        };
+        keyRow = new SettingRow(theme, "SyncNode API key", () => keyStatus, new FlowRow(theme, key, check, remove, getKey), wide: true);
         add(Section("SyncNode"));
         add(new Card(theme).Add(keyRow));
 

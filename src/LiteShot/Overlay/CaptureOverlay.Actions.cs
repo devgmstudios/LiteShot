@@ -19,7 +19,7 @@ internal sealed partial class CaptureOverlay
     Bitmap RenderResult()
     {
         CommitText();
-        ApplyNameBlurs(wait: true);
+        ApplyPrivacy(wait: true);
         var img = new Bitmap(sel.Width, sel.Height, PixelFormat.Format32bppArgb);
         img.SetResolution(96, 96);
         using var g = Graphics.FromImage(img);

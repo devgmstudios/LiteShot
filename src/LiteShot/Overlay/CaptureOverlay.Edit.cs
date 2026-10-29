@@ -17,6 +17,7 @@ internal sealed partial class CaptureOverlay
 
         colorButton = new ToolButton { Tip = "Color and size", OnClick = () => TogglePalette(colorButton), CustomPaint = PaintColorButton };
         blurFacesButton = new ToolButton { Tip = "Blur faces · FacePrivacy.ai", Shortcut = "F", Glyph = Icons.FaceBlur, OnClick = BlurFaces, IsActive = () => findingFaces };
+        hidePersonalButton = new ToolButton { Tip = "Hide personal info", Shortcut = "H", Glyph = Icons.HidePersonal, OnClick = ToggleHidePersonal, IsActive = () => HidingPersonal };
         return new Toolbar(vertical: true)
             .Group(
                 T(Tool.Pen, "Pen", "P", Icons.Pen),
@@ -28,6 +29,7 @@ internal sealed partial class CaptureOverlay
                 T(Tool.Text, "Text", "T", Icons.Text),
                 T(Tool.Counter, "Step number", "N", Icons.Counter))
             .Group(
+                hidePersonalButton,
                 T(Tool.Pixelate, "Pixelate", "B", Icons.Pixelate),
                 T(Tool.BlurBrush, "Blur brush · FacePrivacy.ai", "U", Icons.BlurBrush),
                 blurFacesButton)

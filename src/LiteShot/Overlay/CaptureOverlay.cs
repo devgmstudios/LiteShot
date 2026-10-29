@@ -49,7 +49,7 @@ internal sealed partial class CaptureOverlay : Form
     string editSignature = "";
 
     readonly Toolbar tools, actions;
-    ToolButton colorButton = null!, shareButton = null!, blurFacesButton = null!;
+    ToolButton colorButton = null!, shareButton = null!, blurFacesButton = null!, hidePersonalButton = null!;
     ToolButton? hoverButton, pressedButton;
     float hoverAnim = 1f;
     bool tooltipVisible, paletteOpen, closing;
@@ -215,7 +215,7 @@ internal sealed partial class CaptureOverlay : Form
         SetWindowPos(Handle, HWND_TOPMOST, virt.X, virt.Y, virt.Width, virt.Height, SWP_SHOWWINDOW);
         BringToForeground();
         UpdateView(true);
-        StartNameScan();
+        StartPrivacyScan();
     }
 
     void BringToForeground()

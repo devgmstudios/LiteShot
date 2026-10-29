@@ -1,49 +1,85 @@
 namespace LiteShot.Overlay;
 
-/// <summary>Privacy: names blurred automatically (Settings › Capture) and faces blurred with one click.</summary>
+/// <summary>
+/// Privacy: "Hide personal info" (H, remembered between captures) blurs names, faces, emails, phone and card numbers
+/// and the user's keywords automatically; faces can also be blurred with one click, or painted over with the brush.
+/// </summary>
 internal sealed partial class CaptureOverlay
 {
-    Task<List<Rectangle>>? nameScan;
-    bool namesApplied, findingFaces;
+    Task<List<Redaction>>? privacyScan;
+    bool privacyApplied, findingFaces;
 
-    /// <summary>Starts reading the screen for names in the background as soon as the overlay is up.</summary>
-    void StartNameScan()
+    static bool HidingPersonal => AppSettings.Current.HidePersonalInfo;
+
+    /// <summary>Starts looking for personal details in the background as soon as the overlay is up.</summary>
+    void StartPrivacyScan()
     {
-        if (!AppSettings.Current.AutoBlurNames || nameScan != null) return;
+        if (!HidingPersonal || privacyScan != null) return;
         // The UI thread keeps painting from the capture, so the scan gets its own copy.
         var copy = shot.Clone(new Rectangle(Point.Empty, shot.Size), shot.PixelFormat);
-        nameScan = Task.Run(async () =>
+        var keywords = AppSettings.Current.RedactKeywords.ToList();
+        privacyScan = Task.Run(async () =>
         {
-            using (copy) return await NameFinder.FindAsync(copy).ConfigureAwait(false);
+            using (copy) return await PersonalInfo.FindAsync(copy, keywords, faces: true).ConfigureAwait(false);
         });
-        nameScan.ContinueWith(_ =>
+        privacyScan.ContinueWith(_ =>
         {
-            try { if (!closing && IsHandleCreated) BeginInvoke(new Action(() => ApplyNameBlurs(wait: false))); }
+            try { if (!closing && IsHandleCreated) BeginInvoke(new Action(() => ApplyPrivacy(wait: false))); }
             catch (InvalidOperationException) { /* the overlay closed meanwhile */ }
         }, TaskScheduler.Default);
     }
 
-    /// <summary>Adds the name blurs once the scan is done. Output paths pass <paramref name="wait"/> so a quick Ctrl+C never leaks a name.</summary>
-    void ApplyNameBlurs(bool wait)
+    /// <summary>Adds the automatic blurs once the scan is done. Output paths pass <paramref name="wait"/> so a quick Ctrl+C never leaks anything.</summary>
+    void ApplyPrivacy(bool wait)
     {
-        if (nameScan == null || namesApplied || closing) return;
-        if (!nameScan.IsCompleted)
+        if (!HidingPersonal || privacyScan == null || privacyApplied || closing) return;
+        if (!privacyScan.IsCompleted)
         {
             if (!wait) return;
-            try { nameScan.Wait(TimeSpan.FromSeconds(10)); } catch { /* reported below */ }
-            if (!nameScan.IsCompleted) return;
+            try { privacyScan.Wait(TimeSpan.FromSeconds(10)); } catch { /* reported below */ }
+            if (!privacyScan.IsCompleted) return;
         }
-        namesApplied = true;
-        if (!nameScan.IsCompletedSuccessfully)
+        privacyApplied = true;
+        if (!privacyScan.IsCompletedSuccessfully)
         {
-            if (!wait) ShowFlash("Couldn't look for names");
+            if (!wait) ShowFlash("Couldn't look for personal info");
             return;
         }
-        var blurs = nameScan.Result.Select(NameFinder.BlurFor).ToList();
+        var blurs = privacyScan.Result.Select(PersonalInfo.BlurFor).ToList();
+        InvalidateRect(hidePersonalButton.Bounds, 3);
         if (blurs.Count == 0) return;
         AddShapes(blurs, underneath: true);
         int visible = hasSel ? blurs.Count(b => Rectangle.Round(b.Rect).IntersectsWith(sel)) : 0;
-        if (!wait && visible > 0) ShowFlash(visible == 1 ? "Blurred 1 name · Ctrl+Z to undo" : $"Blurred {visible} names · Ctrl+Z to undo");
+        if (!wait && visible > 0) ShowFlash(visible == 1 ? "Hid 1 personal detail" : $"Hid {visible} personal details");
+    }
+
+    /// <summary>The "Hide personal info" button: on adds the automatic blurs (and keeps them on for next time), off takes them away.</summary>
+    void ToggleHidePersonal()
+    {
+        if (closing) return;
+        CommitText();
+        var settings = AppSettings.Current;
+        settings.HidePersonalInfo = !settings.HidePersonalInfo;
+        settings.Save();
+        InvalidateRect(hidePersonalButton.Bounds, 3);
+        if (settings.HidePersonalInfo)
+        {
+            privacyApplied = false;
+            if (privacyScan == null) StartPrivacyScan();
+            if (privacyScan!.IsCompleted) ApplyPrivacy(wait: false);
+            else ShowFlash("Hiding personal info…");
+            return;
+        }
+        var automatic = shapes.OfType<BlurShape>().Where(b => b.Auto).ToList();
+        if (automatic.Count > 0)
+        {
+            PushUndo();
+            shapes.RemoveAll(a => a is BlurShape { Auto: true });
+            if (selectedShape is BlurShape { Auto: true }) selectedShape = null;
+            if (hasSel) InvalidateRect(Rectangle.Inflate(sel, 4, 4));
+        }
+        privacyApplied = false;
+        ShowFlash("Personal info shown · blur anything by hand with U");
     }
 
     /// <summary>Finds faces in the selection and blurs each one. Runs off the UI thread; the button stays lit meanwhile.</summary>

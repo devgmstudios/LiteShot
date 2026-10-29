@@ -256,10 +256,11 @@ internal sealed class TrayApp : ApplicationContext
         try
         {
             using var shot = ScreenCapture.Capture(SystemInformation.VirtualScreen, Settings.CaptureCursor);
-            if (Settings.AutoBlurNames)
+            if (Settings.HidePersonalInfo)
             {
-                try { await Task.Run(() => NameFinder.BlurAsync(shot)); }
-                catch (Exception ex) { Notify("Names weren't blurred", ex.Message, error: true); return; }
+                var keywords = Settings.RedactKeywords.ToList();
+                try { await Task.Run(() => PersonalInfo.BlurAsync(shot, keywords)); }
+                catch (Exception ex) { Notify("Personal info wasn't hidden", ex.Message, error: true); return; }
             }
             string path = ImageOutput.SaveToFolder(shot);
             ImageOutput.CopyToClipboard(shot);

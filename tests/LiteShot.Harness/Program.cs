@@ -365,18 +365,18 @@ internal static class Program
         using var screen = (Bitmap)desktop.Clone();
         var at = new Point(lw.X + 30, lw.Y + 110);
         using (var g = Graphics.FromImage(screen)) g.DrawImage(chat, at.X, at.Y, chat.Width, chat.Height);
-        bool before = settings.AutoBlurNames;
-        settings.AutoBlurNames = true;
+        bool before = settings.HidePersonalInfo;
+        settings.HidePersonalInfo = true;
         o = NewOverlay(screen, virt, windows);
         Drag(o, new Point(at.X - 6, at.Y - 6), new Point(at.X + chat.Width - 60, at.Y + chat.Height + 4));
-        Invoke(o, "StartNameScan");
-        Invoke(o, "ApplyNameBlurs", true);
+        Invoke(o, "StartPrivacyScan");
+        Invoke(o, "ApplyPrivacy", true);
         var face = Get<ToolButton>(o, "blurFacesButton");
         Move(o, (int)(face.Bounds.X + face.Bounds.Width / 2), (int)(face.Bounds.Y + face.Bounds.Height / 2));
         Set(o, "tooltipVisible", true);
         Set(o, "hoverAnim", 1f);
         Snap(o, "site-privacy", Chrome(o, Rectangle.Inflate(Rectangle.Round(face.Bounds), 220, 20)));
-        settings.AutoBlurNames = before;
+        settings.HidePersonalInfo = before;
         o.Dispose();
 
         // 5. Settings, Capture page.
@@ -409,12 +409,12 @@ internal static class Program
         Point At(Rectangle r, float fx, float fy) => new((int)(r.X + r.Width * fx), (int)(r.Y + r.Height * fy));
         Rectangle Chrome(CaptureOverlay o) => Inflate(Rectangle.Union(Rectangle.Union(Get<Rectangle>(o, "sel"),
             Rectangle.Round(Get<Toolbar>(o, "tools").Bounds)), Rectangle.Round(Get<Toolbar>(o, "actions").Bounds)), (int)(30 * s));
-        bool magnifier = settings.ShowMagnifier, autoBlur = settings.AutoBlurNames;
+        bool magnifier = settings.ShowMagnifier, autoBlur = settings.HidePersonalInfo;
         try
         {
             // 1. PrtScn: the screen freezes and dims, the window under the cursor is outlined, and the loupe follows.
             settings.ShowMagnifier = true;
-            settings.AutoBlurNames = false;
+            settings.HidePersonalInfo = false;
             var o = NewOverlay(scene, virt, windows);
             Move(o, At(L.Chat, 0.66f, 0.30f).X, At(L.Chat, 0.66f, 0.30f).Y);
             Snap(o, "how-1-capture", screen);
@@ -455,11 +455,11 @@ internal static class Program
             // 4. Names: the chat thread before and after the automatic blur.
             Bitmap Thread(bool blur)
             {
-                settings.AutoBlurNames = blur;
+                settings.HidePersonalInfo = blur;
                 var ov = NewOverlay(scene, virt, windows);
                 Set(ov, "sel", L.ChatMessages);
                 Set(ov, "hasSel", true);
-                if (blur) Invoke(ov, "StartNameScan");
+                if (blur) Invoke(ov, "StartPrivacyScan");
                 var img = (Bitmap)Invoke(ov, "RenderResult")!;
                 Check(!blur || Get<List<Annotation>>(ov, "shapes").OfType<BlurShape>().Count() >= 6,
                     $"site: names blurred in the chat ({Get<List<Annotation>>(ov, "shapes").OfType<BlurShape>().Count()})");
@@ -468,7 +468,7 @@ internal static class Program
             }
             using var before = Thread(false);
             using var after = Thread(true);
-            settings.AutoBlurNames = false;
+            settings.HidePersonalInfo = false;
             before.Save(Path.Combine(outDir, "how-names-before.png"), ImageFormat.Png);
             after.Save(Path.Combine(outDir, "how-names-after.png"), ImageFormat.Png);
 
@@ -504,7 +504,7 @@ internal static class Program
         finally
         {
             settings.ShowMagnifier = magnifier;
-            settings.AutoBlurNames = autoBlur;
+            settings.HidePersonalInfo = autoBlur;
         }
         Console.WriteLine("Wrote \"see it work\" shots");
     }

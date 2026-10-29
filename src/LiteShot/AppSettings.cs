@@ -49,8 +49,13 @@ internal sealed class AppSettings
     public bool ShowMagnifier { get; set; }
     public bool DetectWindows { get; set; } = true;
     public bool CaptureCursor { get; set; }
-    /// <summary>Blur text that looks like a person's name as soon as a screenshot is taken.</summary>
-    public bool AutoBlurNames { get; set; }
+    /// <summary>"Hide personal info": blur names, faces, emails, phone and card numbers and <see cref="RedactKeywords"/> on every capture.</summary>
+    public bool HidePersonalInfo { get; set; }
+    /// <summary>The setting's old name (names only); still read so an earlier choice carries over, never written.</summary>
+    [JsonIgnore(Condition = JsonIgnoreCondition.WhenWritingDefault)]
+    public bool AutoBlurNames { get => false; set { if (value) HidePersonalInfo = true; } }
+    /// <summary>The user's own words to hide on every capture: client names, project codes and so on.</summary>
+    public List<string> RedactKeywords { get; set; } = new();
     public bool ShowNotifications { get; set; } = true;
     /// <summary>Off unless the user opts in: check for, download and install updates on its own.</summary>
     public bool AutoUpdate { get; set; }
