@@ -65,7 +65,7 @@
       <a href="#shortcuts">Shortcuts</a>
       <a href="#faq">FAQ</a>
     </nav>
-    <a class="btn btn-primary" href="#download">Download</a>
+    <a class="btn btn-primary" href="/download">Download</a>
   </header>
 
   <main id="top">
@@ -80,9 +80,10 @@
           </h1>
           <p class="lede rise d3">The two-click screenshot tool for Windows. Mark it up, hide what's personal, and share a link that deletes itself.</p>
           <div class="cta rise d4">
-            <a class="btn btn-primary magnetic" href="/download" data-download="msi"><svg class="icon"><use href="#i-download"/></svg>Download for Windows</a>
+            <a class="btn btn-primary magnetic" href="/download/installer" data-download="msi"><svg class="icon"><use href="#i-download"/></svg>Download for Windows</a>
             <a class="btn btn-glass glass magnetic" href="/download/portable" data-download="portable">Portable .exe</a>
           </div>
+          <p class="more-dl rise d5"><a href="/download">All downloads, checksums and VirusTotal reports →</a></p>
           <ul class="chips rise d5" aria-label="About LiteShot">
             <li class="glass"><span class="live" aria-hidden="true"></span><span data-version>Free download</span></li>
             <li class="glass">Windows 10 &amp; 11</li>
@@ -186,11 +187,12 @@
         <div class="reveal">
           <div data-lottie="names" class="badge violet big"><svg class="icon"><use href="#i-face"/></svg></div>
           <p class="kicker">Privacy</p>
-          <h2>Names blur themselves.</h2>
-          <p class="section-lede">Turn on <b>Blur names automatically</b> and LiteShot reads the screen the moment you capture, finds anything that looks like a person's name and blurs it. Drag the slider to compare.</p>
+          <h2>Personal info hides itself.</h2>
+          <p class="section-lede">Press <b>H</b> for Hide personal info and LiteShot reads the screen the moment you capture: names, emails, phone and card numbers and your own keywords are blurred, and faces too. It stays on until you switch it off. Drag the slider to compare.</p>
           <ul>
             <li><svg class="icon"><use href="#i-check"/></svg><span><b>Runs on your PC</b>Windows' own text recognition, so nothing is uploaded to find them.</span></li>
-            <li><svg class="icon"><use href="#i-check"/></svg><span><b>Your call</b>Ctrl+Z brings them all back; click one blur and press Delete to unblur just that name.</span></li>
+            <li><svg class="icon"><use href="#i-check"/></svg><span><b>Your keywords</b>Client names, fund names, project codes: add them once and they're hidden on every capture.</span></li>
+            <li><svg class="icon"><use href="#i-check"/></svg><span><b>Your call</b>Press H again to show everything, or click one blur and press Delete to unblur just that one.</span></li>
             <li><svg class="icon"><use href="#i-check"/></svg><span><b>Faces too, by FacePrivacy.ai</b>Press F and every face in the selection gets an oval blur, or press U and paint with FacePrivacy's blur brush.</span></li>
           </ul>
         </div>
@@ -252,7 +254,7 @@
         <article class="card glass span-3 reveal" id="privacy">
           <div data-lottie="faces" class="badge violet"><svg class="icon"><use href="#i-face"/></svg></div>
           <h3>Private by default</h3>
-          <p>Names are blurred the moment you capture. <b>Blur faces</b>, with technology from <a href="https://faceprivacy.ai/blur/">FacePrivacy.ai</a>, hides every face with one key — or paint over anything with their blur brush. It all runs on your PC.</p>
+          <p>Switch on <b>Hide personal info</b> (H) and names, faces, emails, phone and card numbers — plus your own keywords — are blurred the moment you capture. Face blurring by <a href="https://faceprivacy.ai/blur/">FacePrivacy.ai</a>. It all runs on your PC.</p>
           <div class="art flush"><img src="/img/privacy.webp" alt="A chat captured in LiteShot with the people's names blurred automatically, and the Blur faces button showing its tooltip." width="1327" height="949" loading="lazy"></div>
         </article>
 
@@ -370,6 +372,7 @@ On it. Marcus Lee already shared the draft.</pre>
         <div class="key-row glass"><span>Copy and close</span><kbd><i>Ctrl</i><i>C</i></kbd></div>
         <div class="key-row glass"><span>Save</span><kbd><i>Ctrl</i><i>S</i></kbd></div>
         <div class="key-row glass"><span>Upload, copy link</span><kbd><i>Ctrl</i><i>D</i></kbd></div>
+        <div class="key-row glass"><span>Hide personal info</span><kbd><i>H</i></kbd></div>
         <div class="key-row glass"><span>Blur faces</span><kbd><i>F</i></kbd></div>
         <div class="key-row glass"><span>Blur brush</span><kbd><i>U</i></kbd></div>
         <div class="key-row glass"><span>Copy text (OCR)</span><kbd><i>Ctrl</i><i>Shift</i><i>C</i></kbd></div>
@@ -388,9 +391,10 @@ On it. Marcus Lee already shared the draft.</pre>
           <h2>Get LiteShot.</h2>
           <p class="section-lede tight">Free for Windows 10 and 11. The installer adds LiteShot to Start and runs it with Windows; the portable exe runs from anywhere.</p>
           <div class="cta">
-            <a class="btn btn-primary" href="/download" data-download="msi"><svg class="icon"><use href="#i-download"/></svg><span data-label="msi">Installer (.msi)</span></a>
+            <a class="btn btn-primary" href="/download/installer" data-download="msi"><svg class="icon"><use href="#i-download"/></svg><span data-label="msi">Installer (.msi)</span></a>
             <a class="btn btn-glass glass" href="/download/portable" data-download="portable"><span data-label="portable">Portable (.exe)</span></a>
           </div>
+          <p class="fine"><a href="/download">Checksums, VirusTotal reports and requirements →</a> · <a href="/changelog">Changelog</a></p>
           <p class="fine" data-hash>Windows may warn that the publisher is unknown until our code-signing certificate arrives — choose More info › Run anyway.</p>
         </div>
       </div>
@@ -413,8 +417,9 @@ On it. Marcus Lee already shared the draft.</pre>
     <div class="foot">
       <span>© 2026 Devgm, LLC</span>
       <nav aria-label="Footer">
+        <a href="/download">Download</a>
+        <a href="/changelog">Changelog</a>
         <a href="https://fortefile.com">fortefile.com</a>
-        <a href="#download">Download</a>
         <a href="#faq">FAQ</a>
       </nav>
     </div>

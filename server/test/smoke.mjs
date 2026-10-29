@@ -72,8 +72,12 @@ await test('unknown page -> 404 page', async () => {
   const res = await call('GET', '/no-such-page');
   assert(res.status === 404 && (res.headers.get('content-type') ?? '').includes('text/html'), `${res.status}`);
 });
-await test('/download redirects to the newest installer', async () => {
-  const res = await call('GET', '/download', { redirect: 'manual' });
+await test('/download is the download page', async () => {
+  const res = await call('GET', '/download');
+  assert(res.status === 200 && (res.headers.get('content-type') ?? '').includes('text/html'), `${res.status}`);
+});
+await test('/download/installer redirects to the newest installer', async () => {
+  const res = await call('GET', '/download/installer', { redirect: 'manual' });
   assert(res.status === 302 && /\/v1\/download\/\d+\.\d+\.\d+\/LiteShot-Setup-/.test(res.headers.get('location') ?? ''), `${res.status} ${res.headers.get('location')}`);
 });
 await test('/download/portable redirects to the newest exe', async () => {

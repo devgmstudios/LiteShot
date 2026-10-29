@@ -81,7 +81,7 @@ const downloadLatest = (kind: string): Handler => async (_req, env, _params, url
   } catch {
     // No release yet, or an unreadable manifest: fall through.
   }
-  return Response.redirect(new URL('/#download', url).toString(), 302);
+  return Response.redirect(new URL('/download', url).toString(), 302);
 };
 
 const latest: Handler = async (_req, env, _params, url) => {
@@ -200,7 +200,7 @@ const deleteRelease: Handler = async (_req, env, [version]) => {
 
 const routes: [RegExp, Record<string, Handler>][] = [
   [/^\/v1$/, { GET: root }],
-  [/^\/download$/, { GET: downloadLatest('msi') }],
+  [/^\/download\/installer$/, { GET: downloadLatest('msi') }],
   [/^\/download\/portable$/, { GET: downloadLatest('portable') }],
   [/^\/v1\/latest$/, { GET: latest }],
   [/^\/v1\/download\/([^/]+)\/([^/]+)$/, { GET: download, HEAD: download }],

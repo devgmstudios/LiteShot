@@ -1,0 +1,122 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>Changelog — LiteShot</title>
+  <meta name="description" content="Everything new in each LiteShot release.">
+  <meta http-equiv="Content-Security-Policy" content="default-src 'self'; img-src 'self' data:; style-src 'self'; script-src 'self'; connect-src 'self'; base-uri 'none'; form-action 'none'">
+  <meta name="theme-color" content="#fbf6f1" media="(prefers-color-scheme: light)">
+  <meta name="theme-color" content="#0f0b16" media="(prefers-color-scheme: dark)">
+  <meta property="og:type" content="website">
+  <meta property="og:title" content="LiteShot — Screenshots, in glass">
+  <meta property="og:description" content="Press PrtScn, drag, done. Free for Windows 10 and 11.">
+  <meta property="og:image" content="https://liteshot.app/img/og.png">
+  <meta property="og:url" content="https://liteshot.app/">
+  <link rel="canonical" href="https://liteshot.app/changelog">
+  <meta name="twitter:card" content="summary_large_image">
+  <link rel="icon" href="/favicon.ico" sizes="any">
+  <link rel="apple-touch-icon" href="/img/apple-touch-icon.png">
+  <script src="/boot.js"></script>
+  <link rel="stylesheet" href="/styles.css">
+  <script src="/app.js" defer></script>
+</head>
+<body class="sub">
+  <svg class="sprite" width="0" height="0" aria-hidden="true">
+    <defs>
+      <symbol id="i-pen" viewBox="0 0 24 24"><g fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M4.2 19.8l1.2-4.6 10-10a2.3 2.3 0 0 1 3.2 3.2l-10 10z"/><path d="M13.6 7.2l3.2 3.2"/></g></symbol>
+      <symbol id="i-line" viewBox="0 0 24 24"><path d="M5 19L19 5" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round"/></symbol>
+      <symbol id="i-arrow" viewBox="0 0 24 24"><g fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M5.5 18.5L17.5 6.5"/><path d="M9 6h9v9"/></g></symbol>
+      <symbol id="i-rect" viewBox="0 0 24 24"><rect x="3.5" y="5.5" width="17" height="13" rx="3.2" fill="none" stroke="currentColor" stroke-width="1.8"/></symbol>
+      <symbol id="i-circle" viewBox="0 0 24 24"><circle cx="12" cy="12" r="8.5" fill="none" stroke="currentColor" stroke-width="1.8"/></symbol>
+      <symbol id="i-marker" viewBox="0 0 24 24"><g fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M15.2 4.2l4.6 4.6-7.6 7.6-4.6-4.6z"/><path d="M7.6 11.8l-2.6 5 2.2 2.2 5-2.6"/></g><rect x="12.5" y="19.4" width="8.5" height="2.2" rx="1.1" fill="currentColor"/></symbol>
+      <symbol id="i-text" viewBox="0 0 24 24"><g fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M2.8 19.5L8.2 5l5.4 14.5"/><path d="M4.8 14.4h6.8"/><path d="M20.8 19.5v-5.2a2.8 2.8 0 0 0-5.3-1.2"/><path d="M20.8 16.4c-3.6-.6-5.6.2-5.6 1.7 0 1.2 1 1.7 2.2 1.7 2 0 3.4-1.4 3.4-3.4"/></g></symbol>
+      <symbol id="i-counter" viewBox="0 0 24 24"><circle cx="12" cy="12" r="9" fill="none" stroke="currentColor" stroke-width="1.8"/><path d="M10 9.2l2.6-1.8v9.2" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/></symbol>
+      <symbol id="i-pixelate" viewBox="0 0 24 24"><rect x="3.5" y="3.5" width="17" height="17" rx="4" fill="none" stroke="currentColor" stroke-width="1.8"/><path d="M3.5 3.5h4.25v4.25H3.5zM12 3.5h4.25v4.25H12zM7.75 7.75H12V12H7.75zM16.25 7.75h4.25V12h-4.25zM3.5 12h4.25v4.25H3.5zM12 12h4.25v4.25H12zM7.75 16.25H12v4.25H7.75zM16.25 16.25h4.25v4.25h-4.25z" fill="currentColor"/></symbol>
+      <symbol id="i-face" viewBox="0 0 24 24"><circle cx="12" cy="9" r="4.4" fill="none" stroke="currentColor" stroke-width="1.8"/><path d="M4.8 20.2c.6-3.7 3.5-6 7.2-6s6.6 2.3 7.2 6" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round"/><rect x="5.4" y="7.3" width="13.2" height="3.5" rx="1.75" fill="currentColor"/></symbol>
+      <symbol id="i-bank" viewBox="0 0 24 24"><g fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M3.5 9.5L12 4l8.5 5.5z"/><path d="M5.5 10v7.5M9.8 10v7.5M14.2 10v7.5M18.5 10v7.5M3.5 20h17"/></g></symbol>
+      <symbol id="i-code" viewBox="0 0 24 24"><g fill="none" stroke="currentColor" stroke-width="1.9" stroke-linecap="round" stroke-linejoin="round"><path d="M8.5 7L3.5 12l5 5M15.5 7l5 5-5 5M13.5 4.5l-3 15"/></g></symbol>
+      <symbol id="i-people" viewBox="0 0 24 24"><g fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><circle cx="9" cy="8.5" r="3.4"/><path d="M2.8 19.5c.5-3.3 3-5.4 6.2-5.4s5.7 2.1 6.2 5.4"/><path d="M15.6 5.4a3.2 3.2 0 0 1 0 6.2M17.6 14.4c2 .7 3.3 2.5 3.6 5.1"/></g></symbol>
+      <symbol id="i-sparkles" viewBox="0 0 24 24"><path d="M10 5.5c.7 4.4 2.3 6.4 6.5 8-4.2 1.6-5.8 3.6-6.5 8-.7-4.4-2.3-6.4-6.5-8 4.2-1.6 5.8-3.6 6.5-8z" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linejoin="round"/><path d="M18.6 1.8c.3 1.8.9 2.6 2.6 3.6-1.7 1-2.3 1.8-2.6 3.6-.3-1.8-.9-2.6-2.6-3.6 1.7-1 2.3-1.8 2.6-3.6zM19 15.8c.2 1.3.6 1.8 1.6 2.6-1 .8-1.4 1.3-1.6 2.6-.2-1.3-.6-1.8-1.6-2.6 1-.8 1.4-1.3 1.6-2.6z" fill="currentColor"/></symbol>
+      <symbol id="i-video" viewBox="0 0 24 24"><g fill="none" stroke="currentColor" stroke-width="1.8" stroke-linejoin="round"><rect x="2.5" y="6" width="13.5" height="12" rx="3"/><path d="M16 10.6l4.4-2.7 1.1.7v6.8l-1.1.7-4.4-2.7z"/></g></symbol>
+      <symbol id="i-cloud" viewBox="0 0 24 24"><g fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M7.2 18.6h10.4a3.9 3.9 0 0 0 .5-7.8 5.6 5.6 0 0 0-10.8-.6 4.2 4.2 0 0 0-.1 8.4z"/><path d="M12.2 16.2v-5.8M9.6 12.8l2.6-2.6 2.6 2.6"/></g></symbol>
+      <symbol id="i-pin" viewBox="0 0 24 24"><g fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" transform="rotate(40 12 12)"><path d="M8.2 3.6h7.6M9.6 3.6v5.8L7 12.2v2h10v-2l-2.6-2.8V3.6M12 14.2v7"/></g></symbol>
+      <symbol id="i-ocr" viewBox="0 0 24 24"><g fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M3.8 9V6.3a2.5 2.5 0 0 1 2.5-2.5H9M15 3.8h2.7a2.5 2.5 0 0 1 2.5 2.5V9M20.2 15v2.7a2.5 2.5 0 0 1-2.5 2.5H15M9 20.2H6.3a2.5 2.5 0 0 1-2.5-2.5V15"/><path d="M8.2 9h7.6M8.2 12h7.6M8.2 15h4.4"/></g></symbol>
+      <symbol id="i-capture" viewBox="0 0 24 24"><g fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M3.8 9V6.3a2.5 2.5 0 0 1 2.5-2.5H9M15 3.8h2.7a2.5 2.5 0 0 1 2.5 2.5V9M20.2 15v2.7a2.5 2.5 0 0 1-2.5 2.5H15M9 20.2H6.3a2.5 2.5 0 0 1-2.5-2.5V15"/><path d="M12 8.5v7M8.5 12h7"/></g></symbol>
+      <symbol id="i-monitor" viewBox="0 0 24 24"><g fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><rect x="2.5" y="3.5" width="19" height="13.5" rx="2.8"/><path d="M12 17v3.5M8 20.5h8"/></g></symbol>
+      <symbol id="i-lock" viewBox="0 0 24 24"><g fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><rect x="5" y="10.5" width="14" height="10" rx="2.8"/><path d="M8.5 10.5V8a3.5 3.5 0 0 1 7 0v2.5"/></g></symbol>
+      <symbol id="i-clock" viewBox="0 0 24 24"><g fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="8.5"/><path d="M12 7.5V12l3.2 2"/></g></symbol>
+      <symbol id="i-shield" viewBox="0 0 24 24"><g fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M12 3l7 2.8v5.4c0 4.4-3 8-7 9.8-4-1.8-7-5.4-7-9.8V5.8z"/><path d="M8.8 12.2l2.2 2.2 4.2-4.4"/></g></symbol>
+      <symbol id="i-check" viewBox="0 0 24 24"><path d="M5 12.5l4.5 4.5L19 7.5" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"/></symbol>
+      <symbol id="i-download" viewBox="0 0 24 24"><g fill="none" stroke="currentColor" stroke-width="1.9" stroke-linecap="round" stroke-linejoin="round"><path d="M12 3.5v11M7.8 10.4l4.2 4.2 4.2-4.2"/><path d="M4.5 15v2.5A2.5 2.5 0 0 0 7 20h10a2.5 2.5 0 0 0 2.5-2.5V15"/></g></symbol>
+      <symbol id="i-copy" viewBox="0 0 24 24"><g fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><rect x="8.5" y="8.5" width="12" height="12" rx="2.8"/><path d="M15.5 8.4V6.3a2.8 2.8 0 0 0-2.8-2.8H6.3a2.8 2.8 0 0 0-2.8 2.8v6.4a2.8 2.8 0 0 0 2.8 2.8h2.1"/></g></symbol>
+    </defs>
+  </svg>
+
+  <div class="backdrop" aria-hidden="true"><div class="blob"></div><div class="blob"></div><div class="blob"></div></div>
+
+  <header class="nav glass">
+    <a class="brand" href="/"><img src="/img/icon-256.png" alt="" width="30" height="30">LiteShot</a>
+    <nav class="nav-links" aria-label="Sections">
+      <a href="/#how">How it works</a>
+      <a href="/#features">Features</a>
+      <a href="/#blur">Blur</a>
+      <a href="/#privacy">Privacy</a>
+      <a href="/#shortcuts">Shortcuts</a>
+      <a href="/#faq">FAQ</a>
+    </nav>
+    <a class="btn btn-primary" href="/download">Download</a>
+  </header>
+
+  <main>
+    <section class="wrap page-hero">
+      <p class="kicker">Changelog</p>
+      <h1 class="page-title">What's new.</h1>
+      <p class="lede">Every LiteShot release, newest first. LiteShot updates itself if you turn on automatic updates in Settings › General.</p>
+    </section>
+
+    <section class="wrap changelog">
+      <article class="glass release">
+        <header><h2>1.1.2</h2><span class="rel-tag">Latest</span><time datetime="2026-10-28">October 28, 2026</time></header>
+        <ul>
+          <li><b>Hide personal info.</b> Press H in the editor (or switch it on in Settings) and names, faces, email addresses, phone, card and social security numbers are blurred automatically — all on your PC. It stays on until you switch it off, and anything it misses you can paint over with the blur brush.</li>
+          <li><b>Your own keywords.</b> Add client names, project codes or anything else under Settings › Capture, and they're hidden on every capture.</li>
+          <li><b>SyncNode key status.</b> Settings shows whether a key is saved (ending in …) and lets you remove it.</li>
+          <li>A clearer face-blur icon.</li>
+        </ul>
+      </article>
+      <article class="glass release">
+        <header><h2>1.1.1</h2><time datetime="2026-10-28">October 28, 2026</time></header>
+        <ul>
+          <li><b>Start with Windows</b> and <b>Change shortcuts…</b> are in the tray menu.</li>
+          <li>LiteShot starts with Windows by default the first time it runs; the startup entry follows the exe if you move it.</li>
+          <li><b>Blur brush by FacePrivacy.ai</b> (U): paint over a face or anything else to blur it.</li>
+        </ul>
+      </article>
+      <article class="glass release">
+        <header><h2>1.1.0</h2><time datetime="2026-10-28">October 28, 2026</time></header>
+        <ul>
+          <li>First public release: the two-click screenshot tool rebuilt with a Liquid Glass interface.</li>
+          <li>Pen, line, arrow, box, circle, highlighter, numbered steps, text with ten fonts, pixelate.</li>
+          <li>Names blurred automatically and faces blurred with one key (F), all on your PC.</li>
+          <li>Encrypted links on fortefile.com that delete themselves after 24 hours.</li>
+          <li>Edit with AI or turn a screenshot into a video, through your SyncNode key.</li>
+          <li>Copy text (OCR), pin to screen, window capture, signed automatic updates, installer and portable exe.</li>
+        </ul>
+      </article>
+    </section>
+  </main>
+
+  <footer class="wrap">
+    <div class="foot">
+      <span>© 2026 Devgm, LLC · MIT licensed</span>
+      <nav aria-label="Footer">
+        <a href="/download">Download</a>
+        <a href="/changelog">Changelog</a>
+        <a href="https://fortefile.com">fortefile.com</a>
+        <a href="/#faq">FAQ</a>
+      </nav>
+    </div>
+  </footer>
+</body>
+</html>
