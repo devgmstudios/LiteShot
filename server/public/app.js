@@ -120,6 +120,25 @@ const io = new IntersectionObserver((entries) => {
 }, { rootMargin: '0px 0px -8% 0px' });
 document.querySelectorAll('.reveal').forEach((el) => (still ? el.classList.add('in') : io.observe(el)));
 
+// The hero mock-up loops while it's on screen, with a Play/Pause button. When the system asks for less motion it
+// starts paused on the finished screenshot and only plays on request.
+const mock = document.querySelector('.mock');
+const mockToggle = document.querySelector('[data-mock-toggle]');
+if (mock && mockToggle) {
+  let wanted = !still, visible = false;
+  const sync = () => {
+    mock.classList.toggle('play', wanted && visible);
+    mockToggle.setAttribute('aria-pressed', String(wanted));
+    mockToggle.querySelector('span').textContent = wanted ? 'Pause' : 'Play';
+  };
+  mockToggle.addEventListener('click', () => { wanted = !wanted; sync(); });
+  new IntersectionObserver((entries) => {
+    for (const e of entries) visible = e.isIntersecting;
+    sync();
+  }, { threshold: 0.25 }).observe(mock);
+  sync();
+}
+
 // "See it work": tabs that advance on their own until someone takes over.
 const steps = document.querySelector('[data-steps]');
 if (steps) {
@@ -261,7 +280,42 @@ for (const demo of document.querySelectorAll('[data-blur-demo]')) {
   });
   for (const type of ['pointerup', 'pointercancel']) canvas.addEventListener(type, () => { painting = false; last = null; });
   size.addEventListener('input', () => ring.style.setProperty('--size', `${size.value}px`));
-  demo.querySelector('[data-reset]').addEventListener('click', () => { original(); demo.classList.remove('used'); });
+  const hint = demo.querySelector('[data-hint]');
+  demo.querySelector('[data-reset]').addEventListener('click', () => { original(); demo.classList.remove('used'); hint.textContent = 'Your turn: drag over the names'; });
+
+  // Show it working: once the picture is in view, the brush glides over the first names by itself.
+  const strokes = [[[88, 34], [250, 34]], [[88, 172], [212, 172]], [[150, 205], [268, 205]]];
+  const autoplay = () => {
+    if (still) { for (const s of strokes) { last = null; paint({ x: s[0][0], y: s[0][1] }); paint({ x: s[1][0], y: s[1][1] }); } last = null; hint.textContent = 'Your turn: drag over the names'; return; }
+    demo.classList.add('auto');
+    let i = 0, start = 0;
+    const r = canvas.getBoundingClientRect(), k = r.width / canvas.width;
+    const step = (now) => {
+      if (painting) { demo.classList.remove('auto'); return; }      // the visitor took over
+      if (!start) { start = now; last = null; }
+      const [[x1, y1], [x2, y2]] = strokes[i];
+      const t = Math.min(1, (now - start) / 650);
+      const e = t < 0.5 ? 2 * t * t : 1 - Math.pow(-2 * t + 2, 2) / 2;
+      const p = { x: x1 + (x2 - x1) * e, y: y1 + (y2 - y1) * e };
+      paint(p);
+      ring.style.setProperty('--x', `${p.x * k}px`);
+      ring.style.setProperty('--y', `${p.y * k}px`);
+      ring.style.setProperty('--size', `${size.value}px`);
+      if (t < 1) return requestAnimationFrame(step);
+      if (++i < strokes.length) { start = 0; return setTimeout(() => requestAnimationFrame(step), 180); }
+      last = null;
+      demo.classList.remove('auto');
+      hint.textContent = 'Your turn: drag over the names';
+    };
+    hint.textContent = 'Blurring names…';
+    requestAnimationFrame(step);
+  };
+  new IntersectionObserver((entries, obs) => {
+    if (!entries.some((e) => e.isIntersecting)) return;
+    obs.disconnect();
+    const ready = () => setTimeout(autoplay, 400);
+    if (img.complete && img.naturalWidth) ready(); else img.addEventListener('load', ready, { once: true });
+  }, { threshold: 0.6 }).observe(canvas);
 }
 
 // A shared link's life, counting down from 24 hours.

@@ -153,17 +153,16 @@ def names():
 
 
 def faces():
-    ring = group(ellipse(48, 48, 60, 60), stroke(5), )
-    ring["it"].insert(1, {"ty": "tm", "s": static(0), "e": static(100), "o": static(0), "m": 1})
-    dashes = [group(arc_path(48, 48, 30, i * 30 + 6, 16, 2), stroke(5)) for i in range(12)]
-    eyes = [group(ellipse(x, 42, 6, 8), fill()) for x in (39, 57)]
-    smile = group(arc_path(48, 50, 11, 25, 130, 4), stroke(5))
-    veil = group(ellipse(48, 48, 50, 50), fill(opacity=anim((60, 0), (84, 82))))
-    spin = anim((0, 0), (LENGTH, 90), ease=(0, 0, 1, 1))
+    """A head and shoulders; a censor bar springs across the eyes."""
+    head = group(ellipse(48, 36, 34, 34), draw_on(2, 30), stroke(5))
+    shoulders = group(path([[19, 81], [48, 58], [77, 81]],
+                           tangents=([[0, 0], [-17, 0], [0, -13]], [[0, -13], [17, 0], [0, 0]])), draw_on(10, 38), stroke(5))
+    eyes = [group(ellipse(x, 34, 5, 6), fill()) for x in (41, 55)]
+    bar = group(rect(27, 0, 54, 14, 7), fill())
+    grow = anim((40, [0, 100, 100]), (62, [100, 100, 100]), ease=SPRING)
     return scene("faces", [
-        layer("blur", veil, o=fade_loop()),
-        layer("face", *eyes, smile, o=fade_loop()),
-        layer("ring", *dashes, r=spin, o=fade_loop()),
+        layer("bar", bar, p=(21, 33), a=(0, 0), s=grow, o=fade_loop()),
+        layer("face", head, shoulders, *eyes, o=fade_loop()),
     ])
 
 
