@@ -131,6 +131,67 @@ await test('static assets are served', async () => {
     assert(res.status === 200 && res.headers.get('content-type')?.includes(type), `${path}: ${res.status} ${res.headers.get('content-type')}`);
   }
 });
+const SITE_PAGES = ['/', '/security', '/terms', '/privacy', '/acceptable-use', '/copyright'];
+const fetched = new Map();
+async function getText(path) {
+  if (!fetched.has(path)) {
+    const res = await call('GET', path);
+    fetched.set(path, { status: res.status, type: res.headers.get('content-type') ?? '', csp: res.headers.get('content-security-policy') ?? '', text: await res.text() });
+  }
+  return fetched.get(path);
+}
+await test('security and legal pages are served with page headers', async () => {
+  for (const path of SITE_PAGES.slice(1)) {
+    const page = await getText(path);
+    assert(page.status === 200 && page.type.startsWith('text/html'), `${path}: ${page.status} ${page.type}`);
+    assert(page.csp.includes("script-src 'self'") && page.csp.includes("frame-ancestors 'none'"), `${path}: csp ${page.csp}`);
+    assert(page.text.includes('Devgm, LLC') && page.text.includes('Last changed October 28, 2026'), `${path}: content missing`);
+  }
+});
+await test('site pages load nothing from other origins', async () => {
+  for (const path of SITE_PAGES) {
+    const { text } = await getText(path);
+    // Anything the browser would fetch: scripts, stylesheets/icons/preloads, images, frames (canonical links are not fetched).
+    const external = text.match(/<(script|img|iframe|link(?![^>]*rel="canonical"))\b[^>]*\b(src|href)="(https?:)?\/\/[^"]*"/g);
+    assert(!external, `${path}: ${external}`);
+  }
+});
+await test('every internal link and #anchor on the site pages resolves', async () => {
+  const checked = new Set();
+  for (const page of SITE_PAGES) {
+    const { text } = await getText(page);
+    for (const [, href] of text.matchAll(/href="([^"]+)"/g)) {
+      if (/^(https?:|mailto:)/.test(href)) continue;
+      const [path, hash] = href.startsWith('#') ? [page, href.slice(1)] : href.split('#');
+      if (checked.has(`${path}#${hash}`)) continue;
+      checked.add(`${path}#${hash}`);
+      const target = await getText(path);
+      assert(target.status === 200, `${page} links to ${href}: ${target.status}`);
+      if (hash) assert(target.text.includes(`id="${hash}"`), `${page} links to ${href}, but ${path} has no id="${hash}"`);
+    }
+  }
+});
+await test('badge animations, their static icons and the self-hosted player are served', async () => {
+  const sprite = await getText('/assets/badges.svg');
+  assert(sprite.status === 200 && sprite.type.includes('image/svg+xml'), `badges.svg ${sprite.status} ${sprite.type}`);
+  for (const name of ['lock', 'shield', 'key', 'timer', 'trash', 'eye-off']) {
+    const anim = await getText(`/lottie/${name}.json`);
+    assert(anim.status === 200, `/lottie/${name}.json ${anim.status}`);
+    const data = JSON.parse(anim.text);
+    assert(data.w === 96 && data.h === 96 && data.layers.length > 0, `/lottie/${name}.json is not a 96x96 animation`);
+    assert(sprite.text.includes(`<symbol id="${name}"`), `badges.svg lacks ${name}`);
+  }
+  const player = await getText('/vendor/lottie_light.min.js');
+  assert(player.status === 200 && player.type.includes('javascript') && player.text.includes('lottie'), `player ${player.status} ${player.type}`);
+  assert((await getText('/vendor/lottie-web-LICENSE.md')).status === 200, 'player license missing');
+});
+await test('/.well-known/security.txt lists the security contact and a future expiry', async () => {
+  const txt = await getText('/.well-known/security.txt');
+  assert(txt.status === 200 && txt.type.startsWith('text/plain'), `${txt.status} ${txt.type}`);
+  assert(txt.text.includes('Contact: mailto:security@fortefile.com'), 'no contact');
+  const expires = Date.parse(/^Expires: (.+)$/m.exec(txt.text)?.[1] ?? '');
+  assert(expires > Date.now(), 'Expires is missing or in the past');
+});
 await test('unknown page -> 404 page', async () => {
   const res = await call('GET', '/no-such-page');
   assert(res.status === 404 && (await res.text()).includes('Nothing'), `status ${res.status}`);

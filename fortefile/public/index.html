@@ -26,10 +26,8 @@
       <symbol id="i-file" viewBox="0 0 24 24"><g fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M7.5 3.5h6l4.5 4.5v10.5a2.5 2.5 0 0 1-2.5 2.5h-8a2.5 2.5 0 0 1-2.5-2.5v-12.5a2.5 2.5 0 0 1 2.5-2.5z"/><path d="M13.5 3.5v3a1.5 1.5 0 0 0 1.5 1.5h3"/></g></symbol>
       <symbol id="i-link" viewBox="0 0 24 24"><g fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M10 14a4.5 4.5 0 0 0 6.4 0l3-3a4.5 4.5 0 0 0-6.4-6.4l-1.2 1.2"/><path d="M14 10a4.5 4.5 0 0 0-6.4 0l-3 3a4.5 4.5 0 0 0 6.4 6.4l1.2-1.2"/></g></symbol>
       <symbol id="i-clock" viewBox="0 0 24 24"><g fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="8.5"/><path d="M12 7.5V12l3.2 2"/></g></symbol>
-      <symbol id="i-trash" viewBox="0 0 24 24"><g fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M4.5 6.5h15M9.5 6.5V4.8a1.3 1.3 0 0 1 1.3-1.3h2.4a1.3 1.3 0 0 1 1.3 1.3v1.7M6.5 6.5l.9 12a2 2 0 0 0 2 1.8h5.2a2 2 0 0 0 2-1.8l.9-12"/></g></symbol>
       <symbol id="i-check" viewBox="0 0 24 24"><path d="M5 12.5l4.5 4.5L19 7.5" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"/></symbol>
       <symbol id="i-dot" viewBox="0 0 24 24"><circle cx="12" cy="12" r="3.2" fill="currentColor"/></symbol>
-      <symbol id="i-shield" viewBox="0 0 24 24"><g fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M12 3l7 2.8v5.4c0 4.4-3 8-7 9.8-4-1.8-7-5.4-7-9.8V5.8z"/><path d="M8.8 12.2l2.2 2.2 4.2-4.4"/></g></symbol>
       <symbol id="i-download" viewBox="0 0 24 24"><g fill="none" stroke="currentColor" stroke-width="1.9" stroke-linecap="round" stroke-linejoin="round"><path d="M12 3.5v11M7.8 10.4l4.2 4.2 4.2-4.2"/><path d="M4.5 15v2.5A2.5 2.5 0 0 0 7 20h10a2.5 2.5 0 0 0 2.5-2.5V15"/></g></symbol>
     </defs>
   </svg>
@@ -41,8 +39,8 @@
     <nav class="nav-links" aria-label="Sections">
       <a href="#how">How it works</a>
       <a href="#privacy">Privacy</a>
+      <a href="#security">Security</a>
       <a href="#faq">FAQ</a>
-      <a href="#legal">Terms</a>
     </nav>
     <a class="btn btn-primary" href="#liteshot">Get LiteShot</a>
   </header>
@@ -103,8 +101,8 @@
       <h2>We can't see your files.<br>That's the point.</h2>
       <p class="section-lede">Here is everything fortefile knows about an upload, and everything it doesn't.</p>
       <div class="split">
-        <div class="card glass no" data-reveal>
-          <div class="badge green"><svg class="icon" aria-hidden="true"><use href="#i-shield"/></svg></div>
+        <div class="card glass no" data-reveal data-lottie-host>
+          <span class="metal" data-lottie="eye-off"><svg class="icon" aria-hidden="true"><use href="/assets/badges.svg#eye-off"/></svg></span>
           <h3>What we can't see</h3>
           <ul>
             <li><svg class="icon" aria-hidden="true"><use href="#i-check"/></svg><span><b>Your file</b>We only ever receive encrypted bytes.</span></li>
@@ -113,7 +111,7 @@
           </ul>
         </div>
         <div class="card glass yes" data-reveal>
-          <div class="badge slate"><svg class="icon" aria-hidden="true"><use href="#i-file"/></svg></div>
+          <span class="metal"><svg class="icon" aria-hidden="true"><use href="/assets/badges.svg#eye"/></svg></span>
           <h3>What we do see</h3>
           <ul>
             <li><svg class="icon" aria-hidden="true"><use href="#i-dot"/></svg><span><b>Size and expiry</b>How big the encrypted file is, and when it will be deleted.</span></li>
@@ -123,6 +121,37 @@
         </div>
       </div>
       <p class="note glass" data-reveal><b>One exception: search similar images.</b> When you ask LiteShot to search for similar images, that screenshot is uploaded unencrypted so Google Lens can fetch it, and it's deleted within an hour. Everything else is encrypted.</p>
+    </section>
+
+    <section id="security" class="wrap">
+      <p class="kicker">Security</p>
+      <h2>Our pledge to<br>security and safety.</h2>
+      <p class="section-lede">Promises that match how fortefile is actually built, so you can check every one of them.</p>
+      <div class="pledge-panel glass" data-reveal>
+        <ul class="pledge-list">
+          <li data-lottie-host><span class="metal" data-lottie="lock"><svg class="icon" aria-hidden="true"><use href="/assets/badges.svg#lock"/></svg></span><p><b>Encrypted before upload</b><span>AES-256-GCM in the app that uploads, with a new key for every file.</span></p></li>
+          <li data-lottie-host><span class="metal" data-lottie="key"><svg class="icon" aria-hidden="true"><use href="/assets/badges.svg#key"/></svg></span><p><b>The key never reaches us</b><span>It stays after the # in the link, which browsers don't send to servers.</span></p></li>
+          <li data-lottie-host><span class="metal" data-lottie="timer"><svg class="icon" aria-hidden="true"><use href="/assets/badges.svg#timer"/></svg></span><p><b>Gone within 24 hours</b><span>Links expire after 1, 12 or 24 hours, and the file is erased.</span></p></li>
+          <li data-lottie-host><span class="metal" data-lottie="trash"><svg class="icon" aria-hidden="true"><use href="/assets/badges.svg#trash"/></svg></span><p><b>Delete it any time</b><span>One click in LiteShot removes the file for everyone, right away.</span></p></li>
+          <li data-lottie-host><span class="metal" data-lottie="eye-off"><svg class="icon" aria-hidden="true"><use href="/assets/badges.svg#eye-off"/></svg></span><p><b>No content logs, no tracking</b><span>No analytics, ads, trackers or third-party scripts. No accounts.</span></p></li>
+          <li data-lottie-host><span class="metal" data-lottie="shield"><svg class="icon" aria-hidden="true"><use href="/assets/badges.svg#shield"/></svg></span><p><b>Locked down by design</b><span>Two vendors at most, a strict Content Security Policy and an open-source client.</span></p></li>
+        </ul>
+        <div class="pledge-foot">
+          <p>The full pledge also covers how we handle vulnerability reports and abuse, and what fortefile can't protect against.</p>
+          <a class="btn btn-primary" href="/security">Read the full pledge</a>
+        </div>
+      </div>
+
+      <div id="legal" class="policies-wrap">
+        <h3>The fine print, in plain English</h3>
+        <div class="policies">
+          <a class="policy glass" href="/terms"><b>Terms of Service</b><span>The agreement for using fortefile.</span></a>
+          <a class="policy glass" href="/privacy"><b>Privacy Policy</b><span>What we collect, and what we never do.</span></a>
+          <a class="policy glass" href="/acceptable-use"><b>Acceptable Use</b><span>What can't be shared, and how to report it.</span></a>
+          <a class="policy glass" href="/copyright"><b>Copyright</b><span>DMCA notices and counter-notices.</span></a>
+          <a class="policy glass" href="/security"><b>Security</b><span>Our pledge and responsible disclosure.</span></a>
+        </div>
+      </div>
     </section>
 
     <section id="liteshot" class="wrap">
@@ -149,36 +178,9 @@
         <details class="glass"><summary>Can I delete a file sooner?</summary><p>Yes. The app that uploaded it keeps a private delete code. In LiteShot, delete the upload from the tray menu and it's gone right away, for everyone.</p></details>
         <details class="glass"><summary>What if I lose the link?</summary><p>Then nobody can open the file, including us. We never have the key, so there's nothing to recover. Upload the file again and share the new link.</p></details>
         <details class="glass"><summary>Who can open my link?</summary><p>Anyone who has the whole link, until it expires. Share it only with people you're happy to show the file to.</p></details>
+        <details class="glass"><summary>How do I report a link?</summary><p>Email <a class="mail" href="mailto:abuse@fortefile.com">abuse@fortefile.com</a> with the whole link, including the part after the #, so we can see what it is and remove it. Our <a href="/acceptable-use#report">Acceptable Use Policy</a> explains what happens next.</p></details>
         <details class="glass"><summary>What can I share?</summary><p>Files up to 25 MB. Screenshots, images and short videos open right in the browser; anything else can be downloaded.</p></details>
       </div>
-    </section>
-
-    <section id="legal" class="wrap">
-      <h2 class="center">Terms &amp; Privacy</h2>
-      <!-- DRAFT: this whole section needs review by a lawyer before launch. -->
-      <article class="legal glass">
-        <span class="draft">Draft — pending legal review</span>
-
-        <h3 id="terms">Terms of use</h3>
-        <ul>
-          <li>fortefile is a service of Devgm, LLC, provided "as is", without warranties of any kind. Files are temporary: don't use fortefile as the only copy of anything.</li>
-          <li>Don't upload anything illegal, malware, content that exploits children, or material that harasses people or infringes others' rights. We may delete any file and block uploads that break these rules, and we report child sexual abuse material to the authorities.</li>
-          <li>Because files are encrypted, we can't review what's in them unless someone gives us the full link.</li>
-          <li>We may change these terms or the service, or stop offering it, at any time.</li>
-        </ul>
-
-        <h3 id="privacy-policy">Privacy</h3>
-        <ul>
-          <li><b>Stored, until the file expires or is deleted:</b> the encrypted file, its size, its expiry time, whether it's encrypted, and a one-way hash of its delete code.</li>
-          <li><b>Never stored:</b> encryption keys, file names, accounts, cookies or analytics. Pages make no requests to anyone but fortefile.com.</li>
-          <li>Our hosting provider, Cloudflare, processes request data such as IP addresses to deliver and protect the service. We use IP addresses only to limit how fast uploads can be made.</li>
-          <li>If we receive a valid legal request, we can only hand over what we hold: encrypted data and the details above, while the file still exists.</li>
-        </ul>
-
-        <h3 id="abuse">Report abuse</h3>
-        <!-- PLACEHOLDER (owner): confirm abuse@fortefile.com is a working mailbox. -->
-        <p>Email <a class="mail" href="mailto:abuse@fortefile.com">abuse@fortefile.com</a> with the full link, including the part after the #, so we can confirm what it is and remove it.</p>
-      </article>
     </section>
   </main>
 
@@ -187,11 +189,14 @@
       <span>© 2026 Devgm, LLC</span>
       <nav aria-label="Footer">
         <a href="#how">How it works</a>
-        <a href="#privacy-policy">Privacy</a>
-        <a href="#terms">Terms</a>
-        <a href="#liteshot">LiteShot</a>
+        <a href="/security">Security</a>
+        <a href="/privacy">Privacy</a>
+        <a href="/terms">Terms</a>
+        <a href="/acceptable-use">Acceptable use</a>
+        <a href="/copyright">Copyright</a>
+        <a href="https://liteshot.app/">LiteShot</a>
       </nav>
-      <p class="abuse">Report abuse: <a class="mail" href="mailto:abuse@fortefile.com">abuse@fortefile.com</a></p>
+      <p class="abuse">Report abuse: <a class="mail" href="mailto:abuse@fortefile.com">abuse@fortefile.com</a> · Security: <a class="mail" href="mailto:security@fortefile.com">security@fortefile.com</a></p>
     </div>
   </footer>
 </body>

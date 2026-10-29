@@ -1,0 +1,217 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>Security pledge · fortefile</title>
+  <meta name="description" content="fortefile's pledge to security and safety: end-to-end AES-256-GCM encryption, keys that never reach us, files gone within 24 hours, no tracking, and responsible disclosure.">
+  <meta http-equiv="Content-Security-Policy" content="default-src 'self'; script-src 'self'; style-src 'self'; img-src 'self' blob: data:; media-src 'self' blob:; connect-src 'self'; object-src 'none'; base-uri 'none'; form-action 'none'">
+  <meta name="theme-color" content="#f3f7fd" media="(prefers-color-scheme: light)">
+  <meta name="theme-color" content="#070b14" media="(prefers-color-scheme: dark)">
+  <link rel="canonical" href="https://fortefile.com/security">
+  <link rel="icon" href="/favicon.svg" type="image/svg+xml">
+  <link rel="stylesheet" href="/assets/site.css">
+  <script src="/assets/site.js" defer></script>
+</head>
+<body>
+  <svg class="sprite" width="0" height="0" aria-hidden="true">
+    <defs>
+      <linearGradient id="logo-tile" x1="0" y1="0" x2="0" y2="1"><stop offset="0" stop-color="#6cc2ff"/><stop offset="1" stop-color="#0062d1"/></linearGradient>
+      <linearGradient id="logo-rim" x1="0" y1="0" x2="0" y2="1"><stop offset="0" stop-color="#fff" stop-opacity="0.8"/><stop offset="0.5" stop-color="#fff" stop-opacity="0.08"/><stop offset="1" stop-color="#fff" stop-opacity="0.25"/></linearGradient>
+      <symbol id="logo" viewBox="0 0 64 64"><rect x="2" y="2" width="60" height="60" rx="16" fill="url(#logo-tile)"/><rect x="2.75" y="2.75" width="58.5" height="58.5" rx="15.25" fill="none" stroke="url(#logo-rim)" stroke-width="1.5"/><path d="M24 12h12.5L46 21.5V46a6 6 0 0 1-6 6H24a6 6 0 0 1-6-6V18a6 6 0 0 1 6-6z" fill="#fff"/><path d="M36.5 12L46 21.5h-6.5a3 3 0 0 1-3-3z" fill="#bfe0ff"/><path d="M28 31.5v-3.2a4 4 0 0 1 8 0v3.2" fill="none" stroke="#0a6fe0" stroke-width="2.8" stroke-linecap="round"/><rect x="25" y="31" width="14" height="12" rx="3" fill="#0a6fe0"/><circle cx="32" cy="36" r="1.7" fill="#fff"/><rect x="31.1" y="36.4" width="1.8" height="3.6" rx="0.9" fill="#fff"/></symbol>
+    </defs>
+  </svg>
+
+  <div class="backdrop" aria-hidden="true"><div class="blob"></div><div class="blob"></div><div class="blob"></div></div>
+
+  <header class="nav glass">
+    <a class="brand" href="/"><svg class="logo" aria-hidden="true"><use href="#logo"/></svg>fortefile</a>
+    <nav class="nav-links" aria-label="Sections">
+      <a href="/#how">How it works</a>
+      <a href="/security" aria-current="page">Security</a>
+      <a href="/privacy">Privacy</a>
+      <a href="/terms">Terms</a>
+    </nav>
+    <a class="btn btn-primary" href="https://liteshot.app/">Get LiteShot</a>
+  </header>
+
+  <main id="top">
+    <header class="doc-hero center wrap">
+      <span class="metal xl" data-lottie="shield"><svg class="icon" aria-hidden="true"><use href="/assets/badges.svg#shield"/></svg></span>
+      <p class="kicker">Security</p>
+      <h1>Our pledge to<br><span class="shine">security and safety.</span></h1>
+      <p class="lede">fortefile is built so that we can't read what you share, and so that it doesn't stick around. These are our commitments. Each one describes how the service actually works, so you can check it.</p>
+      <ul class="chips">
+        <li class="chip glass">Effective October 28, 2026</li>
+        <li class="chip glass">Report a vulnerability: security@fortefile.com</li>
+      </ul>
+    </header>
+
+    <div class="wrap pledge-grid" id="pledge">
+      <article class="card glass pledge-card" id="encrypted" data-lottie-host>
+        <span class="metal lg" data-lottie="lock"><svg class="icon" aria-hidden="true"><use href="/assets/badges.svg#lock"/></svg></span>
+        <h3>Encrypted before it leaves your device</h3>
+        <p>LiteShot encrypts every upload on your PC with AES-256-GCM, using a fresh random 256-bit key for each file. fortefile only ever receives scrambled bytes, and the viewer decrypts them in the recipient's browser.</p>
+        <p class="check"><b>Check it:</b> LiteShot is open source, so you can read the code that encrypts your files.</p>
+      </article>
+      <article class="card glass pledge-card" id="key" data-lottie-host>
+        <span class="metal lg" data-lottie="key"><svg class="icon" aria-hidden="true"><use href="/assets/badges.svg#key"/></svg></span>
+        <h3>The key never reaches us</h3>
+        <p>The key lives only after the # in the link. Browsers never send that part to a server, so it isn't in our requests, our storage or anyone's logs. Without it, a file is noise: to us, to our host, and to anyone who asks us for it.</p>
+        <p class="check"><b>Check it:</b> open a link with your browser's developer tools on the Network tab. Every request stops at the file ID.</p>
+      </article>
+      <article class="card glass pledge-card" id="expiry" data-lottie-host>
+        <span class="metal lg" data-lottie="timer"><svg class="icon" aria-hidden="true"><use href="/assets/badges.svg#timer"/></svg></span>
+        <h3>Gone within 24 hours</h3>
+        <p>Every file expires after 1, 12 or 24 hours. Its link stops working the moment time is up, an hourly cleanup erases it, and our storage removes anything older than a day as a backstop. Public search images last an hour at most.</p>
+        <p class="check"><b>Check it:</b> the viewer shows the time left. Afterwards, the link only says the file is gone.</p>
+      </article>
+      <article class="card glass pledge-card" id="delete" data-lottie-host>
+        <span class="metal lg" data-lottie="trash"><svg class="icon" aria-hidden="true"><use href="/assets/badges.svg#trash"/></svg></span>
+        <h3>Delete it any time</h3>
+        <p>The uploading app gets a private delete code. One click in LiteShot's tray menu deletes the file for everyone, immediately. We keep only a SHA-256 hash of the code, so even a leak of our storage wouldn't let anyone delete your files.</p>
+        <p class="check"><b>Check it:</b> delete an upload, then open its link.</p>
+      </article>
+      <article class="card glass pledge-card" id="no-tracking" data-lottie-host>
+        <span class="metal lg" data-lottie="eye-off"><svg class="icon" aria-hidden="true"><use href="/assets/badges.svg#eye-off"/></svg></span>
+        <h3>No content logs, no tracking</h3>
+        <p>We don't log file contents, links, keys or IP addresses. There are no analytics, ads, trackers, tracking cookies or third-party scripts on fortefile, and no accounts to build a profile on.</p>
+        <p class="check"><b>Check it:</b> our pages load nothing from any other website. The Content-Security-Policy header says so, and your browser enforces it.</p>
+      </article>
+      <article class="card glass pledge-card" id="by-design" data-lottie-host>
+        <span class="metal lg" data-lottie="shield"><svg class="icon" aria-hidden="true"><use href="/assets/badges.svg#shield"/></svg></span>
+        <h3>Locked down by design</h3>
+        <p>Two vendors at most: Cloudflare runs our infrastructure, and Google Lens sees only the searches you start. A strict Content Security Policy, HTTPS everywhere, files that can never run as a web page on our domain, and an open-source client under the MIT License.</p>
+        <p class="check"><b>Check it:</b> look at the response headers of any fortefile page or file.</p>
+      </article>
+    </div>
+
+    <div class="doc wrap">
+      <nav class="toc glass" aria-label="On this page">
+        <p class="toc-title">In detail</p>
+        <ol>
+          <li><a href="#encryption">How the encryption works</a></li>
+          <li><a href="#storage">How files are stored</a></li>
+          <li><a href="#web">How the website is protected</a></li>
+          <li><a href="#logging">What we log</a></li>
+          <li><a href="#vendors">Vendors</a></li>
+          <li><a href="#limits">What we can't protect against</a></li>
+          <li><a href="#disclosure">Report a vulnerability</a></li>
+          <li><a href="#abuse">How we respond to abuse</a></li>
+          <li><a href="#incidents">If something goes wrong</a></li>
+        </ol>
+      </nav>
+
+      <article class="prose glass">
+        <h2 id="encryption">How the encryption works</h2>
+        <ul>
+          <li><b>Algorithm:</b> AES-256-GCM, which is authenticated: if a single byte of the encrypted file is changed, decryption fails instead of producing altered content.</li>
+          <li><b>Keys:</b> 256 random bits, made fresh for every file by the uploading app and written into the link after the # (base64url).</li>
+          <li><b>Format:</b> a random 96-bit IV, then the ciphertext, then the 128-bit authentication tag. That is all the server ever stores.</li>
+          <li><b>Decryption:</b> in the recipient's browser, with the standard Web Crypto API. The key goes from the link straight to the browser's crypto engine and is never sent anywhere.</li>
+        </ul>
+
+        <h2 id="storage">How files are stored</h2>
+        <ul>
+          <li><b>Where:</b> Cloudflare R2 object storage.</li>
+          <li><b>File IDs:</b> 128 random bits (22 characters), so links can't be guessed or listed.</li>
+          <li><b>Expiry:</b> checked on every request, so an expired file is never served. An hourly job erases expired files, and a storage lifecycle rule removes anything older than one day in case that job ever stops.</li>
+          <li><b>Delete codes:</b> 256 random bits, given only to the uploading app. We store a SHA-256 hash of the code and compare in constant time.</li>
+          <li><b>Limits:</b> files of up to 25 MiB, and 30 uploads per minute per IP address (per /64 block for IPv6).</li>
+        </ul>
+
+        <h2 id="web">How the website is protected</h2>
+        <ul>
+          <li><b>Content Security Policy:</b> scripts, styles, images and connections may come only from fortefile.com. No inline scripts, Trusted Types are required for script URLs, and no other site may frame our pages.</li>
+          <li><b>Self-hosted everything:</b> no fonts, scripts, analytics or animations are loaded from anyone else. Even the player for these badge animations is served from fortefile.com.</li>
+          <li><b>Transport:</b> HTTPS only, with HTTP Strict Transport Security.</li>
+          <li><b>No leaks:</b> <code>Referrer-Policy: no-referrer</code>, so the pages you go to next don't learn which fortefile link you came from, and a <code>Permissions-Policy</code> that turns off camera, microphone, location, payment and USB access.</li>
+          <li><b>Inert files:</b> uploaded files are served with <code>X-Content-Type-Options: nosniff</code> and a sandboxing Content Security Policy, so a file can never run as a page on fortefile.com. Viewer pages and files are marked <code>noindex</code>.</li>
+        </ul>
+
+        <h2 id="logging">What we log, and what we don't</h2>
+        <table class="table">
+          <thead><tr><th scope="col">Item</th><th scope="col">What happens to it</th></tr></thead>
+          <tbody>
+            <tr><th scope="row">File contents</th><td data-label="What happens">Never logged, and unreadable to us.</td></tr>
+            <tr><th scope="row">Encryption keys</th><td data-label="What happens">Never sent to us.</td></tr>
+            <tr><th scope="row">File names</th><td data-label="What happens">Never uploaded.</td></tr>
+            <tr><th scope="row">Links and file IDs</th><td data-label="What happens">Not logged by our code. Cloudflare handles request paths (never the key) to deliver requests.</td></tr>
+            <tr><th scope="row">IP addresses</th><td data-label="What happens">Not stored by us. Processed by Cloudflare for delivery, security and our upload limit.</td></tr>
+            <tr><th scope="row">Errors</th><td data-label="What happens">Error messages only, without request details.</td></tr>
+            <tr><th scope="row">Cleanup</th><td data-label="What happens">The number of files each hourly cleanup removed.</td></tr>
+            <tr><th scope="row">Analytics and cookies</th><td data-label="What happens">None.</td></tr>
+          </tbody>
+        </table>
+
+        <h2 id="vendors">Vendors</h2>
+        <p>Only two outside companies ever receive data from fortefile:</p>
+        <table class="table">
+          <thead><tr><th scope="col">Vendor</th><th scope="col">Why</th></tr></thead>
+          <tbody>
+            <tr><th scope="row">Cloudflare, Inc.</th><td data-label="Why">Hosting (Workers), storage (R2), DNS, CDN, DDoS protection, firewall, rate limiting and our domain registration.</td></tr>
+            <tr><th scope="row">Google LLC</th><td data-label="Why">Only when a LiteShot user chooses “Search similar images”: Google Lens fetches that one unencrypted image from its public link.</td></tr>
+          </tbody>
+        </table>
+        <p>Details, including what data each receives, are in our <a href="/privacy#vendors">Privacy Policy</a>.</p>
+
+        <h2 id="limits">What fortefile can't protect against</h2>
+        <p>Being honest about limits is part of the pledge.</p>
+        <ul>
+          <li><b>Anyone with the full link can open the file</b> until it expires or is deleted. Treat a link like the file itself.</li>
+          <li><b>Some metadata is visible</b> to us and to Cloudflare: a file's size and times, and the IP addresses that connect.</li>
+          <li><b>Search images aren't encrypted.</b> “Search similar images” makes a screenshot public for up to an hour. Don't use it for anything sensitive.</li>
+          <li><b>The devices at each end.</b> Malware on the sender's or recipient's device can read files and links.</li>
+          <li><b>What recipients do.</b> Once someone opens a file, they can save it or take a screenshot.</li>
+          <li><b>Other apps.</b> Encryption happens in the uploading app. An app other than LiteShot has to do its part correctly.</li>
+        </ul>
+
+        <h2 id="disclosure">Report a vulnerability</h2>
+        <p>If you find a security problem in fortefile or in LiteShot's upload and encryption code, please email <a class="mail" href="mailto:security@fortefile.com">security@fortefile.com</a> with a description, the steps to reproduce it, the URLs or code involved and the impact you expect. Our contact details are also published in <a href="/.well-known/security.txt">security.txt</a>. We aim to acknowledge reports within three business days, keep you updated, and tell you when the issue is fixed.</p>
+        <h3>Rules for good-faith research</h3>
+        <ul>
+          <li>Test only with files and links you created yourself. Don't access, change or delete other people's files.</li>
+          <li>If you come across someone else's data, stop, don't keep or share it, and tell us.</li>
+          <li>Don't degrade the service: no denial-of-service or load testing, and no automated scanning that sends heavy traffic.</li>
+          <li>No social engineering, phishing or physical attacks, and don't test Cloudflare's or Google's own systems (report those to them).</li>
+          <li>Give us a reasonable time to fix the issue (we ask for 90 days) before you publish anything, and coordinate the disclosure with us.</li>
+        </ul>
+        <h3>Safe harbor</h3>
+        <p>If you follow these rules in good faith, we consider your research authorized. We won't take or support legal action against you for it, and the security-testing restrictions in our <a href="/acceptable-use">Acceptable Use Policy</a> don't apply to it. If someone else takes legal action against you for research that followed these rules, we'll make it known that your work was authorized. If you're unsure whether something is allowed, ask us first.</p>
+        <p>We don't run a paid bug bounty program and can't promise rewards. With your permission, we'll gladly credit you when we announce a fix.</p>
+
+        <h2 id="abuse">How we respond to abuse</h2>
+        <p>We can't read encrypted files, and we won't build a way to: no backdoors and no key escrow. LiteShot's code is public, so a change like that would be visible to everyone. Instead:</p>
+        <ul>
+          <li>anyone can report a file to <a class="mail" href="mailto:abuse@fortefile.com">abuse@fortefile.com</a> with its full link, and we use that key only to review the file and act on it;</li>
+          <li>we delete abusive files, block access to them and block uploads from the networks involved;</li>
+          <li>we report child sexual abuse material to NCMEC, as U.S. law requires;</li>
+          <li>we respond to valid legal process, but can hand over only what we have, which our <a href="/privacy#law-enforcement">Privacy Policy</a> lists.</li>
+        </ul>
+        <p>The rules and the reporting steps are in our <a href="/acceptable-use">Acceptable Use Policy</a>.</p>
+
+        <h2 id="incidents">If something goes wrong</h2>
+        <p>If we discover a security incident that affects fortefile users, we'll fix it, post a notice on this page and on the home page explaining what happened and what it means for you, and notify the authorities and affected people where the law requires.</p>
+
+        <p class="updated">We may update this pledge from time to time. Last changed October 28, 2026.</p>
+      </article>
+    </div>
+  </main>
+
+  <footer class="wrap">
+    <div class="foot">
+      <span>© 2026 Devgm, LLC</span>
+      <nav aria-label="Footer">
+        <a href="/#how">How it works</a>
+        <a href="/security" aria-current="page">Security</a>
+        <a href="/privacy">Privacy</a>
+        <a href="/terms">Terms</a>
+        <a href="/acceptable-use">Acceptable use</a>
+        <a href="/copyright">Copyright</a>
+        <a href="https://liteshot.app/">LiteShot</a>
+      </nav>
+      <p class="abuse">Report abuse: <a class="mail" href="mailto:abuse@fortefile.com">abuse@fortefile.com</a> · Security: <a class="mail" href="mailto:security@fortefile.com">security@fortefile.com</a></p>
+    </div>
+  </footer>
+</body>
+</html>

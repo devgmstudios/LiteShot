@@ -1,0 +1,5 @@
+Contact: mailto:security@fortefile.com
+Expires: 2027-10-28T00:00:00.000Z
+Preferred-Languages: en
+Canonical: https://fortefile.com/.well-known/security.txt
+Policy: https://fortefile.com/security#disclosure
