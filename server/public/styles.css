@@ -468,7 +468,7 @@ h2 { font-size: clamp(2rem, 5vw, 3.4rem); line-height: 1.04; letter-spacing: -0.
 .countdown strong { font: 650 2.2rem/1 var(--font); letter-spacing: -0.02em; color: var(--text); font-variant-numeric: tabular-nums; }
 
 /* hero: link to all downloads */
-.more-dl { margin: -14px 0 0; font-size: 0.9rem; }
+.more-dl { margin: 16px 0 0; font-size: 0.9rem; }
 .more-dl a, .fine a { color: var(--text-2); text-decoration: none; border-bottom: 1px solid var(--hairline); }
 .more-dl a:hover, .fine a:hover { color: var(--accent); }
 
