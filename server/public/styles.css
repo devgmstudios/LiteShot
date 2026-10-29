@@ -495,7 +495,7 @@ h2 { font-size: clamp(2rem, 5vw, 3.4rem); line-height: 1.04; letter-spacing: -0.
 @media (max-width: 960px) { .trust-grid { grid-template-columns: repeat(2, 1fr); } }
 @media (max-width: 560px) { .trust-grid { grid-template-columns: 1fr; } }
 .trust-item { padding: 22px; border-radius: var(--radius-sm); }
-.trust-item .icon { width: 26px; height: 26px; color: var(--accent); }
+.trust-item .badge .icon { width: 24px; height: 24px; color: #fff; }
 .trust-item h3 { margin: 12px 0 6px; font-size: 1.05rem; }
 .trust-item p { margin: 0; color: var(--text-2); font-size: 0.95rem; }
 .verify-card { padding: clamp(24px, 4vw, 40px); }
@@ -514,6 +514,15 @@ h2 { font-size: clamp(2rem, 5vw, 3.4rem); line-height: 1.04; letter-spacing: -0.
 .release li b { color: var(--text); }
 .sub section { padding-top: clamp(50px, 7vw, 80px); }
 .sub .page-hero { padding-top: clamp(130px, 18vh, 170px); }
+
+/* open source */
+.oss { display: grid; grid-template-columns: auto 1fr; gap: clamp(18px, 3vw, 36px); align-items: start; padding: clamp(26px, 4vw, 48px); }
+.oss h2 { margin-bottom: 10px; }
+.oss .section-lede { margin-bottom: 22px; }
+.oss-cta { justify-content: flex-start; align-items: center; }
+.oss-note { color: var(--text-3); font-size: 0.92rem; }
+@media (max-width: 640px) { .oss { grid-template-columns: 1fr; } }
+.license-text { padding: clamp(24px, 4vw, 44px); white-space: pre-wrap; font: 0.95rem/1.7 var(--font); color: var(--text-2); }
 
 /* who it's for */
 .who { display: grid; grid-template-columns: repeat(3, 1fr); gap: 16px; }

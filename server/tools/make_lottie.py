@@ -153,17 +153,64 @@ def names():
 
 
 def faces():
-    """A head and shoulders; a censor bar springs across the eyes."""
-    head = group(ellipse(48, 36, 34, 34), draw_on(2, 30), stroke(5))
-    shoulders = group(path([[19, 81], [48, 58], [77, 81]],
-                           tangents=([[0, 0], [-17, 0], [0, -13]], [[0, -13], [17, 0], [0, 0]])), draw_on(10, 38), stroke(5))
-    eyes = [group(ellipse(x, 34, 5, 6), fill()) for x in (41, 55)]
-    bar = group(rect(27, 0, 54, 14, 7), fill())
-    grow = anim((40, [0, 100, 100]), (62, [100, 100, 100]), ease=SPRING)
-    return scene("faces", [
-        layer("bar", bar, p=(21, 33), a=(0, 0), s=grow, o=fade_loop()),
-        layer("face", head, shoulders, *eyes, o=fade_loop()),
+    """A smiling face; then its features turn into a mosaic, square by square."""
+    head = group(ellipse(48, 38, 42, 42), stroke(5))
+    shoulders = group(path([[17, 86], [48, 62], [79, 86]],
+                           tangents=([[0, 0], [-18, 0], [0, -14]], [[0, -14], [18, 0], [0, 0]])), stroke(5))
+    fade_out = anim((0, 100), (38, 100), (52, 0), (LENGTH - 6, 0), (LENGTH, 100))
+    features = [group(ellipse(40, 35, 6, 7), fill()), group(ellipse(56, 35, 6, 7), fill()),
+                group(arc_path(48, 40, 10, 25, 130, 4), stroke(4.5))]
+    layers = [layer("features", *features, o=fade_out)]
+    # 3x3 mosaic inside the head (a 24 px square fits within its inner edge), checkered in two tones.
+    for row in range(3):
+        for col in range(3):
+            x, y = 40 + col * 8, 30 + row * 8
+            t = 40 + (row * 3 + col) * 3
+            tone = 100 if (row + col) % 2 == 0 else 55
+            pop = anim((t, [0, 0, 100]), (t + 12, [100, 100, 100]), ease=SPRING)
+            layers.append(layer(f"tile{row}{col}", group(rect(x, y, 7.2, 7.2, 1.4), fill(opacity=tone)),
+                                p=(x, y), a=(x, y), s=pop, o=fade_loop()))
+    layers.append(layer("face", head, shoulders))
+    return scene("faces", layers)
+
+
+def bank():
+    """Columns rise under a roof: finance."""
+    roof = group(path([[18, 40], [48, 20], [78, 40]], True), stroke(5))
+    base = group(path([[16, 80], [80, 80]]), stroke(5))
+    cols = []
+    for i, x in enumerate((27, 41, 55, 69)):
+        grow = anim((8 + i * 6, [100, 0, 100]), (26 + i * 6, [100, 100, 100]), ease=SPRING)
+        cols.append(layer(f"col{i}", group(path([[x, 46], [x, 74]]), stroke(5)), p=(x, 74), a=(x, 74), s=grow, o=fade_loop()))
+    return scene("bank", cols + [layer("frame", roof, base, o=fade_loop())])
+
+
+def people():
+    """Two people; the second slides in beside the first: teams."""
+    def person(cx, s=1.0):
+        return [group(ellipse(cx, 36, 24 * s, 24 * s), stroke(5)),
+                group(path([[cx - 20 * s, 78], [cx, 58], [cx + 20 * s, 78]],
+                           tangents=([[0, 0], [-12 * s, 0], [0, -10 * s]], [[0, -10 * s], [12 * s, 0], [0, 0]])), stroke(5))]
+    slide = anim((10, [36, 0, 0]), (34, [0, 0, 0]), ease=SPRING)
+    return scene("people", [
+        layer("second", *person(62, 0.9), p=slide, a=(0, 0), o=anim((10, 0), (24, 100), (LENGTH - 24, 100), (LENGTH - 6, 0))),
+        layer("first", *person(38), o=fade_loop()),
     ])
+
+
+def download():
+    """An arrow drops into a tray."""
+    tray = group(path([[22, 58], [22, 74], [74, 74], [74, 58]]), stroke(5))
+    arrow = [group(path([[48, 18], [48, 56]]), stroke(5)), group(path([[34, 44], [48, 58], [62, 44]]), stroke(5))]
+    drop = anim((0, [0, -26, 0]), (30, [0, 0, 0]), (120, [0, 0, 0]), (150, [0, 6, 0]), ease=SPRING)
+    return scene("download", [layer("arrow", *arrow, p=drop, a=(0, 0), o=fade_loop()), layer("tray", tray)])
+
+
+def check():
+    """A circle and a check that draw themselves on."""
+    ring = group(ellipse(48, 48, 64, 64), draw_on(4, 40), stroke(5))
+    mark = group(path([[33, 49], [44, 60], [64, 38]]), draw_on(36, 60), stroke(6))
+    return scene("check", [layer("check", ring, mark, o=fade_loop())])
 
 
 def sparkle(cx, cy, r):
@@ -275,6 +322,7 @@ def keyboard():
 ANIMATIONS = {
     "markup": markup, "snap": snap, "names": names, "faces": faces, "ai": ai, "links": links,
     "ocr": ocr, "pin": pin, "signed": signed, "monitor": monitor, "opensource": opensource, "keyboard": keyboard,
+    "bank": bank, "people": people, "download": download, "check": check,
 }
 
 if __name__ == "__main__":

@@ -147,18 +147,20 @@ internal static class Icons
         g.DrawPath(p, path);
     }
 
-    /// <summary>Blur faces: head and shoulders with a censor bar across the eyes.</summary>
+    /// <summary>Blur faces: a head whose face has turned into a mosaic, over shoulders.</summary>
     public static void FaceBlur(Graphics g, Pen p, Brush f)
     {
-        g.DrawEllipse(p, 7.6f, 4.6f, 8.8f, 8.8f);
+        g.DrawEllipse(p, 6.6f, 3.8f, 10.8f, 10.8f);
         using (var shoulders = new GraphicsPath())
         {
-            shoulders.AddBezier(4.8f, 20.2f, 5.4f, 16.5f, 8.3f, 14.2f, 12, 14.2f);
-            shoulders.AddBezier(12, 14.2f, 15.7f, 14.2f, 18.6f, 16.5f, 19.2f, 20.2f);
+            shoulders.AddBezier(4.6f, 21, 5.2f, 17.4f, 8.2f, 15.1f, 12, 15.1f);
+            shoulders.AddBezier(12, 15.1f, 15.8f, 15.1f, 18.8f, 17.4f, 19.4f, 21);
             g.DrawPath(p, shoulders);
         }
-        using var bar = Round(5.4f, 7.3f, 13.2f, 3.5f, 1.75f);
-        g.FillPath(f, bar);
+        var color = p.Color;
+        using var faint = new SolidBrush(Color.FromArgb(color.A / 2, color));
+        foreach (var (x, y, solid) in new[] { (9.3f, 6.5f, true), (12.2f, 9.4f, true), (12.2f, 6.5f, false), (9.3f, 9.4f, false) })
+            using (var tile = Round(x, y, 2.5f, 2.5f, 0.5f)) g.FillPath(solid ? f : faint, tile);
     }
 
     /// <summary>eye.slash: hide personal info</summary>
