@@ -13,7 +13,11 @@ internal sealed partial class CaptureOverlay
     {
         if (closing) return;
         var g = e.Graphics;
-        var clip = Rectangle.Intersect(e.ClipRectangle, client);
+        // Everything is laid out on the capture; a scrolled page shows it from scrollY down.
+        g.TranslateTransform(0, -scrollY);
+        var view = e.ClipRectangle;
+        view.Offset(0, scrollY);
+        var clip = Rectangle.Intersect(view, client);
         if (clip.Width <= 0 || clip.Height <= 0) return;
 
         // Content layer: the frozen screen, dimmed outside the selection. No glass here.
@@ -55,6 +59,7 @@ internal sealed partial class CaptureOverlay
             DrawSizeLabel(g, hw);
         }
 
+        if (page != null) DrawScrollBar(g);
         if (MagnifierVisible) DrawMagnifier(g);
         if (flashText != null) DrawFlash(g);
     }

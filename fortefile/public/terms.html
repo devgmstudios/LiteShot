@@ -11,13 +11,18 @@
   <link rel="canonical" href="https://fortefile.com/terms">
   <link rel="icon" href="/favicon.svg" type="image/svg+xml">
   <link rel="stylesheet" href="/assets/site.css">
+  <script src="/assets/fx.js" defer></script>
 </head>
 <body>
   <svg class="sprite" width="0" height="0" aria-hidden="true">
     <defs>
-      <linearGradient id="logo-tile" x1="0" y1="0" x2="0" y2="1"><stop offset="0" stop-color="#6cc2ff"/><stop offset="1" stop-color="#0062d1"/></linearGradient>
-      <linearGradient id="logo-rim" x1="0" y1="0" x2="0" y2="1"><stop offset="0" stop-color="#fff" stop-opacity="0.8"/><stop offset="0.5" stop-color="#fff" stop-opacity="0.08"/><stop offset="1" stop-color="#fff" stop-opacity="0.25"/></linearGradient>
-      <symbol id="logo" viewBox="0 0 64 64"><rect x="2" y="2" width="60" height="60" rx="16" fill="url(#logo-tile)"/><rect x="2.75" y="2.75" width="58.5" height="58.5" rx="15.25" fill="none" stroke="url(#logo-rim)" stroke-width="1.5"/><path d="M24 12h12.5L46 21.5V46a6 6 0 0 1-6 6H24a6 6 0 0 1-6-6V18a6 6 0 0 1 6-6z" fill="#fff"/><path d="M36.5 12L46 21.5h-6.5a3 3 0 0 1-3-3z" fill="#bfe0ff"/><path d="M28 31.5v-3.2a4 4 0 0 1 8 0v3.2" fill="none" stroke="#0a6fe0" stroke-width="2.8" stroke-linecap="round"/><rect x="25" y="31" width="14" height="12" rx="3" fill="#0a6fe0"/><circle cx="32" cy="36" r="1.7" fill="#fff"/><rect x="31.1" y="36.4" width="1.8" height="3.6" rx="0.9" fill="#fff"/></symbol>
+      <linearGradient id="logo-tile" x1="0" y1="0" x2="0" y2="1"><stop offset="0" stop-color="#3a404a"/><stop offset="1" stop-color="#121418"/></linearGradient>
+      <radialGradient id="logo-sheen" cx="0.28" cy="0" r="0.8"><stop offset="0" stop-color="#fff" stop-opacity="0.16"/><stop offset="1" stop-color="#fff" stop-opacity="0"/></radialGradient>
+      <radialGradient id="logo-glow" cx="0.5" cy="0.62" r="0.48"><stop offset="0" stop-color="#2f8cff" stop-opacity="0.55"/><stop offset="1" stop-color="#2f8cff" stop-opacity="0"/></radialGradient>
+      <linearGradient id="logo-rim" x1="0" y1="0" x2="1" y2="1"><stop offset="0" stop-color="#fff" stop-opacity="0.75"/><stop offset="0.35" stop-color="#fff" stop-opacity="0.12"/><stop offset="0.8" stop-color="#fff" stop-opacity="0.04"/><stop offset="1" stop-color="#fff" stop-opacity="0.25"/></linearGradient>
+      <linearGradient id="logo-file" x1="0" y1="0" x2="0" y2="1"><stop offset="0" stop-color="#fff"/><stop offset="1" stop-color="#d4dbe5"/></linearGradient>
+      <linearGradient id="logo-lock" x1="0" y1="0" x2="0" y2="1"><stop offset="0" stop-color="#3d9bff"/><stop offset="1" stop-color="#0a5fe0"/></linearGradient>
+      <symbol id="logo" viewBox="0 0 64 64"><rect x="2" y="2" width="60" height="60" rx="16" fill="url(#logo-tile)"/><rect x="2" y="2" width="60" height="60" rx="16" fill="url(#logo-glow)"/><rect x="2" y="2" width="60" height="60" rx="16" fill="url(#logo-sheen)"/><path d="M24 13.5h12.5L46 23v24.5a6 6 0 0 1-6 6H24a6 6 0 0 1-6-6V19.5a6 6 0 0 1 6-6z" fill="#000" opacity="0.35"/><path d="M24 12h12.5L46 21.5V46a6 6 0 0 1-6 6H24a6 6 0 0 1-6-6V18a6 6 0 0 1 6-6z" fill="url(#logo-file)"/><path d="M36.5 12L46 21.5h-6.5a3 3 0 0 1-3-3z" fill="#9aa5b4"/><path d="M28 31.5v-3.2a4 4 0 0 1 8 0v3.2" fill="none" stroke="url(#logo-lock)" stroke-width="2.8" stroke-linecap="round"/><rect x="25" y="31" width="14" height="12" rx="3.2" fill="url(#logo-lock)"/><circle cx="32" cy="36" r="1.7" fill="#fff"/><rect x="31.1" y="36.4" width="1.8" height="3.6" rx="0.9" fill="#fff"/><rect x="2.6" y="2.6" width="58.8" height="58.8" rx="15.4" fill="none" stroke="url(#logo-rim)" stroke-width="1.2"/></symbol>
     </defs>
   </svg>
 
@@ -75,7 +80,7 @@
       <article class="prose glass numbered">
         <h2 id="agreement">This agreement</h2>
         <p>fortefile (the “Service”) is operated by <b>Devgm, LLC</b> (“Devgm”, “we”, “us”), the company that also makes the LiteShot screenshot app. These Terms of Service (“Terms”) are a binding agreement between you and Devgm. They cover the website at fortefile.com, the file viewer, the upload and download interface at <code>fortefile.com/api</code>, and every link the Service creates.</p>
-        <p>By uploading a file, opening a fortefile link or otherwise using the Service, you agree to these Terms, including the <a href="/acceptable-use">Acceptable Use Policy</a> and the <a href="/copyright">Copyright and DMCA Policy</a>, which are part of them. Our <a href="/privacy">Privacy Policy</a> explains how we handle information. If you use the Service on behalf of an organization, you agree for that organization and confirm that you may do so. If you don't agree, don't use the Service.</p>
+        <p>By uploading a file, opening a fortefile link or otherwise using the Service, you agree to these Terms, including the <a href="/acceptable-use">Acceptable Use Policy</a>, the <a href="/prohibited-content">Prohibited Content Policy</a>, the <a href="/child-safety">Child Safety Policy</a> and the <a href="/copyright">Copyright and DMCA Policy</a>, which are part of them. Our <a href="/privacy">Privacy Policy</a> explains how we handle information. If you use the Service on behalf of an organization, you agree for that organization and confirm that you may do so. If you don't agree, don't use the Service.</p>
 
         <h2 id="eligibility">Who can use fortefile</h2>
         <p>You must be at least <b>13 years old</b>. Where the law requires a higher minimum age to use online services without a parent's consent (for example, up to 16 in some countries of the European Economic Area), you must be at least that age. If you're under the age of majority where you live, you may use the Service only with the involvement of a parent or legal guardian who agrees to these Terms.</p>
@@ -102,7 +107,7 @@
         </ul>
 
         <h2 id="acceptable-use">Acceptable use</h2>
-        <p>You must follow our <a href="/acceptable-use">Acceptable Use Policy</a>. In short: no child sexual abuse material, malware, phishing, illegal content, harassment, infringement of other people's rights, or abuse of the Service. We report child sexual abuse material to the National Center for Missing &amp; Exploited Children (NCMEC).</p>
+        <p>You must follow our <a href="/acceptable-use">Acceptable Use Policy</a> and <a href="/prohibited-content">Prohibited Content Policy</a>. In short: no child sexual abuse material, malware, phishing, illegal content, harassment, infringement of other people's rights, or abuse of the Service. We report child sexual abuse material to the National Center for Missing &amp; Exploited Children (NCMEC), as our <a href="/child-safety">Child Safety Policy</a> explains.</p>
 
         <h2 id="content">Your content and the license you give us</h2>
         <p>You keep all the rights you have in the files you upload (“your content”). We don't claim ownership of it.</p>
@@ -177,7 +182,7 @@
 
         <h2 id="general">General terms</h2>
         <ul>
-          <li><b>Entire agreement.</b> These Terms, with the Acceptable Use Policy and the Copyright and DMCA Policy, are the entire agreement between you and Devgm about the Service.</li>
+          <li><b>Entire agreement.</b> These Terms, with the Acceptable Use Policy, the Prohibited Content Policy, the Child Safety Policy and the Copyright and DMCA Policy, are the entire agreement between you and Devgm about the Service.</li>
           <li><b>Severability.</b> If a provision is found unenforceable, it will be limited to the minimum extent necessary, and the rest stays in effect.</li>
           <li><b>No waiver.</b> Not enforcing a provision doesn't mean we've given up the right to do so later.</li>
           <li><b>Assignment.</b> You may not transfer your rights under these Terms. We may transfer ours, for example in a merger, acquisition or sale of assets.</li>
@@ -210,6 +215,8 @@
         <a href="/privacy">Privacy</a>
         <a href="/terms" aria-current="page">Terms</a>
         <a href="/acceptable-use">Acceptable use</a>
+        <a href="/prohibited-content">Prohibited content</a>
+        <a href="/child-safety">Child safety</a>
         <a href="/copyright">Copyright</a>
         <a href="https://liteshot.app/">LiteShot</a>
       </nav>

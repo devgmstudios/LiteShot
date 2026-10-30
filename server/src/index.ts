@@ -2,15 +2,16 @@
 // in public/ as static assets.
 //   releases/{version}/{file}   release binaries
 //   channels/{channel}.json     signed envelope { payload, signature }, stored and served verbatim
-// The worker never verifies signatures; the app does.
+// The worker never verifies signatures; the app does. Downloads are counted in D1 (STATS), per day and file.
 
 interface Env {
   RELEASES: R2Bucket;
   ASSETS: Fetcher;
+  STATS?: D1Database;
   PUBLISH_TOKEN?: string;
 }
 
-type Handler = (req: Request, env: Env, params: string[], url: URL) => Promise<Response>;
+type Handler = (req: Request, env: Env, params: string[], url: URL, ctx: ExecutionContext) => Promise<Response>;
 
 const VERSION_RE = /^\d+\.\d+\.\d+$/;
 const FILE_RE = /^[A-Za-z0-9._-]{1,100}$/;
@@ -63,10 +64,38 @@ async function authorize(req: Request, env: Env) {
   if (!given || !crypto.subtle.timingSafeEqual(a, b)) throw new HttpError(401, 'unauthorized', { 'WWW-Authenticate': 'Bearer' });
 }
 
-const authed = (handler: Handler): Handler => async (req, env, params, url) => {
+const authed = (handler: Handler): Handler => async (req, env, params, url, ctx) => {
   await authorize(req, env);
-  return handler(req, env, params, url);
+  return handler(req, env, params, url, ctx);
 };
+
+// Crawlers, link previews and scanners follow the download buttons too; they're counted apart from people.
+const BOT_RE = /bot|crawl|spider|slurp|preview|scan|headless|python|go-http|java\//i;
+
+/**
+ * Adds one to the day's count for this file: one row per day, kind (installer / portable), source (site, update or
+ * bot) and version. Nothing about who downloaded is kept. Runs after the response, so it never slows a download.
+ */
+function countDownload(req: Request, env: Env, ctx: ExecutionContext, version: string, file: string) {
+  if (!env.STATS) return;
+  const kind = file.endsWith('.msi') ? 'installer' : file.endsWith('.exe') ? 'portable' : 'other';
+  const agent = req.headers.get('User-Agent') ?? '';
+  // LiteShot sends "LiteShot/<version>" when it downloads an update for itself.
+  const source = agent.startsWith('LiteShot/') ? 'update' : !agent || BOT_RE.test(agent) ? 'bot' : 'site';
+  const day = new Date().toISOString().slice(0, 10);
+  ctx.waitUntil(
+    env.STATS.prepare(
+      `INSERT INTO downloads (day, kind, source, version, count) VALUES (?1, ?2, ?3, ?4, 1)
+       ON CONFLICT (day, kind, source, version) DO UPDATE SET count = count + 1`,
+    )
+      .bind(day, kind, source, version)
+      .run()
+      .then(
+        () => {},
+        (e) => console.error('download count failed', e),
+      ),
+  );
+}
 
 const root: Handler = async () => json({ name: 'LiteShot update server', ok: true });
 
@@ -92,13 +121,14 @@ const latest: Handler = async (_req, env, _params, url) => {
   return new Response(obj.body, { headers: { 'Content-Type': JSON_TYPE, 'Cache-Control': 'public, max-age=60' } });
 };
 
-const download: Handler = async (req, env, [version, file]) => {
+const download: Handler = async (req, env, [version, file], _url, ctx) => {
   check(isVersion(version), 'invalid version');
   check(isFile(file), 'invalid file name');
   const key = `releases/${version}/${file}`;
   const head = req.method === 'HEAD';
   const obj = head ? await env.RELEASES.head(key) : await env.RELEASES.get(key);
   if (!obj) return json({ error: 'not found' }, 404);
+  if (!head) countDownload(req, env, ctx, version, file);
   return new Response(head ? null : (obj as R2ObjectBody).body, {
     headers: {
       'Content-Length': String(obj.size),
@@ -198,6 +228,43 @@ const deleteRelease: Handler = async (_req, env, [version]) => {
   return json({ ok: true, version, deleted: keys.length });
 };
 
+/** Download counts: people from the site (installer + portable), LiteShot updating itself, bots, and per day. */
+const stats: Handler = async (_req, env) => {
+  check(env.STATS, 'download counts are not set up', 503);
+  type Row = { source: string; kind: string; n: number };
+  type DayRow = { day: string; kind: string; n: number };
+  type VersionRow = { version: string; source: string; kind: string; n: number };
+  const [totals, days, versions] = await env.STATS.batch<Row | DayRow | VersionRow>([
+    env.STATS.prepare('SELECT source, kind, SUM(count) AS n FROM downloads GROUP BY source, kind'),
+    env.STATS.prepare(`SELECT day, kind, SUM(count) AS n FROM downloads WHERE source = 'site' AND day >= date('now', '-29 days')
+                       GROUP BY day, kind ORDER BY day`),
+    env.STATS.prepare('SELECT version, source, kind, SUM(count) AS n FROM downloads GROUP BY version, source, kind'),
+  ]);
+  const count = (rows: { source: string; kind: string; n: number }[], source: string) => {
+    const of = (kind: string) => rows.filter((r) => r.source === source && r.kind === kind).reduce((n, r) => n + r.n, 0);
+    const installer = of('installer'), portable = of('portable');
+    return { total: installer + portable, installer, portable };
+  };
+  const byDay = new Map<string, { day: string; installer: number; portable: number }>();
+  for (const r of days.results as DayRow[]) {
+    const d = byDay.get(r.day) ?? { day: r.day, installer: 0, portable: 0 };
+    if (r.kind === 'installer' || r.kind === 'portable') d[r.kind] += r.n;
+    byDay.set(r.day, d);
+  }
+  const versionRows = versions.results as VersionRow[];
+  const byVersion = [...new Set(versionRows.map((r) => r.version))].sort(compareVersions).reverse().map((version) => {
+    const rows = versionRows.filter((r) => r.version === version);
+    return { version, downloads: count(rows, 'site'), updates: count(rows, 'update').total };
+  });
+  return json({
+    downloads: count(totals.results as Row[], 'site'),
+    updates: count(totals.results as Row[], 'update'),
+    bots: count(totals.results as Row[], 'bot').total,
+    last30Days: [...byDay.values()],
+    versions: byVersion,
+  }, 200, { 'Cache-Control': 'no-store' });
+};
+
 const routes: [RegExp, Record<string, Handler>][] = [
   [/^\/v1$/, { GET: root }],
   [/^\/download\/installer$/, { GET: downloadLatest('msi') }],
@@ -208,10 +275,11 @@ const routes: [RegExp, Record<string, Handler>][] = [
   [/^\/v1\/releases\/([^/]+)$/, { DELETE: authed(deleteRelease) }],
   [/^\/v1\/releases\/([^/]+)\/([^/]+)$/, { PUT: authed(uploadFile) }],
   [/^\/v1\/channels\/([^/]+)$/, { PUT: authed(putChannel) }],
+  [/^\/v1\/stats$/, { GET: authed(stats) }],
 ];
 
 export default {
-  async fetch(req, env): Promise<Response> {
+  async fetch(req, env, ctx): Promise<Response> {
     const url = new URL(req.url);
     try {
       for (const [pattern, methods] of routes) {
@@ -222,7 +290,7 @@ export default {
           const allow = Object.keys(methods).concat(methods.GET && !methods.HEAD ? ['HEAD'] : []);
           return json({ error: 'method not allowed' }, 405, { Allow: allow.join(', ') });
         }
-        return await handler(req, env, match.slice(1), url);
+        return await handler(req, env, match.slice(1), url, ctx);
       }
       if (url.pathname.startsWith('/v1/')) return json({ error: 'not found' }, 404);
       const page = await env.ASSETS.fetch(new Request(new URL('/404.html', url)));

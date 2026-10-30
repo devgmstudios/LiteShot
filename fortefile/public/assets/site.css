@@ -127,26 +127,96 @@ a { color: inherit; }
   opacity: 0.8;
 }
 
-/* ───────── buttons ───────── */
+/* ───────── buttons: metal edges that catch the light ─────────
+   After React Bits' Specular Button (reactbits.dev): a thin edge line with a light on it that glides to the part of
+   the edge facing the pointer and brightens as the pointer comes close. assets/fx.js sets --a (where, in degrees
+   clockwise from the top) and --i (how bright); without it the light rests on the top left at idle strength.
+   Primary buttons are graphite, secondary ones clear glass. */
+
+@property --a { syntax: "<angle>"; inherits: true; initial-value: -50deg; }
+@property --i { syntax: "<number>"; inherits: true; initial-value: 0.35; }
 
 .btn {
+  --edge: rgba(255, 255, 255, 0.16);  /* the line that stays visible under the light */
+  --light: 255 255 255;               /* the light's colour, as r g b */
+  position: relative; isolation: isolate;
   display: inline-flex; align-items: center; justify-content: center; gap: 0.55em;
   min-height: 48px; padding: 0 1.4em;
   border-radius: 999px; border: 0;
   font: 600 1rem/1 var(--font); text-decoration: none; cursor: pointer; white-space: nowrap;
-  transition: transform 0.2s ease, box-shadow 0.2s ease, background 0.2s ease;
+  transition: transform 0.2s ease, box-shadow 0.2s ease, background-color 0.2s ease,
+    --a 0.5s cubic-bezier(0.2, 0.8, 0.2, 1), --i 0.35s ease;
+}
+.btn::before {
+  /* the edge: a faint line all the way round, and the light where it catches */
+  content: ""; position: absolute; inset: 0; z-index: -1; border-radius: inherit; padding: 1.2px; pointer-events: none; opacity: 1;
+  background:
+    conic-gradient(from calc(var(--a) - 39deg),
+      rgb(var(--light) / 0) 0deg, rgb(var(--light) / var(--i)) 34deg, rgb(var(--light) / var(--i)) 44deg,
+      rgb(var(--light) / 0) 78deg, rgb(var(--light) / 0) 360deg),
+    linear-gradient(var(--edge), var(--edge));
+  -webkit-mask: linear-gradient(#000 0 0) content-box, linear-gradient(#000 0 0);
+  -webkit-mask-composite: xor;
+  mask-composite: exclude;
+}
+.btn::after {
+  /* soft light around the lit part of the edge, inside the button and just outside it */
+  content: ""; position: absolute; inset: -10px; z-index: -2; border-radius: inherit; pointer-events: none;
+  background: radial-gradient(30% 75% at calc(50% + sin(var(--a)) * 46%) calc(50% - cos(var(--a)) * 42%),
+    rgb(var(--light) / calc(var(--i) * 0.3)), rgb(var(--light) / 0) 70%);
 }
 .btn:active { transform: scale(0.97); }
 .btn:focus-visible, a:focus-visible, summary:focus-visible, button:focus-visible { outline: 3px solid var(--accent); outline-offset: 3px; }
-.btn-primary {
-  color: var(--accent-ink);
-  background: linear-gradient(180deg, var(--btn-top), var(--btn-bottom));
-  box-shadow: inset 0 1px 0 rgba(255, 255, 255, 0.45), 0 10px 28px -10px var(--accent);
-}
-.btn-primary:hover { box-shadow: inset 0 1px 0 rgba(255, 255, 255, 0.45), 0 14px 34px -10px var(--accent); transform: translateY(-1px); }
-.btn-glass { color: var(--text); background: transparent; }
-.btn-glass:hover { background: var(--glass-strong); }
 .btn[aria-disabled="true"] { opacity: 0.55; pointer-events: none; }
+
+.btn-primary {
+  --edge: rgba(255, 255, 255, 0.14);
+  color: #f6f7f9;
+  background: linear-gradient(180deg, #31353d, #16181d);
+  box-shadow: inset 0 1px 0 rgba(255, 255, 255, 0.1), 0 1px 2px rgba(10, 14, 22, 0.25), 0 10px 26px -12px rgba(10, 14, 22, 0.6);
+}
+.btn-primary:hover {
+  transform: translateY(-1px);
+  box-shadow: inset 0 1px 0 rgba(255, 255, 255, 0.12), 0 1px 2px rgba(10, 14, 22, 0.25), 0 16px 32px -12px rgba(10, 14, 22, 0.65);
+}
+.btn-primary:active { transform: scale(0.97); }
+
+.btn-glass {
+  --edge: rgba(24, 32, 46, 0.16);
+  --light: 10 112 240;  /* on the light theme the light is fortefile blue: white wouldn't show */
+  color: var(--text);
+  background: rgba(255, 255, 255, 0.4);
+}
+.btn-glass.glass {
+  background: rgba(255, 255, 255, 0.45);
+  -webkit-backdrop-filter: blur(16px) saturate(120%);
+  backdrop-filter: blur(16px) saturate(120%);
+  box-shadow: 0 8px 22px -14px var(--shadow);
+}
+.btn-glass:hover, .btn-glass.glass:hover { background: rgba(255, 255, 255, 0.66); }
+
+@media (prefers-color-scheme: dark) {
+  .btn-primary {
+    --edge: rgba(255, 255, 255, 0.2);
+    background: linear-gradient(180deg, #2f343d, #191c22);
+    box-shadow: inset 0 1px 0 rgba(255, 255, 255, 0.12), 0 1px 2px rgba(0, 0, 0, 0.4), 0 10px 26px -12px rgba(0, 0, 0, 0.8);
+  }
+  .btn-glass { --edge: rgba(255, 255, 255, 0.14); --light: 255 255 255; background: rgba(255, 255, 255, 0.04); }
+  .btn-glass.glass { background: rgba(255, 255, 255, 0.05); }
+  .btn-glass:hover, .btn-glass.glass:hover { background: rgba(255, 255, 255, 0.1); }
+}
+
+/* sparks where a button is clicked (fx.js), after React Bits' Click Spark */
+.spark { position: fixed; left: 0; top: 0; width: 0; height: 0; z-index: 50; pointer-events: none; }
+.spark i {
+  position: absolute; left: -1px; bottom: 0; width: 2px; height: 9px; border-radius: 1px;
+  background: var(--accent); transform-origin: 50% 100%;
+  animation: spark 0.42s cubic-bezier(0.2, 0.7, 0.3, 1) forwards;
+}
+@keyframes spark {
+  from { transform: rotate(var(--r)) translateY(-5px) scaleY(1); opacity: 1; }
+  to { transform: rotate(var(--r)) translateY(-20px) scaleY(0.15); opacity: 0; }
+}
 
 /* ───────── brand ───────── */
 
@@ -371,15 +441,14 @@ h2 { font-size: clamp(2rem, 5vw, 3.4rem); line-height: 1.04; letter-spacing: -0.
 /* links to the policies */
 .policies-wrap { margin-top: 48px; }
 .policies-wrap h3 { margin: 0; font-size: 1.2rem; letter-spacing: -0.01em; }
-.policies { display: grid; grid-template-columns: repeat(5, minmax(0, 1fr)); gap: 12px; margin-top: 16px; }
+.policies { display: grid; grid-template-columns: repeat(4, minmax(0, 1fr)); gap: 12px; margin-top: 16px; }
 .policy { display: flex; flex-direction: column; gap: 4px; padding: 18px 20px; border-radius: var(--radius-sm); text-decoration: none; transition: transform 0.2s ease, background 0.2s ease; }
 .policy b { display: flex; align-items: center; justify-content: space-between; gap: 8px; }
 .policy b::after { content: "→"; color: var(--text-3); transition: transform 0.2s ease; }
 .policy span { color: var(--text-2); font-size: 0.92rem; }
 .policy:hover { background: var(--glass-strong); transform: translateY(-2px); }
 .policy:hover b::after { transform: translateX(3px); color: var(--accent-text); }
-@media (max-width: 1060px) { .policies { grid-template-columns: repeat(3, minmax(0, 1fr)); } }
-@media (max-width: 700px) { .policies { grid-template-columns: repeat(2, minmax(0, 1fr)); } }
+@media (max-width: 1060px) { .policies { grid-template-columns: repeat(2, minmax(0, 1fr)); } }
 @media (max-width: 440px) { .policies { grid-template-columns: 1fr; } }
 
 /* ───────── documents: terms, privacy, policies, security details ───────── */
@@ -396,7 +465,9 @@ h2 { font-size: clamp(2rem, 5vw, 3.4rem); line-height: 1.04; letter-spacing: -0.
 
 .doc { display: grid; grid-template-columns: 250px minmax(0, 1fr); gap: 24px; align-items: start; margin-top: clamp(32px, 5vw, 48px); }
 .doc.solo { grid-template-columns: minmax(0, 1fr); max-width: 900px; }
-.toc { position: sticky; top: 96px; padding: 18px 14px 18px 18px; border-radius: var(--radius-sm); max-height: calc(100vh - 120px); overflow-y: auto; }
+.toc { position: sticky; top: 96px; padding: 18px 14px 18px 18px; border-radius: var(--radius-sm); max-height: calc(100vh - 120px); overflow: hidden auto; }
+/* The rim normally sits 1px outside the box, over its border; in this scroll box that pixel would count as overflow. */
+.toc::before { inset: 0; }
 .toc-title { margin: 0 0 10px; font-size: 0.8rem; font-weight: 650; letter-spacing: 0.06em; text-transform: uppercase; color: var(--text-3); }
 .toc ol { margin: 0; padding: 0; list-style: none; counter-reset: toc; }
 .toc li { counter-increment: toc; }
@@ -537,7 +608,8 @@ footer { padding: 90px 0 40px; color: var(--text-3); font-size: 0.9rem; }
   .glass::before, .backdrop { display: none; }
   h1 .shine { color: CanvasText; background: none; }
   .btn { border: 1px solid ButtonText; }
-  .btn-primary { background: ButtonText; color: ButtonFace; forced-color-adjust: none; }
+  .btn::before, .btn::after { display: none; }
+  .btn-primary { background: ButtonText; color: ButtonFace; text-shadow: none; forced-color-adjust: none; }
   .badge, .part .tag { forced-color-adjust: none; background: CanvasText; color: Canvas; }
   .metal { background: Canvas; color: CanvasText; border: 1px solid CanvasText; box-shadow: none; }
   .metal::before, .metal::after { display: none; }

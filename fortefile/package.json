@@ -4,10 +4,11 @@
   "private": true,
   "type": "module",
   "scripts": {
-    "dev": "wrangler dev --test-scheduled --var TEST_HOOKS:1",
+    "dev": "wrangler dev --test-scheduled --local-upstream 127.0.0.1:8790 --var TEST_HOOKS:1 --var ADMIN_TOKEN:local-admin-token",
     "deploy": "wrangler deploy",
     "typecheck": "tsc --noEmit",
-    "test": "node test/smoke.mjs"
+    "test": "node test/smoke.mjs",
+    "admin": "node tools/admin.mjs"
   },
   "devDependencies": {
     "@cloudflare/workers-types": "4.20250709.0",

@@ -16,8 +16,8 @@ internal sealed class TrayApp : ApplicationContext
     readonly EventWaitHandle captureSignal, exitSignal;
     readonly RegisteredWaitHandle captureWait, exitWait;
     readonly List<PinForm> pins = new();
-    ToolStripMenuItem captureItem = null!, fullItem = null!, lastItem = null!, recentItem = null!, folderItem = null!, optionsItem = null!, exitItem = null!;
-    ToolStripMenuItem shortcutsItem = null!, startupItem = null!;
+    ToolStripMenuItem captureItem = null!, fullItem = null!, lastItem = null!, scrollItem = null!, recentItem = null!, folderItem = null!, optionsItem = null!, exitItem = null!;
+    ToolStripMenuItem shortcutsItem = null!, startupItem = null!, updateItem = null!;
     CaptureOverlay? overlay;
     SettingsForm? settingsForm;
     Action? balloonClick;
@@ -49,15 +49,20 @@ internal sealed class TrayApp : ApplicationContext
         exitWait = ThreadPool.RegisterWaitForSingleObject(exitSignal, (_, _) => invoker.BeginInvoke(Exit), null, -1, true);
 
         SystemEvents.UserPreferenceChanged += OnUserPreferenceChanged;
-        updateTimer.Tick += (_, _) => AutoUpdateTick();
+        updateTimer.Tick += (_, _) => UpdateTick();
         Updater.CleanUp();
         // Like Lightshot, LiteShot starts with Windows unless the user turns it off (tray menu or Settings).
         if (!Settings.FirstRunShown) StartupRegistration.Set(true);
         else StartupRegistration.Refresh();
+        bool updated = NoticeVersion(justUpdated);
         ApplySettings();
 
-        if (justUpdated)
-            Notify("LiteShot updated", $"You're on version {Updater.CurrentVersion}.", force: true);
+        if (updated)
+        {
+            string? notes = Settings.NotesVersion == Updater.CurrentVersion.ToString() ? Brief(Settings.Notes) : null;
+            Notify($"LiteShot updated to {Updater.CurrentVersion}", notes ?? "Click to see your update settings.",
+                () => ShowSettings(SettingsForm.GeneralPage), force: true);
+        }
         else if (!hook.IsInstalled)
             Notify("Hotkeys unavailable", "LiteShot couldn't register its keyboard shortcuts. Use the tray icon to take screenshots.", error: true);
         else if (!launchedAtStartup || !Settings.FirstRunShown)
@@ -81,6 +86,7 @@ internal sealed class TrayApp : ApplicationContext
         captureItem.Font = new Font(captureItem.Font, FontStyle.Bold);
         fullItem = new ToolStripMenuItem("Capture full screen", null, (_, _) => Delayed(CaptureFullScreen));
         lastItem = new ToolStripMenuItem("Capture last area", null, (_, _) => Delayed(() => StartCapture(useLastRegion: true)));
+        scrollItem = new ToolStripMenuItem("Scrolling capture", null, (_, _) => Delayed(() => StartCapture(scrolling: true)));
         recentItem = new ToolStripMenuItem("Recent uploads");
         recentItem.DropDownItems.Add(new ToolStripMenuItem("No uploads yet") { Enabled = false });
         recentItem.DropDownOpening += (_, _) => FillRecentUploads();
@@ -89,12 +95,13 @@ internal sealed class TrayApp : ApplicationContext
         shortcutsItem = new ToolStripMenuItem("Change shortcuts…", null, (_, _) => ShowSettings(SettingsForm.ShortcutsPage));
         startupItem = new ToolStripMenuItem("Start with Windows", null, (_, _) => StartupRegistration.Set(!StartupRegistration.IsEnabled));
         optionsItem = new ToolStripMenuItem("Settings", null, (_, _) => ShowSettings());
+        updateItem = new ToolStripMenuItem("Check for updates", null, (_, _) => UpdateItemClicked()) { Visible = Updater.Configured };
         exitItem = new ToolStripMenuItem("Exit", null, (_, _) => Exit());
         m.Items.AddRange(new ToolStripItem[]
         {
-            captureItem, fullItem, lastItem, new ToolStripSeparator(),
+            captureItem, fullItem, lastItem, scrollItem, new ToolStripSeparator(),
             recentItem, folderItem, new ToolStripSeparator(),
-            shortcutsItem, startupItem, optionsItem, exitItem,
+            shortcutsItem, startupItem, optionsItem, updateItem, exitItem,
         });
         foreach (ToolStripItem item in m.Items)
             if (item is ToolStripMenuItem) item.Padding = new Padding(4, 5, 4, 5);
@@ -119,10 +126,12 @@ internal sealed class TrayApp : ApplicationContext
         Set(captureItem, Icons.Capture);
         Set(fullItem, Icons.Monitor);
         Set(lastItem, Icons.Repeat);
+        Set(scrollItem, Icons.ScrollCapture);
         Set(recentItem, Icons.Clock);
         Set(folderItem, Icons.Folder);
         Set(optionsItem, Icons.Gear);
         Set(shortcutsItem, Icons.Keyboard);
+        Set(updateItem, Icons.Update);
         startupItem.Checked = StartupRegistration.IsEnabled;
         Set(exitItem, Icons.Power);
     }
@@ -187,7 +196,7 @@ internal sealed class TrayApp : ApplicationContext
         captureItem.ShortcutKeyDisplayString = Settings.HotkeyCapture == Keys.None ? "" : HotkeyText.Format(Settings.HotkeyCapture);
         fullItem.ShortcutKeyDisplayString = Settings.HotkeyFullScreen == Keys.None ? "" : HotkeyText.Format(Settings.HotkeyFullScreen);
         lastItem.ShortcutKeyDisplayString = Settings.HotkeyLastRegion == Keys.None ? "" : HotkeyText.Format(Settings.HotkeyLastRegion);
-        tray.Text = Settings.HotkeyCapture == Keys.None ? "LiteShot" : $"LiteShot — {HotkeyText.Format(Settings.HotkeyCapture)} to capture";
+        RefreshUpdateState();
         ScheduleUpdates();
     }
 
@@ -218,8 +227,9 @@ internal sealed class TrayApp : ApplicationContext
         timer.Start();
     }
 
-    public void StartCapture(bool useLastRegion = false)
+    public void StartCapture(bool useLastRegion = false, bool scrolling = false)
     {
+        if (scrollCapturing) return;   // the overlay would end up in the frames
         if (overlay != null)
         {
             overlay.Activate();
@@ -242,6 +252,12 @@ internal sealed class TrayApp : ApplicationContext
         }
 
         var o = new CaptureOverlay(this, shot, virt, windows, preselect);
+        if (scrolling) o.PickForScrolling();
+        ShowOverlay(o);
+    }
+
+    void ShowOverlay(CaptureOverlay o)
+    {
         overlay = o;
         o.FormClosed += (_, _) =>
         {
@@ -249,6 +265,37 @@ internal sealed class TrayApp : ApplicationContext
             invoker.BeginInvoke(() => GC.Collect());
         };
         o.Show();
+    }
+
+    bool scrollCapturing;
+
+    /// <summary>Scrolls <paramref name="area"/> (screen pixels) and opens the stitched page in the editor.</summary>
+    public async void StartScrollCapture(Rectangle area)
+    {
+        // The overlay that started this is still closing; it's off the screen before the first frame.
+        if (scrollCapturing) return;
+        scrollCapturing = true;
+        ScrollCapture.Result result;
+        try { result = await ScrollCapture.RunAsync(area); }
+        catch (Exception ex)
+        {
+            Notify("Scrolling capture failed", ex.Message, error: true);
+            return;
+        }
+        finally { scrollCapturing = false; }
+        try
+        {
+            ShowOverlay(CaptureOverlay.ForPage(this, result.Page, area, result.Backdrop, SystemInformation.VirtualScreen, result.Note));
+        }
+        catch (Exception ex)
+        {
+            Notify("Scrolling capture failed", ex.Message, error: true);
+        }
+        finally
+        {
+            result.Page.Dispose();
+            result.Backdrop.Dispose();
+        }
     }
 
     async void CaptureFullScreen()
@@ -450,34 +497,73 @@ internal sealed class TrayApp : ApplicationContext
     // ───────────────────────────── updates ─────────────────────────────
 
     readonly System.Windows.Forms.Timer updateTimer = new();
-    bool updating;
+    bool updating, checking;
     int uploadsInFlight;
 
     /// <summary>Something is open or on its way; an automatic update never restarts LiteShot in the middle of it.</summary>
     bool Busy => uploadsInFlight > 0 || Application.OpenForms.Cast<Form>().Any(f => f.Visible);
 
+    /// <summary>Records this run's version and, when it's newer than the last one, when LiteShot was updated.</summary>
+    static bool NoticeVersion(bool justUpdated)
+    {
+        bool updated = Updater.WasUpdated(Settings.LastRunVersion, justUpdated);
+        Settings.LastRunVersion = Updater.CurrentVersion.ToString();
+        if (updated) Settings.UpdatedAt = DateTime.Now;
+        return updated;
+    }
+
+    /// <summary>Release notes cut to fit a notification, or null if there are none.</summary>
+    static string? Brief(string? notes)
+    {
+        if (string.IsNullOrWhiteSpace(notes)) return null;
+        notes = string.Join(" ", notes.Split((char[]?)null, StringSplitOptions.RemoveEmptyEntries));
+        return notes.Length > 160 ? notes[..159].TrimEnd() + "…" : notes;
+    }
+
+    string TrayText()
+    {
+        string text = Settings.HotkeyCapture == Keys.None ? "LiteShot" : $"LiteShot — {HotkeyText.Format(Settings.HotkeyCapture)} to capture";
+        return Updater.Newer != null ? text + " · update available" : text;
+    }
+
+    /// <summary>Shows what LiteShot knows about updates in the tray menu, its tooltip and Settings.</summary>
+    void RefreshUpdateState()
+    {
+        var newer = Updater.Newer;
+        updateItem.Enabled = !checking;
+        updateItem.Text = checking ? "Checking for updates…" : newer != null ? $"Update to {newer}…" : "Check for updates";
+        tray.Text = TrayText();
+        settingsForm?.RefreshUpdates();
+    }
+
     void ScheduleUpdates()
     {
         updateTimer.Stop();
-        if (!Settings.AutoUpdate || !Updater.Configured) return;
+        if (!(Settings.AutoUpdate || Settings.CheckForUpdates) || !Updater.Configured) return;
         updateTimer.Interval = (int)TimeSpan.FromMinutes(2).TotalMilliseconds;   // let startup settle first
         updateTimer.Start();
     }
 
-    async void AutoUpdateTick()
+    /// <summary>The background check: says once when a new version is out or, with automatic updates on, installs it.</summary>
+    async void UpdateTick()
     {
         updateTimer.Interval = (int)TimeSpan.FromHours(6).TotalMilliseconds;
-        if (updating || !Settings.AutoUpdate) return;
+        if (updating || !(Settings.AutoUpdate || Settings.CheckForUpdates)) return;
         updating = true;
         try
         {
-            var info = await Task.Run(() => Updater.CheckAsync());
-            Settings.LastUpdateCheck = DateTime.Now;
-            Settings.Save();
+            string? seen = Settings.LatestVersion;
+            var info = await CheckForUpdatesAsync();
             if (info == null) return;
+            if (!Settings.AutoUpdate)
+            {
+                // Once per version: after that the tray menu and Settings keep offering it.
+                if (info.Version.ToString() != seen) AnnounceUpdate(info);
+                return;
+            }
             string file = await Task.Run(() => Updater.DownloadAsync(info, Updater.IsInstalled));
             while (Busy) await Task.Delay(TimeSpan.FromSeconds(30));
-            if (Settings.AutoUpdate) InstallUpdate(file);
+            if (Settings.AutoUpdate) InstallUpdate(info, file);
         }
         catch (Exception ex)
         {
@@ -486,9 +572,51 @@ internal sealed class TrayApp : ApplicationContext
         finally { updating = false; }
     }
 
-    /// <summary>Starts the new version and quits this one.</summary>
-    public void InstallUpdate(string file)
+    /// <summary>Checks for a newer version and shows the answer in the tray menu and Settings. Throws if it can't check.</summary>
+    public async Task<UpdateInfo?> CheckForUpdatesAsync()
     {
+        checking = true;
+        RefreshUpdateState();
+        try { return await Updater.CheckNowAsync(); }
+        finally
+        {
+            checking = false;
+            RefreshUpdateState();
+        }
+    }
+
+    /// <summary>Checks and says what it found, or, once there's a version to install, opens it in Settings.</summary>
+    async void UpdateItemClicked()
+    {
+        if (Updater.Newer != null)
+        {
+            ShowSettings(SettingsForm.GeneralPage);
+            return;
+        }
+        try
+        {
+            var info = await CheckForUpdatesAsync();
+            if (info != null) AnnounceUpdate(info);
+            else Notify("You're up to date", $"LiteShot {Updater.CurrentVersion} is the latest version.", force: true);
+        }
+        catch (Exception ex)
+        {
+            Notify("Couldn't check for updates", Updater.Describe(ex), error: true);
+        }
+    }
+
+    void AnnounceUpdate(UpdateInfo info) =>
+        Notify($"LiteShot {info.Version} is available",
+            Brief(info.Notes) is string notes ? $"{notes} Click to install it." : "Click to see what's new and install it.",
+            () => ShowSettings(SettingsForm.GeneralPage), force: true);
+
+    /// <summary>Starts the new version and quits this one.</summary>
+    public void InstallUpdate(UpdateInfo release, string file)
+    {
+        // The new version shows these once it starts.
+        Settings.NotesVersion = release.Version.ToString();
+        Settings.Notes = release.Notes.Trim();
+        Settings.Save();
         try { Updater.Install(file, Environment.ProcessPath!); }
         catch (Exception ex)
         {

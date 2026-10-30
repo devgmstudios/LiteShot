@@ -150,7 +150,7 @@ internal sealed partial class CaptureOverlay
                 aiBox.BackColor = FieldColor(tone);
                 aiBox.ForeColor = tone.Glyph;
                 int bh = aiBox.PreferredHeight;
-                aiBox.SetBounds((int)(aiFieldRect.X + 14 * S), (int)(aiFieldRect.Y + (aiFieldRect.Height - bh) / 2), (int)(aiFieldRect.Width - 28 * S), bh);
+                aiBox.SetBounds((int)(aiFieldRect.X + 14 * S), (int)(aiFieldRect.Y + (aiFieldRect.Height - bh) / 2) - scrollY, (int)(aiFieldRect.Width - 28 * S), bh);
             }
         }
         else

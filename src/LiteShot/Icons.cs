@@ -383,6 +383,19 @@ internal static class Icons
         g.DrawLine(p, 8, 20.5f, 16, 20.5f);
     }
 
+    /// <summary>A page running on below the screen, and the way it scrolls.</summary>
+    public static void ScrollCapture(Graphics g, Pen p, Brush f)
+    {
+        using var path = new GraphicsPath();
+        path.AddLine(4.5f, 14.5f, 4.5f, 6.5f);
+        path.AddArc(4.5f, 3, 6, 6, 180, 90);
+        path.AddArc(13.5f, 3, 6, 6, 270, 90);
+        path.AddLine(19.5f, 6.5f, 19.5f, 14.5f);
+        g.DrawPath(p, path);
+        g.DrawLine(p, 12, 8, 12, 20.5f);
+        g.DrawLines(p, P(8.5f, 17, 12, 20.5f, 15.5f, 17));
+    }
+
     /// <summary>arrow.clockwise</summary>
     public static void Repeat(Graphics g, Pen p, Brush f)
     {

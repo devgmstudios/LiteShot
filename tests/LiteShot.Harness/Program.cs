@@ -23,7 +23,11 @@ internal static class Program
         int linkArg = Array.IndexOf(args, "--fortefile-link");
         if (linkArg >= 0) { Fortefile.PrintLink(args[linkArg + 1], args[linkArg + 2]); return 0; }
         if (args.Contains("--live")) { Application.SetHighDpiMode(HighDpiMode.PerMonitorV2); LiveCaptureCheck.Run(outDir); return 0; }
+        if (args.Contains("--faces")) { PrivacyAndUpdates.Faces(outDir, Check); return failures == 0 ? 0 : 1; }
+        if (args.Contains("--names")) { PrivacyAndUpdates.NamesInTable(outDir, Check); PrivacyAndUpdates.NamesInFeed(outDir, Check); return failures == 0 ? 0 : 1; }
         Application.SetHighDpiMode(HighDpiMode.PerMonitorV2);
+        if (args.Contains("--live-scroll")) { LiveScrollCheck.Run(outDir, Check); return failures == 0 ? 0 : 1; }
+        if (args.Contains("--scroll")) { ScrollingCapture.Run(outDir, Check); return failures == 0 ? 0 : 1; }
 
         var virt = SystemInformation.VirtualScreen;
         using var desktop = SyntheticDesktop(virt.Size);
@@ -139,6 +143,9 @@ internal static class Program
         // 7c. New: text styling, fonts, AI and uploads.
         NewFeatures.Run(outDir, () => NewOverlay(desktop, virt, windows), LightWindow(virt.Size), Check);
 
+        // 7c2. Scrolling capture: stitching tall pages, and editing one.
+        ScrollingCapture.Run(outDir, Check);
+
         // 7d. Privacy (names, faces) and updates.
         int serverArg = Array.IndexOf(args, "--update-server");
         PrivacyAndUpdates.Run(outDir, d => NewOverlay(d, virt, windows), desktop, Check, serverArg >= 0 && serverArg + 1 < args.Length ? args[serverArg + 1] : null);
@@ -185,7 +192,7 @@ internal static class Program
     static Rectangle DarkWindow(Size s) => new((int)(s.Width * 0.05), (int)(s.Height * 0.09), (int)(s.Width * 0.38), (int)(s.Height * 0.48));
     static Rectangle LightWindow(Size s) => new((int)(s.Width * 0.47), (int)(s.Height * 0.24), (int)(s.Width * 0.48), (int)(s.Height * 0.70));
 
-    static Bitmap SyntheticDesktop(Size size)
+    internal static Bitmap SyntheticDesktop(Size size)
     {
         var bmp = new Bitmap(size.Width, size.Height, PixelFormat.Format32bppPArgb);
         using var g = Graphics.FromImage(bmp);

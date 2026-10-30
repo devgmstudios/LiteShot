@@ -18,4 +18,8 @@
     <ProjectReference Include="..\..\src\LiteShot\LiteShot.csproj" />
   </ItemGroup>
 
+  <ItemGroup>
+    <None Include="Faces\*" CopyToOutputDirectory="PreserveNewest" />
+  </ItemGroup>
+
 </Project>

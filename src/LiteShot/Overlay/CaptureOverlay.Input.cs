@@ -200,6 +200,7 @@ internal sealed partial class CaptureOverlay
         }
         dragMoved = false;
         if (closing) return;
+        if (pickForScrolling && mode == DragMode.NewSelection && hasSel) { StartScrollCapture(); return; }
         UpdateHover(e.Location);
         UpdateView(frameDirty: true);
     }
@@ -357,6 +358,7 @@ internal sealed partial class CaptureOverlay
         if (editing != null && OnEditorFrame(editing, p)) { SetCursor(Cursors.SizeAll); return; }
         if (editing != null && EditorBox(editing).Contains(p)) { SetCursor(Cursors.IBeam); return; }
         if (tool == Tool.Text) { SetCursor(Cursors.IBeam); return; }
+        if (tool == Tool.Marker && sel.Contains(p)) { SetCursor(MarkerCursor.For(color, S)); return; }
         if (tool != Tool.None) { SetCursor(Cursors.Cross); return; }
         if (HitShape(p) != null) { SetCursor(Cursors.Hand); return; }
         SetCursor(sel.Contains(p) ? Cursors.SizeAll : Cursors.Cross);
@@ -438,6 +440,7 @@ internal sealed partial class CaptureOverlay
             // Plain typing has to reach OnKeyPress, so only modified combinations fall through to shortcuts.
             if ((keyData & (Keys.Control | Keys.Alt)) == 0) return false;
         }
+        if (page != null && editing == null && HandleScrollKey(keyData)) return true;
         if (HandleShortcut(keyData)) return true;
         return base.ProcessCmdKey(ref msg, keyData);
     }
@@ -587,6 +590,7 @@ internal sealed partial class CaptureOverlay
         if (mods == Keys.None)
         {
             if (code == Keys.C && !hasSel) { CopyColor(); return true; }
+            if (code == Keys.S) { StartScrollCapture(); return true; }
             if (!hasSel) return false;
             if (code == Keys.V) { SetTool(Tool.None); return true; }
             if (code == Keys.F) { BlurFaces(); return true; }
@@ -642,7 +646,7 @@ internal sealed partial class CaptureOverlay
     {
         CommitText();
         var mon = MonitorAt(hasSel ? Center(sel) : mouse);
-        sel = hasSel && sel == mon ? client : mon;
+        sel = page is Rectangle whole ? whole : hasSel && sel == mon ? client : mon;
         hasSel = true;
         hoverWindow = null;
         UpdateScale();

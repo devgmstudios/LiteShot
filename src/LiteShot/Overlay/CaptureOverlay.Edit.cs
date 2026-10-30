@@ -16,7 +16,7 @@ internal sealed partial class CaptureOverlay
         };
 
         colorButton = new ToolButton { Tip = "Color and size", OnClick = () => TogglePalette(colorButton), CustomPaint = PaintColorButton };
-        blurFacesButton = new ToolButton { Tip = "Blur faces · FacePrivacy.ai", Shortcut = "F", Glyph = Icons.FaceBlur, OnClick = BlurFaces, IsActive = () => findingFaces };
+        blurFacesButton = new ToolButton { Tip = $"Blur faces · {Core.ShieldBlur.Credit}", Shortcut = "F", Glyph = Icons.FaceBlur, OnClick = BlurFaces, IsActive = () => findingFaces };
         hidePersonalButton = new ToolButton { Tip = "Hide personal info", Shortcut = "H", Glyph = Icons.HidePersonal, OnClick = ToggleHidePersonal, IsActive = () => HidingPersonal };
         return new Toolbar(vertical: true)
             .Group(
@@ -45,7 +45,9 @@ internal sealed partial class CaptureOverlay
             new() { Tip = tip, Shortcut = key, Glyph = glyph, OnClick = click };
 
         shareButton = B("Share", null, Icons.Share, ShowShareMenu);
+        scrollButton = B("Scrolling capture", "S", Icons.ScrollCapture, StartScrollCapture);
         return new Toolbar(vertical: false)
+            .Group(scrollButton)
             .Group(
                 B("Upload and copy link", "Ctrl+D", Icons.Upload, () => DoUpload(UploadKind.Link, null)),
                 shareButton,

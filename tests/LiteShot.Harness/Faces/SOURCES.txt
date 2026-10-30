@@ -1,0 +1,24 @@
+Test portraits for the face detection and Shield blur checks (PrivacyAndUpdates.Faces).
+
+All six are official NASA portraits, works of the U.S. federal government and so in the public domain. Taken from
+Wikimedia Commons (500 px thumbnails) and resized to 360 px wide.
+
+  jemison.jpg    Mae Jemison      https://commons.wikimedia.org/wiki/File:Mae_Carol_Jemison.jpg
+  glover.jpg     Victor Glover    https://commons.wikimedia.org/wiki/File:Victor_J._Glover_official_portrait.jpg
+  ride.jpg       Sally Ride       https://commons.wikimedia.org/wiki/File:Sally_Ride_(1984).jpg
+  chawla.jpg     Kalpana Chawla   https://commons.wikimedia.org/wiki/File:Kalpana_Chawla,_NASA_photo_portrait_in_orange_suit.jpg
+  armstrong.jpg  Neil Armstrong   https://commons.wikimedia.org/wiki/File:Neil_Armstrong_pose.jpg
+  ochoa.jpg      Ellen Ochoa      https://commons.wikimedia.org/wiki/File:Ellen_Ochoa.jpg
+
+Side profiles, for the profile checks (PrivacyAndUpdates.ProfileCards). All public domain on Wikimedia Commons (U.S.
+government works, or photographs published before 1930), taken as 600 px thumbnails and resized to 360 px wide.
+
+  profile-1.jpg  https://commons.wikimedia.org/wiki/File:Flip_Wilson_(profile_view)_(1975-05-10)(Gerald_Ford_Library).jpg
+  profile-2.jpg  https://commons.wikimedia.org/wiki/File:Man_outdoors,_possibly_a_farmer1a34432v.jpg
+  profile-3.jpg  https://commons.wikimedia.org/wiki/File:Woman_lathe_operator_in_the_1940s_(cropped).jpg
+  profile-4.jpg  https://commons.wikimedia.org/wiki/File:Combat_engineers_don%27t_tread_lightly_150717-A-TI382-0600.jpg
+  profile-5.jpg  https://commons.wikimedia.org/wiki/File:Calvin_Coolidge,_head-and-shoulders_portrait,_right_profile_LCCN2005676159.jpg
+  profile-6.jpg  https://commons.wikimedia.org/wiki/File:Henry_W._Poor,_portrait_photograph_in_profile,_facing_left.jpg
+  profile-7.jpg  https://commons.wikimedia.org/wiki/File:Alexander_Francis_Chamberlain,_portrait_photograph,_profile,_facing_left.jpg
+  profile-8.jpg  https://commons.wikimedia.org/wiki/File:Ellen_Key,_portrait_photograph,_profile_view,_facing_right.jpg
+  profile-9.jpg  https://commons.wikimedia.org/wiki/File:Virginia_Pearson,_portrait_photograph,_profile._Strauss-Peyton.jpg

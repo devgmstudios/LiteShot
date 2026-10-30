@@ -94,14 +94,15 @@
 
         <div class="hero-demo glass rise d6">
           <button type="button" class="m-play glass" data-mock-toggle aria-pressed="false"><svg class="icon" aria-hidden="true"><use href="#i-video"/></svg><span>Play</span></button>
-          <div class="mock" role="img" aria-label="LiteShot at work: PrtScn freezes and dims the screen, a selection is drawn over a dashboard, glass toolbars slide in, an arrow and a label are added, the names are blurred, and the screenshot is copied.">
+          <div class="mock" role="img" aria-label="LiteShot at work: PrtScn freezes and dims the screen, a selection is drawn over a dashboard, glass toolbars slide in, an arrow and a label are added, the names and the faces, in the account team and a video call over the dashboard, are blurred, and the screenshot is copied.">
             <svg class="mock-art" viewBox="0 0 800 500" aria-hidden="true">
               <defs>
                 <linearGradient id="m-wall" x1="0" y1="0" x2="1" y2="1"><stop offset="0" stop-color="#191a5c"/><stop offset=".55" stop-color="#7a3d9e"/><stop offset="1" stop-color="#f08a5d"/></linearGradient>
                 <linearGradient id="m-bar" x1="0" y1="0" x2="0" y2="1"><stop offset="0" stop-color="#5aaaff"/><stop offset="1" stop-color="#0a72e8"/></linearGradient>
                 <filter id="m-soft" x="-50%" y="-50%" width="200%" height="200%"><feGaussianBlur stdDeviation="46"/></filter>
-                <filter id="m-blur" x="-10%" y="-80%" width="120%" height="260%"><feGaussianBlur stdDeviation="3.4"/></filter>
+                <filter id="m-blur" x="-10%" y="-80%" width="120%" height="260%"><feGaussianBlur stdDeviation="2.1"/></filter>
                 <filter id="m-drop" x="-10%" y="-10%" width="120%" height="130%"><feDropShadow dx="0" dy="10" stdDeviation="14" flood-color="#000" flood-opacity=".35"/></filter>
+                <clipPath id="m-call-video"><rect x="454" y="242" width="146" height="76" rx="6"/></clipPath>
                 <mask id="m-hole"><rect width="800" height="500" fill="#fff"/><rect class="m-grow" x="86" y="92" width="528" height="330" fill="#000"/></mask>
               </defs>
               <rect width="800" height="500" fill="url(#m-wall)"/>
@@ -109,13 +110,16 @@
               <circle cx="700" cy="70" r="150" fill="#9b8cff" opacity=".5" filter="url(#m-soft)"/>
               <g filter="url(#m-drop)"><rect x="70" y="50" width="560" height="380" rx="14" fill="#fff"/></g>
               <path d="M70 64a14 14 0 0 1 14-14h532a14 14 0 0 1 14 14v20H70z" fill="#f1f2f6"/>
-              <text x="88" y="71" class="t-cap">Q3 Dashboard</text>
+              <text x="350" y="71" text-anchor="middle" class="t-cap">Q3 Dashboard</text>
               <g stroke="#6b6b73" stroke-width="1.2" fill="none"><path d="M566 67h10"/><rect x="590" y="62" width="9" height="9"/><path d="M611 62l9 9M620 62l-9 9"/></g>
               <text x="94" y="122" class="t-h">Q3 Performance</text>
               <text x="95" y="139" class="t-sub">July – September · All regions</text>
               <rect x="94" y="152" width="164" height="64" rx="10" fill="#f5f6fa"/><text x="106" y="170" class="t-sub">Revenue</text><text x="106" y="194" class="t-kpi">$4.2M</text><text x="106" y="209" class="t-up">▲ 24%</text>
               <rect x="270" y="152" width="164" height="64" rx="10" fill="#f5f6fa"/><text x="282" y="170" class="t-sub">Customers</text><text x="282" y="194" class="t-kpi">18,420</text><text x="282" y="209" class="t-up">▲ 9%</text>
-              <rect x="446" y="152" width="164" height="64" rx="10" fill="#f5f6fa"/><text x="458" y="170" class="t-sub">NPS</text><text x="458" y="194" class="t-kpi">72</text><text x="458" y="209" class="t-up">▲ 6</text>
+              <rect x="446" y="152" width="164" height="64" rx="10" fill="#f5f6fa"/><text x="458" y="170" class="t-sub">Account team</text>
+              <image class="m-names" href="/img/hero-team.webp" x="458" y="177" width="104" height="32"/>
+              <image class="m-names-blur" href="/img/hero-team-blurred.webp" x="458" y="177" width="104" height="32"/>
+              <circle cx="582" cy="193" r="15" fill="#fff"/><circle cx="582" cy="193" r="13" fill="#e6e7ec"/><text x="582" y="197" text-anchor="middle" class="t-more">+2</text>
               <rect x="104" y="272" width="34" height="46" rx="5" fill="url(#m-bar)"/><rect x="168" y="263" width="34" height="55" rx="5" fill="url(#m-bar)"/><rect x="232" y="266" width="34" height="52" rx="5" fill="url(#m-bar)"/><rect x="296" y="255" width="34" height="63" rx="5" fill="url(#m-bar)"/><rect x="360" y="259" width="34" height="59" rx="5" fill="url(#m-bar)"/><rect x="424" y="248" width="34" height="70" rx="5" fill="url(#m-bar)"/><rect x="488" y="242" width="34" height="76" rx="5" fill="url(#m-bar)"/><rect x="552" y="232" width="34" height="86" rx="5" fill="url(#m-bar)"/>
               <path d="M94 318h516" stroke="#e6e7ec"/>
               <text x="94" y="346" class="t-th">Top accounts</text>
@@ -123,6 +127,15 @@
               <g class="m-names"><text x="262" y="366" class="t-cell">Sarah Johnson</text><text x="262" y="384" class="t-cell">Marcus Lee</text><text x="262" y="402" class="t-cell">Priya Patel</text></g>
               <g class="m-names-blur" filter="url(#m-blur)"><text x="262" y="366" class="t-cell">Sarah Johnson</text><text x="262" y="384" class="t-cell">Marcus Lee</text><text x="262" y="402" class="t-cell">Priya Patel</text></g>
               <text x="440" y="366" class="t-dim">Active</text><text x="440" y="384" class="t-dim">Renewing</text><text x="440" y="402" class="t-dim">Active</text>
+
+              <!-- A video call floating over the dashboard: its face is caught too. -->
+              <g filter="url(#m-drop)"><rect x="448" y="224" width="158" height="100" rx="10" fill="#1f2026"/></g>
+              <circle cx="459" cy="233" r="3" fill="#ea4335"/><text x="467" y="236" class="t-pip">Stand-up · 12:04</text>
+              <g clip-path="url(#m-call-video)">
+                <image class="m-names" href="/img/hero-call.webp" x="454" y="242" width="146" height="76"/>
+                <image class="m-names-blur" href="/img/hero-call-blurred.webp" x="454" y="242" width="146" height="76"/>
+              </g>
+              <rect x="458" y="305" width="44" height="10" rx="5" fill="#000" fill-opacity=".55"/><text x="480" y="312.5" text-anchor="middle" class="t-pip-name">Ana Ruiz</text>
 
               <g class="m-cap">
                 <rect class="m-dim" width="800" height="500" fill="#0a081a" fill-opacity=".55" mask="url(#m-hole)"/>
@@ -150,16 +163,17 @@
               <span><svg viewBox="0 0 24 24"><path d="M7 7l10 10M17 7L7 17" fill="none" stroke="currentColor" stroke-width="1.9" stroke-linecap="round"/></svg></span>
             </div>
             <span class="m-toast m-glass"><svg><use href="#i-check"/></svg>Copied to clipboard</span>
+            <span class="in-app"><i class="mark" aria-hidden="true"></i><b>LiteShot</b><span class="ctx">in action</span></span>
             <svg class="m-cursor" viewBox="0 0 24 24" aria-hidden="true"><path d="M5 3l14 8.5-6.2 1.3L9.6 19z" fill="#fff" stroke="#111" stroke-width="1.4" stroke-linejoin="round"/></svg>
           </div>
         </div>
       </div>
 
-      <div class="stats">
-        <div class="stat glass reveal"><strong>2 clicks</strong><span>from PrtScn to clipboard</span></div>
-        <div class="stat glass reveal"><strong>10 tools</strong><span>arrows to auto-blur</span></div>
-        <div class="stat glass reveal"><strong>24 h</strong><span>and shared links vanish</span></div>
-        <div class="stat glass reveal"><strong>0</strong><span>accounts to create</span></div>
+      <div class="stats glass reveal">
+        <div class="stat"><strong><b>2</b><small>clicks</small></strong><span>from PrtScn to the clipboard</span></div>
+        <div class="stat"><strong><b>1</b><small>key</small></strong><span>F blurs every face, right on your PC</span></div>
+        <div class="stat"><strong><b>24</b><small>h</small></strong><span>until a shared link deletes itself</span></div>
+        <div class="stat"><strong><b>0</b><small>accounts</small></strong><span>nothing to sign up for</span></div>
       </div>
     </section>
 
@@ -175,10 +189,10 @@
           <button type="button" role="tab" id="tab-4" aria-controls="step-4" aria-selected="false" tabindex="-1"><b>4</b><span><strong>Share a private link</strong>Ctrl+D encrypts it on your PC, uploads it to fortefile.com and copies the link. It deletes itself in 24 hours.</span><i class="bar"></i></button>
         </div>
         <div class="step-stage">
-          <figure role="tabpanel" id="step-1" aria-labelledby="tab-1"><img src="/img/how-1-capture.webp" alt="The LiteShot capture screen: the desktop is frozen and dimmed except a chat window under the cursor, which is outlined, with a round pixel loupe showing coordinates and the color #FFFFFF." width="1600" height="1000" loading="lazy"></figure>
-          <figure role="tabpanel" id="step-2" aria-labelledby="tab-2" hidden><img src="/img/how-2-select.webp" alt="The chat window selected with one click, with the vertical tools toolbar to its right and the actions toolbar below it." width="1600" height="1000" loading="lazy"></figure>
-          <figure role="tabpanel" id="step-3" aria-labelledby="tab-3" hidden><img src="/img/how-3-markup.webp" alt="A Q3 dashboard marked up in LiteShot: an orange arrow and a Best quarter yet! label pointing at revenue up 24%, a box around the last three bars with step 1, and pixelated account numbers with step 2." width="1237" height="1009" loading="lazy"></figure>
-          <figure role="tabpanel" id="step-4" aria-labelledby="tab-4" hidden><img src="/img/how-4-share.webp" alt="The fortefile.com viewer showing the marked-up dashboard after decrypting it in the browser, with Deletes in 23 h 59 min, Download and Copy image controls." width="1600" height="1000" loading="lazy"></figure>
+          <figure role="tabpanel" id="step-1" aria-labelledby="tab-1" class="captioned"><img src="/img/how-1-capture.webp" alt="The LiteShot capture screen: the desktop is frozen and dimmed except a chat window under the cursor, which is outlined, with a round pixel loupe showing coordinates and the color #FFFFFF." width="1600" height="1000" loading="lazy"><span class="in-app"><i class="mark" aria-hidden="true"></i><b>LiteShot</b><span class="ctx">capture screen</span></span></figure>
+          <figure role="tabpanel" id="step-2" aria-labelledby="tab-2" hidden class="captioned"><img src="/img/how-2-select.webp" alt="The chat window selected with one click, with the vertical tools toolbar to its right and the actions toolbar below it." width="1600" height="1000" loading="lazy"><span class="in-app"><i class="mark" aria-hidden="true"></i><b>LiteShot</b><span class="ctx">tools appear</span></span></figure>
+          <figure role="tabpanel" id="step-3" aria-labelledby="tab-3" hidden class="captioned"><img src="/img/how-3-markup.webp" alt="A Q3 dashboard marked up in LiteShot: an orange arrow and a Best quarter yet! label pointing at revenue up 24%, a box around the last three bars with step 1, and pixelated account numbers with step 2." width="1237" height="1009" loading="lazy"><span class="in-app"><i class="mark" aria-hidden="true"></i><b>LiteShot</b><span class="ctx">editor</span></span></figure>
+          <figure role="tabpanel" id="step-4" aria-labelledby="tab-4" hidden class="captioned"><img src="/img/how-4-share.webp" alt="The fortefile.com viewer showing the marked-up dashboard after decrypting it in the browser, with Deletes in 23 h 59 min, Download and Copy image controls." width="1600" height="1000" loading="lazy"><span class="in-app other"><svg class="icon" aria-hidden="true"><use href="#i-lock"/></svg><b>fortefile.com</b><span class="ctx">in your browser</span></span></figure>
         </div>
       </div>
     </section>
@@ -186,7 +200,6 @@
     <section class="wrap">
       <div class="split">
         <div class="reveal">
-          <div data-lottie="names" class="badge violet big"><svg class="icon"><use href="#i-face"/></svg></div>
           <p class="kicker">Privacy</p>
           <h2>Personal info hides itself.</h2>
           <p class="section-lede">Press <b>H</b> for Hide personal info and LiteShot reads the screen the moment you capture: names, emails, phone and card numbers and your own keywords are blurred, and faces too. It stays on until you switch it off. Drag the slider to compare.</p>
@@ -201,7 +214,7 @@
           <img src="/img/how-names-before.webp" alt="A chat thread with the names Sarah Johnson, Dr. Patel, Priya Patel, Marcus Lee, Wang Wei and Emma Davis readable." width="810" height="471" loading="lazy">
           <div class="after"><img src="/img/how-names-after.webp" alt="The same chat thread captured by LiteShot with every name blurred and the messages still readable." width="810" height="471" loading="lazy"></div>
           <span class="handle" aria-hidden="true"></span>
-          <span class="tag tag-l">Before</span><span class="tag tag-r">After</span>
+          <span class="tag tag-l">Your screen</span><span class="in-app tag-r"><i class="mark" aria-hidden="true"></i><b>LiteShot</b><span class="ctx">after H</span></span>
           <input type="range" min="0" max="100" value="50" aria-label="Compare before and after: drag to reveal the blurred names">
         </div>
       </div>
@@ -209,20 +222,24 @@
 
     <section id="blur" class="wrap">
       <div class="split flip">
-        <div class="blur-demo glass reveal" data-blur-demo="/img/how-names-before.webp">
+        <div class="blur-demo glass reveal" data-blur-demo="/img/call-before.webp" data-after="/img/call-after.webp"
+             data-faces="1154 106 74 102, 1431 110 69 99, 379 204 294 359, 1428 315 75 106, 1153 317 75 101, 1069 551 24 29, 1071 596 22 32, 1071 646 22 29, 1071 692 22 29, 1070 739 23 29, 1070 784 23 31">
           <div class="demo-canvas">
-            <canvas width="810" height="471" role="img" aria-label="A chat thread. Drag across it to blur parts of it with the blur brush."></canvas>
+            <canvas width="1620" height="942" role="img" aria-label="A video call with six people. Blur faces covers every face with Shield blur; drag across the picture to paint the blur on anything else."></canvas>
             <span class="brush-ring" aria-hidden="true"></span>
             <span class="demo-hint" aria-hidden="true" data-hint>Watch…</span>
+            <span class="in-app"><i class="mark" aria-hidden="true"></i><b>LiteShot</b><span class="ctx">editor · try it</span></span>
           </div>
           <div class="demo-bar">
             <label>Brush <input type="range" min="16" max="96" value="44" data-brush aria-label="Brush size"></label>
-            <button type="button" class="btn btn-glass glass" data-reset>Reset</button>
+            <span class="demo-actions">
+              <button type="button" class="btn btn-primary" data-faces-button>Blur faces <kbd>F</kbd></button>
+              <button type="button" class="btn btn-glass glass" data-reset>Reset</button>
+            </span>
           </div>
         </div>
         <div class="reveal">
-          <div data-lottie="faces" class="badge violet big"><svg class="icon"><use href="#i-face"/></svg></div>
-          <p class="kicker">Blur by FacePrivacy.ai</p>
+          <p class="kicker">Shield blur by FacePrivacy.ai</p>
           <h2>Paint privacy on.</h2>
           <p class="section-lede">Face blurring by <a href="https://faceprivacy.ai/blur/">FacePrivacy.ai</a>: press F to blur every face, or paint over anything with the brush.</p>
           <a class="btn btn-glass glass magnetic" href="https://faceprivacy.ai/blur/">Try FacePrivacy's free blur tool</a>
@@ -237,37 +254,32 @@
 
       <div class="bento">
         <article class="card glass span-4 reveal">
-          <div data-lottie="markup" class="badge orange"><svg class="icon"><use href="#i-pen"/></svg></div>
           <h3>Mark it up in seconds</h3>
           <p>Pen, line, arrow, box, circle, highlighter, numbered steps and text with ten built-in fonts — or your own. Click any drawing to move it, recolor it or resize it.</p>
           <div class="tools glass" aria-hidden="true">
             <span><svg class="icon"><use href="#i-pen"/></svg></span><span><svg class="icon"><use href="#i-line"/></svg></span><span class="on"><svg class="icon"><use href="#i-arrow"/></svg></span><span><svg class="icon"><use href="#i-rect"/></svg></span><span><svg class="icon"><use href="#i-circle"/></svg></span><span><svg class="icon"><use href="#i-marker"/></svg></span><span><svg class="icon"><use href="#i-text"/></svg></span><span><svg class="icon"><use href="#i-counter"/></svg></span>
           </div>
-          <div class="art flush"><img src="/img/text.webp" alt="The text style bar: font picker set to Pacifico, size 34, bold and italic, alignment, label style and color, above an orange label reading Ship it on Friday." width="990" height="263" loading="lazy"></div>
+          <div class="art flush"><div class="captioned"><img src="/img/text.webp" alt="The text style bar: font picker set to Pacifico, size 34, bold and italic, alignment, label style and color, above an orange label reading Ship it on Friday." width="990" height="263" loading="lazy"><span class="in-app at-end"><i class="mark" aria-hidden="true"></i><b>LiteShot</b><span class="ctx">text tool</span></span></div></div>
         </article>
 
         <article class="card glass span-2 reveal">
-          <div data-lottie="snap" class="badge slate"><svg class="icon"><use href="#i-capture"/></svg></div>
           <h3>Snaps to windows</h3>
           <p>Hover a window and click once to capture exactly that window. Ctrl+PrtScn reopens the area you used last.</p>
         </article>
 
         <article class="card glass span-3 reveal" id="privacy">
-          <div data-lottie="faces" class="badge violet"><svg class="icon"><use href="#i-face"/></svg></div>
           <h3>Private by default</h3>
           <p>Switch on <b>Hide personal info</b> (H) and names, faces, emails, phone and card numbers — plus your own keywords — are blurred the moment you capture. Face blurring by <a href="https://faceprivacy.ai/blur/">FacePrivacy.ai</a>. It all runs on your PC.</p>
-          <div class="art flush"><img src="/img/privacy.webp" alt="A chat captured in LiteShot with the people's names blurred automatically, and the Blur faces button showing its tooltip." width="1327" height="949" loading="lazy"></div>
+          <div class="art flush"><div class="captioned"><img src="/img/privacy.webp" alt="A chat captured in LiteShot with the people's names blurred automatically, and the Blur faces button showing its tooltip." width="1327" height="949" loading="lazy"><span class="in-app"><i class="mark" aria-hidden="true"></i><b>LiteShot</b><span class="ctx">Hide personal info</span></span></div></div>
         </article>
 
         <article class="card glass span-3 reveal">
-          <div data-lottie="ai" class="badge pink"><svg class="icon"><use href="#i-sparkles"/></svg></div>
           <h3>Edit with AI, or make it move</h3>
           <p>Describe a change — "remove the background" — or turn the screenshot into a short video. Powered by FLUX, Nano Banana, Seedance and Kling through your SyncNode key.</p>
-          <div class="art flush"><img src="/img/ai.webp" alt="The Edit with AI prompt with suggestion chips and a Generate button, floating above the actions toolbar." width="882" height="515" loading="lazy"></div>
+          <div class="art flush"><div class="captioned"><img src="/img/ai.webp" alt="The Edit with AI prompt with suggestion chips and a Generate button, floating above the actions toolbar." width="882" height="515" loading="lazy"><span class="in-app"><i class="mark" aria-hidden="true"></i><b>LiteShot</b><span class="ctx">Edit with AI</span></span></div></div>
         </article>
 
         <article class="card glass span-4 reveal">
-          <div data-lottie="links" class="badge blue"><svg class="icon"><use href="#i-lock"/></svg></div>
           <h3>Links that delete themselves</h3>
           <p>Uploads are encrypted on your PC before they leave it and hosted on fortefile.com. The key lives only in your link, so nobody else — us included — can open the file, and it's gone after 24 hours. Delete it sooner from the tray menu.</p>
           <div class="link-demo">
@@ -277,13 +289,11 @@
         </article>
 
         <article class="card glass span-2 reveal">
-          <div data-lottie="signed" class="badge blue"><svg class="icon"><use href="#i-shield"/></svg></div>
           <h3>Signed updates</h3>
           <p>Turn on automatic updates and LiteShot installs new versions while it's idle — only ones signed by Devgm.</p>
         </article>
 
         <article class="card glass span-3 reveal">
-          <div data-lottie="ocr" class="badge green"><svg class="icon"><use href="#i-ocr"/></svg></div>
           <h3>Copy the text</h3>
           <p>Pull text out of any screenshot with the recognition built into Windows. Works offline. This is what it read from the chat above:</p>
           <pre class="ocr glass"><span class="ocr-chip"><svg class="icon"><use href="#i-check"/></svg>Copied</span>Sarah Johnson
@@ -296,26 +306,22 @@ On it. Marcus Lee already shared the draft.</pre>
         </article>
 
         <article class="card glass span-3 reveal">
-          <div data-lottie="pin" class="badge orange"><svg class="icon"><use href="#i-pin"/></svg></div>
           <h3>Pin to screen</h3>
           <p>Float a screenshot above every window while you work. Scroll to zoom, Ctrl+scroll to fade, drag it anywhere.</p>
-          <div class="art flush"><img src="/img/how-pin.webp" alt="The Q3 KPI cards pinned as a floating screenshot above a chat window." width="1400" height="983" loading="lazy"></div>
+          <div class="art flush"><div class="captioned"><img src="/img/how-pin.webp" alt="The Q3 KPI cards pinned as a floating screenshot above a chat window." width="1400" height="983" loading="lazy"><span class="in-app"><i class="mark" aria-hidden="true"></i><b>LiteShot</b><span class="ctx">pinned screenshot</span></span></div></div>
         </article>
 
         <article class="card glass span-2 reveal">
-          <div data-lottie="monitor" class="badge slate"><svg class="icon"><use href="#i-monitor"/></svg></div>
           <h3>Every monitor, pixel-exact</h3>
           <p>Mixed DPI, multiple screens, a pixel loupe with the hex color under your cursor.</p>
         </article>
 
         <article class="card glass span-2 reveal">
-          <div data-lottie="opensource" class="badge violet"><svg class="icon"><use href="#i-copy"/></svg></div>
           <h3>Free and open source</h3>
           <p>No ads, no account, no trial. LiteShot is MIT-licensed: read the code, build it yourself, make it better.</p>
         </article>
 
         <article class="card glass span-2 reveal">
-          <div data-lottie="keyboard" class="badge pink"><svg class="icon"><use href="#i-capture"/></svg></div>
           <h3>Keyboard first</h3>
           <p>Every tool and action has a key, and the global shortcuts are yours to change. <a href="#shortcuts">See them all</a>.</p>
         </article>
@@ -335,7 +341,7 @@ On it. Marcus Lee already shared the draft.</pre>
             <li><svg class="icon"><use href="#i-check"/></svg><span><b>At home on Windows 11</b>Mica, rounded corners and native-feeling settings.</span></li>
           </ul>
         </div>
-        <div class="window glass reveal"><img src="/img/settings.webp" alt="LiteShot settings on the Capture page, with switches for the magnifier, window detection, the mouse pointer and blurring names automatically." width="1342" height="956" loading="lazy"></div>
+        <div class="window glass reveal captioned"><img src="/img/settings.webp" alt="LiteShot settings on the Capture page, with switches for the magnifier, window detection, the mouse pointer and blurring names automatically." width="1342" height="956" loading="lazy"><span class="in-app"><i class="mark" aria-hidden="true"></i><b>LiteShot</b><span class="ctx">Settings</span></span></div>
       </div>
     </section>
 
@@ -345,17 +351,14 @@ On it. Marcus Lee already shared the draft.</pre>
       <p class="section-lede">LiteShot hides the personal parts automatically, so a quick screenshot never leaks what it shouldn't.</p>
       <div class="who">
         <article class="card glass reveal">
-          <div data-lottie="bank" class="badge green"><svg class="icon"><use href="#i-bank"/></svg></div>
           <h3>Finance</h3>
           <p>Send a statement, a dashboard or a ticket without client names, account numbers or emails. Add your own keywords — client codes, fund names — and they're hidden on every capture.</p>
         </article>
         <article class="card glass reveal">
-          <div data-lottie="opensource" class="badge blue"><svg class="icon"><use href="#i-code"/></svg></div>
           <h3>Web developers</h3>
           <p>Bug reports from staging without real user data. Copy the error text with OCR, pin the design next to your code, and share a link that's gone tomorrow.</p>
         </article>
         <article class="card glass reveal">
-          <div data-lottie="people" class="badge orange"><svg class="icon"><use href="#i-people"/></svg></div>
           <h3>Teams</h3>
           <p>Support, sales and HR share screens all day. Names and faces blur on their own, and every link is encrypted and deletes itself — nothing piles up in chat history.</p>
         </article>
@@ -364,7 +367,6 @@ On it. Marcus Lee already shared the draft.</pre>
 
     <section id="open-source" class="wrap">
       <div class="oss glass reveal">
-        <div data-lottie="opensource" class="badge violet big"><svg class="icon"><use href="#i-code"/></svg></div>
         <div>
           <p class="kicker">Open source</p>
           <h2>Free, and open source.</h2>

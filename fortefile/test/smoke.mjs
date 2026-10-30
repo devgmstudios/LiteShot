@@ -2,8 +2,13 @@
 //   BASE_URL  default http://127.0.0.1:8790
 //   E2E_FILE  optional: a real file to run through the encrypt → upload → download → decrypt round trip
 // Expiry and cron tests need `npm run dev` (TEST_HOOKS=1, --test-scheduled); they are skipped otherwise.
-import { readFileSync } from 'node:fs';
+import { execFileSync } from 'node:child_process';
+import { createHash } from 'node:crypto';
+import { mkdtempSync, readFileSync, rmSync } from 'node:fs';
 import http from 'node:http';
+import { tmpdir } from 'node:os';
+import { join } from 'node:path';
+import { fileURLToPath } from 'node:url';
 import { deflateSync } from 'node:zlib';
 
 const BASE = (process.env.BASE_URL ?? 'http://127.0.0.1:8790').replace(/\/+$/, '');
@@ -431,21 +436,166 @@ function rawRequest(method, path, headers, body) {
     req.end(body);
   });
 }
+// `npm run dev` passes --local-upstream (otherwise wrangler would rewrite every request to the fortefile.com
+// route), so the worker sees 127.0.0.1 whatever Host is sent and these two skip there.
+let keepsHost = false;
 await test('test hooks are ignored for Host: fortefile.com, and urls use that host', async () => {
   const res = await rawRequest('POST', '/api/files', { Host: 'fortefile.com', 'X-Test-Expire-In': '-5' }, small);
   assert(res.status === 201, `status ${res.status} ${res.text}`);
   const d = JSON.parse(res.text);
   created.push(d);
+  keepsHost = !d.url.startsWith(`${BASE}/`);
+  if (!keepsHost) return 'skip';
   assert(near(d.expires, 86400), `hook honored for Host fortefile.com: ${d.expires}`);
   assert(d.url === `http://fortefile.com/f/${d.id}`, `url ${d.url}`);
   const probe = await rawRequest('GET', '/__test/files/AAAAAAAAAAAAAAAAAAAAAA', { Host: 'fortefile.com' });
   assert(!probe.headers['content-type']?.startsWith('application/json'), 'test route reachable for Host fortefile.com');
 });
 await test('www.fortefile.com pages redirect to fortefile.com', async () => {
+  if (!keepsHost) return 'skip';
   const res = await rawRequest('GET', '/f/AAAAAAAAAAAAAAAAAAAAAA?x=1', { Host: 'www.fortefile.com' });
   assert(res.status === 301 && res.headers.location === 'https://fortefile.com/f/AAAAAAAAAAAAAAAAAAAAAA?x=1', `${res.status} ${res.headers.location}`);
   const api = await rawRequest('GET', '/api/files/AAAAAAAAAAAAAAAAAAAAAA', { Host: 'www.fortefile.com' });
   assert(api.status === 404, `API on www: ${api.status}`);
+});
+
+// --- admin: takedowns and legal holds (`npm run dev` sets ADMIN_TOKEN=local-admin-token; elsewhere pass ADMIN_TOKEN) ---
+const ADMIN = process.env.ADMIN_TOKEN ?? 'local-admin-token';
+const adminCall = (method, path, body, token = ADMIN) =>
+  call(method, path, { body: body && JSON.stringify(body), headers: { Authorization: `Bearer ${token}`, ...(body && { 'Content-Type': 'application/json' }) } });
+const adminOn = await adminCall('GET', '/api/admin/holds').then(async (r) => (await r.arrayBuffer(), r.status === 200));
+const holds = [];
+async function hold(id, extra = {}) {
+  const h = await expectStatus(await adminCall('POST', '/api/admin/holds', { id, reason: 'smoke test', ...extra }), 201);
+  holds.push(h.id);
+  return h;
+}
+const sha256hex = (buf) => createHash('sha256').update(buf).digest('hex');
+const DAY = 86400;
+
+await test('admin: no token, a wrong token or a delete token -> 401', async () => {
+  if (!adminOn) return 'skip';
+  const d = await upload(small);
+  await expectStatus(await call('GET', '/api/admin/holds'), 401);
+  await expectStatus(await adminCall('GET', '/api/admin/holds', undefined, 'wrong'), 401);
+  await expectStatus(await adminCall('DELETE', `/api/admin/files/${d.id}`, undefined, d.deleteToken), 401);
+  await expectStatus(await adminCall('POST', '/api/admin/holds', { id: d.id, reason: 'x' }, d.deleteToken), 401);
+});
+await test("admin hold: the link dies, the uploader can't delete the copy, a working key is kept", async () => {
+  if (!adminOn) return 'skip';
+  const e = await encrypt(png);
+  const d = await upload(e.stored);
+  const h = await hold(d.id, { key: e.key });
+  assert(h.id === d.id && h.reason === 'smoke test' && h.encrypted === true && h.type === 'application/octet-stream', JSON.stringify(h));
+  assert(h.size === e.stored.length && h.sha256 === sha256hex(e.stored), 'size or sha256');
+  assert(h.key === e.key && h.contentType === 'image/png', `key ${h.key}, contentType ${h.contentType}`);
+  assert(near(h.keepUntil, 365 * DAY) && h.expires === d.expires && !h.report && h.notes.length === 0, JSON.stringify(h));
+  await expectStatus(await call('GET', `/api/files/${d.id}`), 404);
+  await expectStatus(await call('DELETE', `/api/files/${d.id}`, { headers: { Authorization: `Bearer ${d.deleteToken}` } }), 404);
+  const res = await adminCall('GET', `/api/admin/holds/${d.id}/file`);
+  const kept = Buffer.from(await res.arrayBuffer());
+  assert(res.status === 200 && kept.equals(e.stored), `kept file: ${res.status}`);
+  assert(res.headers.get('cache-control') === 'no-store' && !res.headers.get('access-control-allow-origin'), 'kept file headers');
+  assert((await decrypt(kept, h.key)).equals(png), "kept file doesn't decrypt to the original");
+  await expectStatus(await adminCall('POST', '/api/admin/holds', { id: d.id, reason: 'again' }), 409);
+  const { holds: all } = await expectStatus(await adminCall('GET', '/api/admin/holds'), 200);
+  assert(all.some((x) => x.id === d.id), 'hold not listed');
+  assert((await expectStatus(await adminCall('GET', `/api/admin/holds/${d.id}`), 200)).sha256 === h.sha256, 'record differs');
+});
+await test("admin hold: a key that doesn't decrypt is noted, not kept", async () => {
+  if (!adminOn) return 'skip';
+  const d = await upload((await encrypt(png)).stored);
+  const h = await hold(d.id, { key: b64url(crypto.getRandomValues(new Uint8Array(32))) });
+  assert(!h.key && !h.contentType && h.notes.length === 1 && h.notes[0].includes("didn't decrypt"), JSON.stringify(h));
+});
+await test('admin hold: public image, then /r/ is 404', async () => {
+  if (!adminOn) return 'skip';
+  const d = await upload(png, { 'X-Encrypted': '0', 'Content-Type': 'image/png' });
+  const h = await hold(d.id);
+  assert(h.encrypted === false && h.type === 'image/png' && h.sha256 === sha256hex(png), JSON.stringify(h));
+  await expectStatus(await call('GET', `/r/${d.id}.png`), 404);
+});
+await test('admin hold: an expired file not yet cleaned up is kept, and the cron leaves holds alone', async () => {
+  if (!adminOn || !hooks) return 'skip';
+  const d = await expiredUpload();
+  await hold(d.id);
+  await (await call('GET', '/__scheduled?cron=0+*+*+*+*')).arrayBuffer();
+  const res = await adminCall('GET', `/api/admin/holds/${d.id}/file`);
+  assert(res.status === 200 && Buffer.from(await res.arrayBuffer()).equals(small), `kept file: ${res.status}`);
+});
+await test('admin hold: bad requests change nothing', async () => {
+  if (!adminOn) return 'skip';
+  const d = await upload(small);
+  await expectStatus(await adminCall('POST', '/api/admin/holds', { id: 'AAAAAAAAAAAAAAAAAAAAAA', reason: 'gone' }), 404, 'expired');
+  await expectStatus(await adminCall('POST', '/api/admin/holds', { id: 'short', reason: 'x' }), 400, 'id');
+  await expectStatus(await adminCall('POST', '/api/admin/holds', { id: d.id }), 400, 'reason');
+  await expectStatus(await adminCall('POST', '/api/admin/holds', { id: d.id, reason: '  ' }), 400, 'reason');
+  await expectStatus(await adminCall('POST', '/api/admin/holds', { id: d.id, reason: 'x', key: 5 }), 400, 'key');
+  await expectStatus(await call('POST', '/api/admin/holds', { body: 'not json', headers: { Authorization: `Bearer ${ADMIN}` } }), 400, 'JSON');
+  await expectStatus(await adminCall('GET', '/api/admin/holds/AAAAAAAAAAAAAAAAAAAAAA'), 404);
+  const res = await call('GET', `/api/files/${d.id}`);
+  assert(res.status === 200 && Buffer.from(await res.arrayBuffer()).equals(small), 'a rejected hold took the file down');
+});
+await test('admin hold: report, extend and notes only ever move keepUntil later', async () => {
+  if (!adminOn) return 'skip';
+  const d = await upload(small);
+  await hold(d.id);
+  const path = `/api/admin/holds/${d.id}`;
+  const reportedAt = new Date(Date.now() + 10 * DAY * 1000).toISOString();
+  const r = await expectStatus(await adminCall('PATCH', path, { report: ' 123456 ', reportedAt }), 200);
+  assert(r.report === '123456' && r.reportedAt === reportedAt && near(r.keepUntil, 375 * DAY), JSON.stringify(r));
+  const s = await expectStatus(await adminCall('PATCH', path, { keepUntil: '2020-01-01' }), 200);
+  assert(s.keepUntil === r.keepUntil, `keepUntil moved back to ${s.keepUntil}`);
+  const far = new Date(Date.now() + 800 * DAY * 1000).toISOString();
+  const t = await expectStatus(await adminCall('PATCH', path, { keepUntil: far, note: ' preservation request 42 ' }), 200);
+  assert(t.keepUntil === far && t.notes.at(-1).endsWith(' preservation request 42'), JSON.stringify(t));
+  await expectStatus(await adminCall('PATCH', path, { report: '' }), 400, 'report');
+  await expectStatus(await adminCall('PATCH', path, { report: '1', reportedAt: 'yesterday' }), 400, 'reportedAt');
+  await expectStatus(await adminCall('PATCH', path, { keepUntil: 'soon' }), 400, 'keepUntil');
+  await expectStatus(await adminCall('PATCH', '/api/admin/holds/AAAAAAAAAAAAAAAAAAAAAA', { note: 'x' }), 404);
+});
+await test('admin release: refused before keepUntil, done with force=1', async () => {
+  if (!adminOn) return 'skip';
+  const d = await upload(small);
+  await hold(d.id);
+  await expectStatus(await adminCall('DELETE', `/api/admin/holds/${d.id}`), 409, 'force=1');
+  await expectStatus(await adminCall('DELETE', `/api/admin/holds/${d.id}?force=1`), 200);
+  await expectStatus(await adminCall('GET', `/api/admin/holds/${d.id}`), 404);
+  await expectStatus(await adminCall('GET', `/api/admin/holds/${d.id}/file`), 404);
+});
+await test('admin remove: the link dies and nothing is kept', async () => {
+  if (!adminOn) return 'skip';
+  const d = await upload(small);
+  await expectStatus(await adminCall('DELETE', `/api/admin/files/${d.id}`), 200);
+  await expectStatus(await call('GET', `/api/files/${d.id}`), 404);
+  await expectStatus(await adminCall('GET', `/api/admin/holds/${d.id}`), 404);
+  await expectStatus(await adminCall('DELETE', `/api/admin/files/${d.id}`), 404);
+});
+await test('admin CLI: hold a whole link, report, list, export decrypted, release', async () => {
+  if (!adminOn) return 'skip';
+  const e = await encrypt(png);
+  const d = await upload(e.stored);
+  const out = mkdtempSync(join(tmpdir(), 'fortefile-admin-'));
+  const env = { ...process.env, FORTEFILE_URL: BASE, FORTEFILE_ADMIN_TOKEN: ADMIN };
+  const cli = (...args) => execFileSync(process.execPath, [fileURLToPath(new URL('../tools/admin.mjs', import.meta.url)), ...args], { env, encoding: 'utf8', stdio: 'pipe' });
+  try {
+    assert(cli('hold', `${d.url}#${e.key}`, '--reason', 'smoke test (CLI)').includes('key kept (image/png)'), 'hold output');
+    holds.push(d.id);
+    assert(cli('report', d.id, '987654', '--date', '2026-10-28').includes('Recorded report 987654'), 'report output');
+    assert(cli('list').includes(d.id), 'not listed');
+    assert(cli('export', d.id, '--out', out).includes('SHA-256 checked'), 'export output');
+    assert(readFileSync(join(out, `fortefile-${d.id}.png`)).equals(png), 'exported file is not the original PNG');
+    let refused = false;
+    try {
+      cli('release', d.id);
+    } catch {
+      refused = true;
+    }
+    assert(refused, 'released early without --force');
+    assert(cli('release', `${BASE}/f/${d.id}`, '--force').includes('Released'), 'release output');
+  } finally {
+    rmSync(out, { recursive: true, force: true });
+  }
 });
 
 // --- rate limit: 30 uploads per minute per IP (IPv6 grouped by /64) ---
@@ -472,6 +622,7 @@ await test('rate limit: 429 after 30 uploads a minute from one /64', async () =>
 });
 
 // Leave nothing behind but what the expiry tests already removed.
+for (const id of holds) await adminCall('DELETE', `/api/admin/holds/${id}?force=1`).then((r) => r.arrayBuffer());
 for (const d of created)
   await call('DELETE', `/api/files/${d.id}`, { headers: { Authorization: `Bearer ${d.deleteToken}` } }).then((r) => r.arrayBuffer());
 

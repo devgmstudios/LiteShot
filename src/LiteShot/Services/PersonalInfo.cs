@@ -8,9 +8,10 @@ namespace LiteShot;
 internal readonly record struct Redaction(Rectangle Area, bool Face);
 
 /// <summary>
-/// Finds personal details in a capture, all on this PC: names (<see cref="NameFinder"/>), email addresses, phone
-/// numbers, card and social security numbers, the user's own keywords — read with the OCR built into Windows — and
-/// faces, found with Windows' face detector.
+/// Finds personal details in a capture, all on this PC: names (<see cref="NameFinder"/>, from the words and from the
+/// layout), email addresses, phone numbers, card and social security numbers, the user's own keywords — read with the
+/// OCR built into Windows — and
+/// faces, found by <see cref="FaceFinder"/>.
 /// </summary>
 internal static class PersonalInfo
 {
@@ -23,17 +24,17 @@ internal static class PersonalInfo
     public static async Task<List<Redaction>> FindAsync(Bitmap image, IReadOnlyList<string> keywords, bool faces)
     {
         var found = new List<Redaction>();
-        var bounds = new Rectangle(Point.Empty, image.Size);
-        foreach (var line in await OcrService.RecognizeWordsAsync(image).ConfigureAwait(false))
-            foreach (var (start, count) in FindInLine(line.Select(w => w.Text).ToList(), keywords))
-            {
-                var r = line[start].Bounds;
-                for (int i = start + 1; i < start + count; i++) r = RectangleF.Union(r, line[i].Bounds);
-                float pad = Math.Max(2, r.Height * 0.22f);
-                var cover = Rectangle.Intersect(Rectangle.Round(RectangleF.Inflate(r, pad, pad)), bounds);
-                if (cover.Width > 2 && cover.Height > 2) found.Add(new Redaction(cover, false));
-            }
-        if (faces && FaceFinder.Supported)
+        var lines = await OcrService.RecognizeWordsAsync(image).ConfigureAwait(false);
+        void Add(IReadOnlyList<OcrWord> line, int start, int count)
+        {
+            var cover = NameFinder.Cover(line, start, count, image.Size);
+            if (!cover.IsEmpty) found.Add(new Redaction(cover, false));
+        }
+        foreach (var line in lines)
+            foreach (var (start, count) in FindInLine(line.Select(w => w.Text).ToList(), keywords)) Add(line, start, count);
+        // Names that only the page's layout gives away: a "Name" column, the rest of a list of people.
+        foreach (var (line, start, count) in NameFinder.FromLayout(lines)) Add(lines[line], start, count);
+        if (faces)
         {
             try
             {
@@ -92,9 +93,9 @@ internal static class PersonalInfo
         return found.Count;
     }
 
-    /// <summary>The blur for one finding: about a block per letter for text, a soft oval for a face.</summary>
+    /// <summary>The blur for one finding: about a block per letter for text, an oval of Shield blur for a face.</summary>
     public static BlurShape BlurFor(Redaction r) => r.Face
-        ? new BlurShape { A = r.Area.Location, B = new PointF(r.Area.Right, r.Area.Bottom), Oval = true, Size = Math.Max(4, r.Area.Width / 7f), Auto = true }
+        ? new BlurShape { A = r.Area.Location, B = new PointF(r.Area.Right, r.Area.Bottom), Oval = true, Size = Core.ShieldBlur.DefaultStrength, Auto = true }
         : new BlurShape { A = r.Area.Location, B = new PointF(r.Area.Right, r.Area.Bottom), Size = Math.Max(3, r.Area.Height * 0.32f), Auto = true };
 
     static int WordAt(int[] starts, int index)

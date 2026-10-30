@@ -1,6 +1,7 @@
 using System.Drawing.Drawing2D;
 using System.Drawing.Imaging;
 using System.Drawing.Text;
+using LiteShot.Core;
 
 namespace LiteShot.Overlay;
 
@@ -189,7 +190,8 @@ internal sealed class PixelateShape : TwoPointShape
 
 /// <summary>
 /// Blurs the screen under a rounded rectangle (names), or an oval when <see cref="Oval"/> is set (faces).
-/// The area is shrunk to a few pixels per letter before it's smoothed, so the blur can't be reversed.
+/// Text is shrunk to a few pixels per letter before it's smoothed, so the blur can't be reversed. Faces get
+/// FacePrivacy.ai's Shield blur (<see cref="ShieldBlur"/>), with <see cref="Annotation.Size"/> as its strength.
 /// </summary>
 internal sealed class BlurShape : TwoPointShape
 {
@@ -199,8 +201,13 @@ internal sealed class BlurShape : TwoPointShape
     Bitmap? cache;
     Rectangle cacheRect;
     int cacheBlock;
+    // Shield blur is random, so one result is kept per oval and strength: the preview is exactly what gets saved.
+    Bitmap? shield;
+    Rectangle shieldArea;
+    RectangleF shieldRect;
+    float shieldStrength;
 
-    public override RectangleF Bounds => RectangleF.Inflate(Rect, 2, 2);
+    public override RectangleF Bounds => RectangleF.Inflate(Rect, 3, 3);
 
     GraphicsPath Outline()
     {
@@ -213,6 +220,11 @@ internal sealed class BlurShape : TwoPointShape
 
     public override void Draw(Graphics g, Bitmap source)
     {
+        if (Oval)
+        {
+            DrawShield(g, source);
+            return;
+        }
         var r = Rectangle.Intersect(Rectangle.Round(Rect), new Rectangle(Point.Empty, source.Size));
         if (r.Width < 2 || r.Height < 2) return;
         int block = Math.Max(2, (int)MathF.Round(Size));
@@ -226,6 +238,22 @@ internal sealed class BlurShape : TwoPointShape
         using (var outline = Outline()) g.SetClip(outline, CombineMode.Intersect);
         g.DrawImage(cache, r.X, r.Y, r.Width, r.Height);
         g.Restore(state);
+    }
+
+    void DrawShield(Graphics g, Bitmap source)
+    {
+        float strength = Math.Clamp(Size, 5, 50);
+        if (shieldRect != Rect || shieldStrength != strength)
+        {
+            var region = Rect;
+            var patch = BitmapPixels.Read(source, (bgra, stride) =>
+                ShieldBlur.Render(bgra, source.Width, source.Height, stride, region, ShieldShape.Ellipse, strength));
+            shield = patch == null ? null : BitmapPixels.ToBitmap(patch);
+            shieldArea = patch?.Area ?? Rectangle.Empty;
+            shieldRect = region;
+            shieldStrength = strength;
+        }
+        if (shield != null) g.DrawImage(shield, shieldArea);
     }
 
     internal static Bitmap Build(Bitmap src, Rectangle r, int block)

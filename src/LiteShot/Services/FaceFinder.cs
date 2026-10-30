@@ -1,12 +1,29 @@
+using LiteShot.Core;
 using Windows.Graphics.Imaging;
 using Windows.Media.FaceAnalysis;
 
 namespace LiteShot;
 
-/// <summary>Finds faces with the face detector built into Windows — offline, nothing is uploaded.</summary>
+/// <summary>
+/// Finds faces on this PC, nothing uploaded: with YuNet (LiteShot.Core, on ONNX Runtime), or with the face detector
+/// built into Windows if ONNX Runtime can't load (it needs the Visual C++ runtime).
+/// </summary>
 internal static class FaceFinder
 {
-    public static bool Supported
+    static readonly Lazy<YuNetDetector?> YuNet = new(() =>
+    {
+        try { return new YuNetDetector(); }
+        catch (Exception ex)
+        {
+            System.Diagnostics.Debug.WriteLine($"YuNet unavailable, using Windows face detection: {ex.Message}");
+            return null;
+        }
+    });
+
+    /// <summary>True when faces are found with YuNet rather than Windows' detector. Loads YuNet on first use.</summary>
+    public static bool UsingYuNet => YuNet.Value != null;
+
+    static bool WindowsSupported
     {
         get
         {
@@ -15,10 +32,44 @@ internal static class FaceFinder
         }
     }
 
-    /// <summary>Ovals around each face in <paramref name="image"/>, grown to cover hair and chin.</summary>
+    /// <summary>Ovals around each face in <paramref name="image"/>, a little bigger than the face.</summary>
     public static async Task<List<Rectangle>> FindAsync(Bitmap image)
     {
-        if (!Supported) throw new NotSupportedException("Face detection isn't available on this PC.");
+        if (YuNet.Value is { } yunet)
+        {
+            var faces = BitmapPixels.Read(image, (bgra, stride) => yunet.Detect(bgra, image.Width, image.Height, stride));
+            return faces.Select(f => OvalFor(f, image.Size)).Where(r => !r.IsEmpty).ToList();
+        }
+        if (!WindowsSupported) throw new NotSupportedException("Face detection isn't available on this PC.");
+        return await WindowsFindAsync(image).ConfigureAwait(false);
+    }
+
+    /// <summary>
+    /// The oval for one face. YuNet's box runs from the brow to the chin and cheek to cheek: take in a few percent more on
+    /// each side, and a little extra above for the forehead. A head turned to the side also needs its ear and the back of
+    /// the head (away from the nose), the tip of the nose, and more below for a beard, in step with how far it's turned.
+    /// </summary>
+    internal static Rectangle OvalFor(Core.DetectedFace face, Size image)
+    {
+        // Faces looking at the camera turn less than 0.05; profiles 0.13 and more.
+        float k = Math.Clamp((MathF.Abs(face.Turn) - 0.05f) / 0.08f, 0, 1);
+        float Mix(float frontal, float profile) => frontal + (profile - frontal) * k;
+        float back = Mix(0.10f, 0.45f), front = Mix(0.10f, 0.15f);
+        bool facingRight = face.Turn > 0;
+        return Oval(face.Box, image, left: facingRight ? back : front, top: Mix(0.16f, 0.25f), right: facingRight ? front : back, bottom: Mix(0.08f, 0.28f));
+    }
+
+    // The margins are fractions of the face's size, and at least 3 px: boxes around tiny faces are less exact.
+    static Rectangle Oval(RectangleF b, Size size, float left, float top, float right, float bottom)
+    {
+        float Margin(float share, float side) => MathF.Max(3, side * share);
+        var r = RectangleF.FromLTRB(b.Left - Margin(left, b.Width), b.Top - Margin(top, b.Height), b.Right + Margin(right, b.Width), b.Bottom + Margin(bottom, b.Height));
+        var cover = Rectangle.Intersect(Rectangle.Round(r), new Rectangle(Point.Empty, size));
+        return cover.Width > 4 && cover.Height > 4 ? cover : Rectangle.Empty;
+    }
+
+    static async Task<List<Rectangle>> WindowsFindAsync(Bitmap image)
+    {
         var detector = await FaceDetector.CreateAsync();
         var format = FaceDetector.IsBitmapPixelFormatSupported(BitmapPixelFormat.Gray8) ? BitmapPixelFormat.Gray8 : BitmapPixelFormat.Nv12;
 
@@ -29,17 +80,8 @@ internal static class FaceFinder
         catch { /* keep the detector's own minimum */ }
         var faces = await detector.DetectFacesAsync(bitmap);
 
-        var bounds = new Rectangle(Point.Empty, image.Size);
-        var found = new List<Rectangle>();
-        foreach (var face in faces)
-        {
-            var b = face.FaceBox;
-            float x = b.X / scale, y = b.Y / scale, w = b.Width / scale, h = b.Height / scale;
-            // The detector's box runs from brow to chin; widen it and raise the top to take in the hair.
-            var r = RectangleF.FromLTRB(x - w * 0.18f, y - h * 0.38f, x + w * 1.18f, y + h * 1.14f);
-            var cover = Rectangle.Intersect(Rectangle.Round(r), bounds);
-            if (cover.Width > 4 && cover.Height > 4) found.Add(cover);
-        }
-        return found;
+        // Windows' box runs from brow to chin; widen it and raise the top to take in the hair.
+        var boxes = faces.Select(f => new RectangleF(f.FaceBox.X / scale, f.FaceBox.Y / scale, f.FaceBox.Width / scale, f.FaceBox.Height / scale));
+        return boxes.Select(b => Oval(b, image.Size, left: 0.18f, top: 0.38f, right: 0.18f, bottom: 0.14f)).Where(r => !r.IsEmpty).ToList();
     }
 }

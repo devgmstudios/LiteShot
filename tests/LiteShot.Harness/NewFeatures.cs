@@ -66,6 +66,29 @@ internal static class NewFeatures
         Key(o, Keys.Escape);
         check(Get<List<Annotation>>(o, "shapes").OfType<TextShape>().Any(t => t.Text == "Big glass label" && t.Look == TextLook.Label), "the styled text is kept");
 
+        // The Marker tool: a highlighter pen cursor, hotspot at the nib, over a dot of the ink it will lay down.
+        Key(o, Keys.M);
+        var spot = new Point(sel.X + 420, sel.Y + 300);
+        Move(o, spot);
+        var cursor = o.Cursor;
+        float scale = Get<float>(o, "S");
+        check(cursor != Cursors.Cross && Math.Abs(cursor.HotSpot.X - 3.5f * scale) <= 1.5f && Math.Abs(cursor.HotSpot.Y - 28.5f * scale) <= 1.5f,
+            $"the Marker tool shows a marker cursor, its tip on the hotspot ({cursor.HotSpot} at {scale:0.##}×)");
+        check(!((Rectangle)Invoke(o, "BrushCursorRect")!).IsEmpty, "a dot of the marker's ink follows the pointer");
+        int size = Math.Max(32, (int)MathF.Round(32 * scale));
+        using (var picture = MarkerCursor.Render(Get<Color>(o, "color"), size))
+        {
+            var crop = new Rectangle(spot.X - 90, spot.Y - 90, 180, 180);
+            Snap(o, Path.Combine(outDir, "18-marker-cursor-overlay.png"), crop);
+            using var snap = new Bitmap(Path.Combine(outDir, "18-marker-cursor-overlay.png"));
+            using var withPointer = new Bitmap(snap);
+            using (var g = Graphics.FromImage(withPointer))
+                g.DrawImage(picture, spot.X - crop.X - cursor.HotSpot.X, spot.Y - crop.Y - cursor.HotSpot.Y, size, size);
+            snap.Dispose();
+            withPointer.Save(Path.Combine(outDir, "18-marker-cursor-overlay.png"), ImageFormat.Png);
+        }
+        MarkerCursorSheet(outDir);
+
         // AI popover without a key: explains how to connect.
         string? savedKey = AppSettings.Current.SyncNodeKey;
         AppSettings.Current.SyncNodeKey = null;
@@ -133,6 +156,35 @@ internal static class NewFeatures
     }
 
     static void Check(Action<bool, string> check, bool ok, string what) => check(ok, what);
+
+    /// <summary>The marker cursor at 100%, 150% and 200% in four colours, on a light and a dark capture, over its ink dot.</summary>
+    static void MarkerCursorSheet(string outDir)
+    {
+        Color[] colors = { Color.FromArgb(255, 204, 0), Color.FromArgb(255, 59, 48), Color.FromArgb(52, 199, 89), Color.White };
+        float[] scales = { 1f, 1.5f, 2f };
+        const int cell = 110;
+        using var sheet = new Bitmap(cell * colors.Length * scales.Length, cell * 2, PixelFormat.Format32bppArgb);
+        using var g = Graphics.FromImage(sheet);
+        g.SmoothingMode = System.Drawing.Drawing2D.SmoothingMode.AntiAlias;
+        using (var light = new SolidBrush(Color.FromArgb(246, 247, 250))) g.FillRectangle(light, 0, 0, sheet.Width, cell);
+        using (var dark = new SolidBrush(Color.FromArgb(30, 31, 36))) g.FillRectangle(dark, 0, cell, sheet.Width, cell);
+        for (int row = 0; row < 2; row++)
+            for (int i = 0; i < colors.Length * scales.Length; i++)
+            {
+                var color = colors[i % colors.Length];
+                float scale = scales[i / colors.Length];
+                int size = Math.Max(32, (int)MathF.Round(32 * scale));
+                var tip = new PointF(i * cell + cell / 2f - 6, row * cell + cell / 2f + 10);
+                float d = 16 * scale;
+                var dot = new RectangleF(tip.X - d / 2, tip.Y - d / 2, d, d);
+                using (var ink = new SolidBrush(Color.FromArgb(105, color))) g.FillEllipse(ink, dot);
+                using (var shade = new Pen(Color.FromArgb(120, 0, 0, 0), 3f)) g.DrawEllipse(shade, dot);
+                using (var ring = new Pen(Color.FromArgb(235, 255, 255, 255), 1.4f)) g.DrawEllipse(ring, dot);
+                using var picture = MarkerCursor.Render(color, size);
+                g.DrawImage(picture, tip.X - 3.5f * size / 32, tip.Y - 28.5f * size / 32, size, size);
+            }
+        sheet.Save(Path.Combine(outDir, "18-marker-cursor.png"), ImageFormat.Png);
+    }
 
     static PointF Center(RectangleF r) => new(r.X + r.Width / 2, r.Y + r.Height / 2);
 

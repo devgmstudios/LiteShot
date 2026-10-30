@@ -203,6 +203,9 @@ a { color: inherit; }
 .mock .t-cell { font-size: 11px; fill: #2c2c30; }
 .mock .t-dim { font-size: 11px; fill: #8a8a94; }
 .mock .t-label { font-size: 13px; font-weight: 700; fill: #fff; }
+.mock .t-more { font-size: 10px; font-weight: 700; fill: #5c5c66; }
+.mock .t-pip { font-size: 8px; font-weight: 600; fill: #c9cbd3; }
+.mock .t-pip-name { font-size: 6.5px; font-weight: 600; fill: #fff; }
 .m-grow { transform-box: fill-box; transform-origin: 0 0; }
 .m-label { transform-box: fill-box; transform-origin: 50% 50%; }
 .m-arrow { stroke-dasharray: 215; }
@@ -419,37 +422,70 @@ h2 { font-size: clamp(2rem, 5vw, 3.4rem); line-height: 1.04; letter-spacing: -0.
 .center { text-align: center; }
 .center .section-lede { margin-inline: auto; }
 
-.stats { display: grid; grid-template-columns: repeat(4, 1fr); gap: 14px; margin-top: 70px; }
-.stat { padding: 22px; text-align: center; }
-.stat strong { display: block; font-size: clamp(1.8rem, 4vw, 2.6rem); letter-spacing: -0.03em; line-height: 1.1; }
-.stat span { color: var(--text-2); font-size: 0.95rem; }
-@media (max-width: 700px) { .stats { grid-template-columns: repeat(2, 1fr); } }
+/* One glass strip, four cells split by hairlines. The numbers share the headline's gradient, each cell showing the
+   next stretch of it, so the row reads as one sweep. */
+.stats { display: grid; grid-template-columns: repeat(4, 1fr); margin-top: 70px; padding: 6px; border-radius: var(--radius); }
+.stat { position: relative; padding: clamp(18px, 2.4vw, 28px) clamp(18px, 2.4vw, 30px); }
+.stat + .stat::before { content: ""; position: absolute; left: 0; top: 24%; bottom: 24%; width: 1px; background: var(--hairline); }
+.stat strong { display: flex; align-items: baseline; gap: 0.16em; line-height: 1; font-weight: 760; letter-spacing: -0.04em; }
+.stat b {
+  font-size: clamp(2.6rem, 5vw, 3.6rem); font-weight: inherit; padding-bottom: 0.08em;
+  background: linear-gradient(100deg, var(--accent) 0%, #ff4f8b 33%, #8b6cff 66%, #ff4f8b 100%);
+  background-size: 400% 100%; background-position: var(--p, 0%) 50%;
+  -webkit-background-clip: text; background-clip: text; color: transparent;
+}
+.stat:nth-child(2) { --p: 33%; } .stat:nth-child(3) { --p: 66%; } .stat:nth-child(4) { --p: 100%; }
+.stat small { font-size: clamp(1rem, 1.6vw, 1.2rem); font-weight: 650; letter-spacing: -0.01em; color: var(--text); }
+.stat span { display: block; margin-top: 10px; color: var(--text-2); font-size: 0.95rem; line-height: 1.45; text-wrap: pretty; }
+@media (max-width: 700px) {
+  .stats { grid-template-columns: repeat(2, 1fr); }
+  .stat:nth-child(3)::before { display: none; }
+  .stat:nth-child(n + 3) { border-top: 1px solid var(--hairline); }
+}
+
+/* "This is LiteShot": every picture of the app carries a caption with the app's icon and the part shown, so it can't
+   be mistaken for some other app or a stock visual. Pictures of something else say what they are instead. */
+.captioned { position: relative; }
+.in-app {
+  position: absolute; z-index: 1; left: 12px; top: 12px; display: inline-flex; align-items: center; gap: 7px;
+  padding: 4px 12px 4px 4px; border-radius: 999px; pointer-events: none; white-space: nowrap;
+  font: 500 0.8rem/1.2 var(--font); color: rgba(255, 255, 255, 0.8);
+  background: rgba(16, 12, 26, 0.68); -webkit-backdrop-filter: blur(10px) saturate(140%); backdrop-filter: blur(10px) saturate(140%);
+  box-shadow: inset 0 0 0 1px rgba(255, 255, 255, 0.14), 0 6px 18px -8px rgba(0, 0, 0, 0.5);
+}
+.in-app .mark { width: 20px; height: 20px; border-radius: 6px; background: url(/img/icon-256.png) center / cover; }
+.in-app b { font-weight: 700; color: #fff; }
+.in-app b::after { content: "·"; margin-left: 7px; font-weight: 400; color: rgba(255, 255, 255, 0.45); }
+.in-app.other { padding-left: 10px; }
+.in-app .icon { width: 14px; height: 14px; color: #fff; }
+.mock .in-app { top: auto; bottom: 12px; }
+@container (max-width: 400px) { .mock .in-app .ctx { display: none; } .mock .in-app b::after { content: none; } }
+.window .in-app { left: 22px; top: 22px; }
+/* Card pictures are cropped tight: their caption rides on the top edge like a tab, or sits in an empty corner. */
+.art .in-app { top: -13px; left: 14px; }
+.art .in-app.at-end { top: auto; bottom: 12px; left: auto; right: 12px; }
+/* The tour's pictures sit centred in a taller stage: their captions go in the stage's corner, above the picture. */
+.step-stage { position: relative; }
+.step-stage .captioned { position: static; }
+.step-stage .in-app { left: 18px; top: 18px; }
+.compare .in-app { left: auto; right: 12px; }
+@media (max-width: 560px) {
+  .in-app { left: 8px; top: 8px; gap: 6px; font-size: 0.7rem; }
+  .in-app .mark { width: 16px; height: 16px; border-radius: 5px; }
+  .mock .in-app { bottom: 8px; }
+  .compare .in-app { right: 8px; }
+  .mock .in-app .ctx, .demo-canvas .in-app .ctx { display: none; }
+  .mock .in-app b::after, .demo-canvas .in-app b::after { content: none; }
+}
 
 /* bento */
 .bento { display: grid; grid-template-columns: repeat(6, 1fr); gap: 16px; }
 .card { padding: clamp(22px, 3vw, 32px); overflow: hidden; display: flex; flex-direction: column; }
-.card h3 { font-size: 1.45rem; letter-spacing: -0.02em; margin: 14px 0 8px; line-height: 1.2; }
+.card h3 { font-size: 1.55rem; letter-spacing: -0.025em; margin: 0 0 10px; line-height: 1.2; }
 .card p { color: var(--text-2); margin: 0; }
 .card .art { margin-top: 22px; border-radius: 16px; overflow: hidden; box-shadow: 0 14px 40px -18px var(--shadow); }
 .card .art.flush { margin-top: auto; padding-top: 22px; box-shadow: none; }
 .card .art.flush img { border-radius: 14px; box-shadow: 0 14px 40px -18px var(--shadow); }
-.badge {
-  width: 46px; height: 46px; border-radius: 14px; display: grid; place-items: center;
-  color: #fff; background: linear-gradient(180deg, var(--c1), var(--c2));
-  box-shadow: inset 0 1px 0 rgba(255, 255, 255, 0.45), 0 8px 18px -8px var(--c2);
-}
-.badge .icon { width: 24px; height: 24px; }
-.badge[data-lottie] { width: 56px; height: 56px; border-radius: 17px; position: relative; }
-.badge .lottie { position: absolute; inset: 7px; }
-.badge .lottie svg { display: block; }
-.badge.big { width: 68px; height: 68px; border-radius: 20px; margin-bottom: 18px; }
-.badge.big .lottie { inset: 8px; }
-.orange { --c1: #ffad5c; --c2: #f26b1d; }
-.pink { --c1: #ff7eb0; --c2: #e23d7c; }
-.violet { --c1: #a594ff; --c2: #6a4cf0; }
-.blue { --c1: #5cb6ff; --c2: #0a72e8; }
-.green { --c1: #5be08a; --c2: #18a957; }
-.slate { --c1: #9aa3b5; --c2: #5d6577; }
 .span-4 { grid-column: span 4; } .span-3 { grid-column: span 3; } .span-2 { grid-column: span 2; }
 @media (max-width: 940px) { .span-4, .span-3 { grid-column: span 6; } .span-2 { grid-column: span 3; } }
 @media (max-width: 560px) { .span-2 { grid-column: span 6; } }
@@ -495,8 +531,7 @@ h2 { font-size: clamp(2rem, 5vw, 3.4rem); line-height: 1.04; letter-spacing: -0.
 @media (max-width: 960px) { .trust-grid { grid-template-columns: repeat(2, 1fr); } }
 @media (max-width: 560px) { .trust-grid { grid-template-columns: 1fr; } }
 .trust-item { padding: 22px; border-radius: var(--radius-sm); }
-.trust-item .badge .icon { width: 24px; height: 24px; color: #fff; }
-.trust-item h3 { margin: 12px 0 6px; font-size: 1.05rem; }
+.trust-item h3 { margin: 0 0 8px; font-size: 1.1rem; }
 .trust-item p { margin: 0; color: var(--text-2); font-size: 0.95rem; }
 .verify-card { padding: clamp(24px, 4vw, 40px); }
 .verify-card h2 { margin-top: 0; }
@@ -560,9 +595,13 @@ h2 { font-size: clamp(2rem, 5vw, 3.4rem); line-height: 1.04; letter-spacing: -0.
 }
 
 /* before / after */
-.compare { --pos: 50%; position: relative; padding: 0; overflow: hidden; border-radius: 24px; user-select: none; background: #fff; }
+/* The picture runs to its top edge, so its labels sit in a slim strip above it, not on the names. */
+.compare { --pos: 50%; --strip: 42px; position: relative; padding: var(--strip) 0 0; overflow: hidden; border-radius: 24px; user-select: none; background: #fff; }
+.compare::before { content: ""; position: absolute; left: 0; right: 0; top: calc(var(--strip) - 1px); height: 1px; background: rgba(0, 0, 0, 0.07); }
 .compare img { width: 100%; }
-.compare .after { position: absolute; inset: 0; clip-path: inset(0 0 0 var(--pos)); }
+.compare .after { position: absolute; inset: var(--strip) 0 0 0; clip-path: inset(0 0 0 var(--pos)); }
+.compare .tag, .compare .in-app { top: 7px; }
+@media (max-width: 560px) { .compare { --strip: 36px; } .compare .tag, .compare .in-app { top: 7px; } }
 .compare .handle { position: absolute; top: 0; bottom: 0; left: var(--pos); width: 3px; margin-left: -1.5px; background: var(--accent); box-shadow: 0 0 0 1px rgba(255, 255, 255, 0.7); pointer-events: none; }
 .compare .handle::after {
   content: "‹ ›"; position: absolute; top: 50%; left: 50%; transform: translate(-50%, -50%);
@@ -591,16 +630,21 @@ h2 { font-size: clamp(2rem, 5vw, 3.4rem); line-height: 1.04; letter-spacing: -0.
 }
 .demo-canvas:hover .brush-ring, .blur-demo.auto .brush-ring { opacity: 1; }
 .demo-hint {
-  position: absolute; top: 16px; left: 50%; transform: translateX(-50%); pointer-events: none;
+  position: absolute; bottom: 16px; left: 50%; transform: translateX(-50%); pointer-events: none;
   padding: 6px 14px; border-radius: 999px; font-size: 0.82rem; font-weight: 600; color: #fff;
   background: rgba(20, 16, 30, 0.62); -webkit-backdrop-filter: blur(10px); backdrop-filter: blur(10px);
   transition: opacity 0.4s ease;
 }
 .blur-demo.used:not(.auto) .demo-hint { opacity: 0; }
+.demo-hint { white-space: nowrap; }
+@media (max-width: 560px) { .demo-hint { bottom: 10px; padding: 4px 11px; font-size: 0.72rem; } }
 .demo-bar { display: flex; flex-wrap: wrap; gap: 14px; align-items: center; justify-content: space-between; padding: 12px 8px 4px 10px; }
 .demo-bar label { display: flex; align-items: center; gap: 12px; font-size: 0.9rem; font-weight: 600; color: var(--text-2); }
 .demo-bar input[type="range"] { accent-color: var(--accent); width: 150px; }
 .demo-bar .btn { min-height: 36px; padding: 0 16px; font-size: 0.9rem; }
+.demo-actions { display: flex; gap: 10px; }
+.demo-bar kbd { padding: 2px 7px; border-radius: 6px; font: 700 0.75rem/1.2 var(--font); background: rgba(255, 255, 255, 0.24); }
+.demo-bar .btn:disabled { opacity: 0.55; cursor: default; box-shadow: none; --lift: 0px; }
 .split .btn { margin-top: 26px; }
 
 /* OCR output */

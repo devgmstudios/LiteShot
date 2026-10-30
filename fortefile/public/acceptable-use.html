@@ -4,20 +4,25 @@
   <meta charset="utf-8">
   <meta name="viewport" content="width=device-width, initial-scale=1">
   <title>Acceptable Use Policy · fortefile</title>
-  <meta name="description" content="What can't be shared on fortefile, how we enforce our rules, and how to report abuse.">
+  <meta name="description" content="The rules for using fortefile, how we enforce them, and how to report abuse.">
   <meta http-equiv="Content-Security-Policy" content="default-src 'self'; script-src 'self'; style-src 'self'; img-src 'self' blob: data:; media-src 'self' blob:; connect-src 'self'; object-src 'none'; base-uri 'none'; form-action 'none'">
   <meta name="theme-color" content="#f3f7fd" media="(prefers-color-scheme: light)">
   <meta name="theme-color" content="#070b14" media="(prefers-color-scheme: dark)">
   <link rel="canonical" href="https://fortefile.com/acceptable-use">
   <link rel="icon" href="/favicon.svg" type="image/svg+xml">
   <link rel="stylesheet" href="/assets/site.css">
+  <script src="/assets/fx.js" defer></script>
 </head>
 <body>
   <svg class="sprite" width="0" height="0" aria-hidden="true">
     <defs>
-      <linearGradient id="logo-tile" x1="0" y1="0" x2="0" y2="1"><stop offset="0" stop-color="#6cc2ff"/><stop offset="1" stop-color="#0062d1"/></linearGradient>
-      <linearGradient id="logo-rim" x1="0" y1="0" x2="0" y2="1"><stop offset="0" stop-color="#fff" stop-opacity="0.8"/><stop offset="0.5" stop-color="#fff" stop-opacity="0.08"/><stop offset="1" stop-color="#fff" stop-opacity="0.25"/></linearGradient>
-      <symbol id="logo" viewBox="0 0 64 64"><rect x="2" y="2" width="60" height="60" rx="16" fill="url(#logo-tile)"/><rect x="2.75" y="2.75" width="58.5" height="58.5" rx="15.25" fill="none" stroke="url(#logo-rim)" stroke-width="1.5"/><path d="M24 12h12.5L46 21.5V46a6 6 0 0 1-6 6H24a6 6 0 0 1-6-6V18a6 6 0 0 1 6-6z" fill="#fff"/><path d="M36.5 12L46 21.5h-6.5a3 3 0 0 1-3-3z" fill="#bfe0ff"/><path d="M28 31.5v-3.2a4 4 0 0 1 8 0v3.2" fill="none" stroke="#0a6fe0" stroke-width="2.8" stroke-linecap="round"/><rect x="25" y="31" width="14" height="12" rx="3" fill="#0a6fe0"/><circle cx="32" cy="36" r="1.7" fill="#fff"/><rect x="31.1" y="36.4" width="1.8" height="3.6" rx="0.9" fill="#fff"/></symbol>
+      <linearGradient id="logo-tile" x1="0" y1="0" x2="0" y2="1"><stop offset="0" stop-color="#3a404a"/><stop offset="1" stop-color="#121418"/></linearGradient>
+      <radialGradient id="logo-sheen" cx="0.28" cy="0" r="0.8"><stop offset="0" stop-color="#fff" stop-opacity="0.16"/><stop offset="1" stop-color="#fff" stop-opacity="0"/></radialGradient>
+      <radialGradient id="logo-glow" cx="0.5" cy="0.62" r="0.48"><stop offset="0" stop-color="#2f8cff" stop-opacity="0.55"/><stop offset="1" stop-color="#2f8cff" stop-opacity="0"/></radialGradient>
+      <linearGradient id="logo-rim" x1="0" y1="0" x2="1" y2="1"><stop offset="0" stop-color="#fff" stop-opacity="0.75"/><stop offset="0.35" stop-color="#fff" stop-opacity="0.12"/><stop offset="0.8" stop-color="#fff" stop-opacity="0.04"/><stop offset="1" stop-color="#fff" stop-opacity="0.25"/></linearGradient>
+      <linearGradient id="logo-file" x1="0" y1="0" x2="0" y2="1"><stop offset="0" stop-color="#fff"/><stop offset="1" stop-color="#d4dbe5"/></linearGradient>
+      <linearGradient id="logo-lock" x1="0" y1="0" x2="0" y2="1"><stop offset="0" stop-color="#3d9bff"/><stop offset="1" stop-color="#0a5fe0"/></linearGradient>
+      <symbol id="logo" viewBox="0 0 64 64"><rect x="2" y="2" width="60" height="60" rx="16" fill="url(#logo-tile)"/><rect x="2" y="2" width="60" height="60" rx="16" fill="url(#logo-glow)"/><rect x="2" y="2" width="60" height="60" rx="16" fill="url(#logo-sheen)"/><path d="M24 13.5h12.5L46 23v24.5a6 6 0 0 1-6 6H24a6 6 0 0 1-6-6V19.5a6 6 0 0 1 6-6z" fill="#000" opacity="0.35"/><path d="M24 12h12.5L46 21.5V46a6 6 0 0 1-6 6H24a6 6 0 0 1-6-6V18a6 6 0 0 1 6-6z" fill="url(#logo-file)"/><path d="M36.5 12L46 21.5h-6.5a3 3 0 0 1-3-3z" fill="#9aa5b4"/><path d="M28 31.5v-3.2a4 4 0 0 1 8 0v3.2" fill="none" stroke="url(#logo-lock)" stroke-width="2.8" stroke-linecap="round"/><rect x="25" y="31" width="14" height="12" rx="3.2" fill="url(#logo-lock)"/><circle cx="32" cy="36" r="1.7" fill="#fff"/><rect x="31.1" y="36.4" width="1.8" height="3.6" rx="0.9" fill="#fff"/><rect x="2.6" y="2.6" width="58.8" height="58.8" rx="15.4" fill="none" stroke="url(#logo-rim)" stroke-width="1.2"/></symbol>
     </defs>
   </svg>
 
@@ -63,15 +68,15 @@
         <p>This policy applies to everyone who uploads, shares or opens files on fortefile, whether through LiteShot, another app that uses our interface, or the website. Breaking it can lead to the removal of files, blocked access and, where the law requires or the harm is serious, reports to the authorities.</p>
 
         <h2 id="prohibited-content">Prohibited content</h2>
-        <p>Don't upload, share or link to:</p>
+        <p>Our <a href="/prohibited-content">Prohibited Content Policy</a> lists what you can't upload, share or link to, with examples. In short, no:</p>
         <ul>
-          <li><b>Child sexual abuse material (CSAM).</b> Any content that sexually exploits or endangers minors, including drawn, computer-generated or AI-generated imagery, and content that grooms or sexualizes children. We have zero tolerance: we remove it, block the networks involved where we can, preserve it as the law requires, and report it to the National Center for Missing &amp; Exploited Children (NCMEC), which works with law enforcement worldwide.</li>
-          <li><b>Malware and phishing.</b> Viruses, ransomware, spyware or other code designed to damage, disrupt or gain unauthorized access to devices, systems or data; and phishing pages, kits or files designed to steal passwords, payment details or personal information.</li>
-          <li><b>Illegal content.</b> Content that is illegal under U.S. law or where you or your recipient are, including content that facilitates the sale of illegal goods or services, stolen data, fraud or scams.</li>
-          <li><b>Non-consensual intimate imagery.</b> Sexual or intimate images of a real person shared without their consent, including fakes and deepfakes.</li>
-          <li><b>Violent threats and extremism.</b> Content that threatens or incites violence, or promotes terrorist or violent extremist organizations.</li>
-          <li><b>Harassment and privacy violations.</b> Content used to harass, bully, intimidate, stalk or dox anyone, or that exposes someone's private information, such as identity documents, financial details or home address, without permission.</li>
-          <li><b>Infringement.</b> Content that infringes copyright, trademarks or other intellectual property or privacy rights. Copyright owners can use our <a href="/copyright">DMCA procedure</a>.</li>
+          <li><b>child sexual abuse material</b>, in any form, including drawn, computer-generated and AI-generated imagery. We have zero tolerance, report it to the National Center for Missing &amp; Exploited Children (NCMEC) and preserve it as the law requires: see our <a href="/child-safety">Child Safety Policy</a>;</li>
+          <li><b>intimate images shared without consent</b>, including deepfakes and sextortion;</li>
+          <li><b>terrorism, threats, hate, or content that promotes suicide or self-harm</b>;</li>
+          <li><b>harassment or doxxing</b>;</li>
+          <li><b>malware, phishing, stolen data, scams or forged documents</b>;</li>
+          <li><b>illegal goods, or instructions for weapons capable of mass harm</b>;</li>
+          <li><b>content that infringes someone else's rights</b>. Copyright owners can use our <a href="/copyright">DMCA procedure</a>.</li>
         </ul>
 
         <h2 id="prohibited-conduct">Abuse of the service</h2>
@@ -101,13 +106,13 @@
         <h2 id="report">How to report</h2>
         <p>Email <a class="mail" href="mailto:abuse@fortefile.com">abuse@fortefile.com</a> with:</p>
         <ol>
-          <li><b>The full fortefile link</b>, including everything after the “#”. Without the key we can't see the file. We use the key only to review the file you reported and act on it.</li>
+          <li><b>The full fortefile link</b>, including everything after the “#”. Without the key we can't see the file. We use the key only to review the file you reported and act on it, and keep it only with a file the law requires us to preserve.</li>
           <li><b>What the problem is</b>, and where you found the link if that helps.</li>
           <li><b>How to reach you</b>, if you'd like a reply. You may also report anonymously.</li>
         </ol>
         <p>Files expire within 24 hours, so please report promptly. We review reports as quickly as we can.</p>
         <ul>
-          <li><b>Child sexual abuse material:</b> don't download, copy, screenshot or forward the material itself; send us only the link. You can also report directly to NCMEC's CyberTipline at <a href="https://report.cybertip.org/">report.cybertip.org</a>, or, outside the United States, to a national hotline listed by <a href="https://www.inhope.org/">INHOPE</a>.</li>
+          <li><b>Child sexual abuse material:</b> don't download, copy, screenshot or forward the material itself; send us only the link, as our <a href="/child-safety#report">Child Safety Policy</a> explains. You can also report directly to NCMEC's CyberTipline at <a href="https://report.cybertip.org/">report.cybertip.org</a>, or, outside the United States, to a national hotline listed by <a href="https://www.inhope.org/">INHOPE</a>.</li>
           <li><b>Someone in immediate danger:</b> contact your local emergency services first.</li>
           <li><b>Copyright:</b> follow our <a href="/copyright">Copyright and DMCA Policy</a>.</li>
           <li><b>Security vulnerabilities:</b> see our <a href="/security#disclosure">responsible disclosure policy</a>.</li>
@@ -130,6 +135,8 @@
         <a href="/privacy">Privacy</a>
         <a href="/terms">Terms</a>
         <a href="/acceptable-use" aria-current="page">Acceptable use</a>
+        <a href="/prohibited-content">Prohibited content</a>
+        <a href="/child-safety">Child safety</a>
         <a href="/copyright">Copyright</a>
         <a href="https://liteshot.app/">LiteShot</a>
       </nav>

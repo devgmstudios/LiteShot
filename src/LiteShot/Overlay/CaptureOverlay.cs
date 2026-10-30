@@ -74,7 +74,8 @@ internal sealed partial class CaptureOverlay : Form
         this.host = host;
         this.shot = shot;
         this.virt = virt;
-        client = new Rectangle(Point.Empty, virt.Size);
+        // Usually the screen; a stitched scrolling capture is taller (see CaptureOverlay.Scroll.cs).
+        client = new Rectangle(Point.Empty, shot.Size);
         dimmed = MakeDimmed(shot);
         glass = new GlassMaterial(shot, 1f - DimAlpha / 255f);
         windows = windowRects.Select(ToClient).Select(r => Rectangle.Intersect(r, client))
@@ -235,6 +236,7 @@ internal sealed partial class CaptureOverlay : Form
     {
         // The overlay maps 1:1 onto physical pixels; never let Windows rescale it between monitors.
         if (m.Msg == WM_DPICHANGED) { m.Result = IntPtr.Zero; return; }
+        if (page != null && ScrollMessage(ref m)) return;
         base.WndProc(ref m);
     }
 
@@ -279,7 +281,7 @@ internal sealed partial class CaptureOverlay : Form
 
     Rectangle ToClient(Rectangle r) => new(r.X - virt.X, r.Y - virt.Y, r.Width, r.Height);
 
-    Rectangle ScreenSel => new(sel.X + virt.X, sel.Y + virt.Y, sel.Width, sel.Height);
+    Rectangle ScreenSel => new(sel.X + virt.X, sel.Y - scrollY + virt.Y, sel.Width, sel.Height);
 
     static Point Center(Rectangle r) => new(r.X + r.Width / 2, r.Y + r.Height / 2);
 
@@ -397,7 +399,7 @@ internal sealed partial class CaptureOverlay : Form
 
     void InvalidateRect(Rectangle r)
     {
-        if (r.Width > 0 && r.Height > 0) Invalidate(r);
+        if (r.Width > 0 && r.Height > 0) Invalidate(new Rectangle(r.X, r.Y - scrollY, r.Width, r.Height));
     }
 
     void InvalidateRect(RectangleF r, int pad) => InvalidateRect(Ui.Outer(r, pad));
@@ -486,6 +488,8 @@ internal sealed partial class CaptureOverlay : Form
         float hx = sel.Right - hs.Width, hy = sel.Bottom + gap;
         if (hy + hs.Height > mon.Bottom - 2) hy = sel.Top - gap - hs.Height;
         if (hy < mon.Top + 2) hy = sel.Bottom - gap - hs.Height;
+        // A page taller than the screen: keep the actions in view wherever it's scrolled to.
+        if (page != null) hy = Math.Clamp(hy, mon.Top + gap, Math.Max(mon.Top + gap, mon.Bottom - hs.Height - gap));
         hx = Math.Clamp(hx, mon.Left + gap, Math.Max(mon.Left + gap, mon.Right - hs.Width - gap));
 
         var vr = new RectangleF(vx, vy, vs.Width, vs.Height);

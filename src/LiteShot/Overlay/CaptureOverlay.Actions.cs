@@ -37,7 +37,7 @@ internal sealed partial class CaptureOverlay
 
     void Finish()
     {
-        host.RememberRegion(ScreenSel);
+        if (page == null) host.RememberRegion(ScreenSel);
         CloseOverlay();
     }
 
@@ -125,7 +125,7 @@ internal sealed partial class CaptureOverlay
         ModernMenuRenderer.Attach(menu);
         menu.Closed += (_, _) => BeginInvoke(new Action(menu.Dispose));
         var b = shareButton.Bounds;
-        menu.Show(this, new Point((int)b.Left, (int)b.Bottom + Px(8)));
+        menu.Show(this, new Point((int)b.Left, (int)b.Bottom + Px(8) - scrollY));
     }
 
     void DoPin()

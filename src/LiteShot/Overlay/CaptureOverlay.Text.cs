@@ -239,7 +239,7 @@ internal sealed partial class CaptureOverlay
         ModernMenuRenderer.Attach(all.DropDown);
 
         var anchor = textBar.Groups[0].Bounds;
-        menu.Show(this, new Point((int)anchor.Left, (int)anchor.Bottom + Px(6)));
+        menu.Show(this, new Point((int)anchor.Left, (int)anchor.Bottom + Px(6) - scrollY));
     }
 
     void AddFontFile()
@@ -276,7 +276,7 @@ internal sealed partial class CaptureOverlay
         }
         ModernMenuRenderer.Attach(menu);
         var anchor = textBar.Groups[1].Bounds;
-        menu.Show(this, new Point((int)anchor.Left, (int)anchor.Bottom + Px(6)));
+        menu.Show(this, new Point((int)anchor.Left, (int)anchor.Bottom + Px(6) - scrollY));
     }
 
     // ───────────────────────────── painting ─────────────────────────────

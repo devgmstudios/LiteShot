@@ -14,6 +14,9 @@ internal sealed class SettingsForm : Form
 
     public const int ShortcutsPage = 1;
     public const int CloudPage = 3;
+    public const int GeneralPage = 4;
+
+    Action? refreshUpdates;
 
     public SettingsForm(TrayApp host, int startPage = 0)
     {
@@ -79,6 +82,18 @@ internal sealed class SettingsForm : Form
     }
 
     public void ShowPageAt(int index) => ShowPage(Math.Clamp(index, 0, pages.Count - 1));
+
+    /// <summary>Shows the latest update status; the tray calls this after every check.</summary>
+    public void RefreshUpdates() => refreshUpdates?.Invoke();
+
+    /// <summary>"just now", "today at 3:04 PM", "yesterday at …" or "Oct 28 at …".</summary>
+    static string When(DateTime t)
+    {
+        if (DateTime.Now - t < TimeSpan.FromMinutes(1)) return "just now";
+        if (t.Date == DateTime.Today) return $"today at {t:t}";
+        if (t.Date == DateTime.Today.AddDays(-1)) return $"yesterday at {t:t}";
+        return $"{t:MMM d} at {t:t}";
+    }
 
     void ShowPage(int index)
     {
@@ -173,14 +188,16 @@ internal sealed class SettingsForm : Form
                 .Where(k => k.Length >= 2).Distinct(StringComparer.OrdinalIgnoreCase).ToList();
             Settings.Save();
         };
+        // The Shield Blur License asks for this credit, linked to faceprivacy.ai, where users can see it.
         var faceprivacy = new PillButton(theme, "FacePrivacy.ai", 128);
-        faceprivacy.Click += (_, _) => ImageOutput.OpenUrl("https://faceprivacy.ai/blur/");
+        faceprivacy.Click += (_, _) => ImageOutput.OpenUrl(Core.ShieldBlur.CreditUrl);
         add(new Card(theme)
             .Add(new SettingRow(theme, "Hide personal info",
                 "Blurs names, faces, emails, phone and card numbers. H toggles it in the editor.",
                 Toggle(Settings.HidePersonalInfo, v => Settings.HidePersonalInfo = v)))
             .Add(new SettingRow(theme, "Keywords to hide", "Also hidden on every capture, separated by commas: client names, project codes…", keywords, wide: true))
-            .Add(new SettingRow(theme, "Blur faces · FacePrivacy.ai", "Press F to blur every face, or paint over one with the blur brush (U). Runs on your PC.", faceprivacy)));
+            .Add(new SettingRow(theme, "Blur faces",
+                $"F covers every face with {Core.ShieldBlur.Credit}. Runs on your PC.", faceprivacy)));
         return page;
     }
 
@@ -425,40 +442,40 @@ internal sealed class SettingsForm : Form
                 Toggle(Settings.ShowNotifications, v => Settings.ShowNotifications = v))));
 
         add(Section("Updates"));
-        string IdleStatus() => !Updater.Configured
-            ? "Updates aren't set up in this build yet."
-            : Settings.LastUpdateCheck is DateTime t
-                ? $"You have version {Updater.CurrentVersion}. Last checked {t:g}."
-                : $"You have version {Updater.CurrentVersion}.";
-        string updateStatus = IdleStatus();
-        SettingRow? updateRow = null;
-        UpdateInfo? available = null;
-        var checkNow = new PillButton(theme, "Check now", 116) { Enabled = Updater.Configured };
-        void Status(string text)
+        string? busy = null;   // checking, downloading, installing or what went wrong; otherwise the status says what LiteShot knows
+        string UpdateStatus()
         {
-            updateStatus = text;
+            if (!Updater.Configured) return "Updates aren't set up in this build yet.";
+            if (busy != null) return busy;
+            if (Updater.Newer is Version newer)
+                return Updater.Available is { Published: var published } && published > DateTime.MinValue
+                    ? $"Version {newer} is available, released {published.ToLocalTime():MMM d}."
+                    : $"Version {newer} is available.";
+            return Settings.LastUpdateCheck is DateTime t ? $"You're up to date. Last checked {When(t)}." : "Not checked yet.";
+        }
+        SettingRow? updateRow = null;
+        var updateButton = new PillButton(theme, "Check now", 116) { Enabled = Updater.Configured };
+        void Status(string? text)
+        {
+            busy = text;
             if (!IsDisposed) updateRow?.RefreshText();
         }
-        checkNow.Click += async (_, _) =>
+        updateButton.Click += async (_, _) =>
         {
-            if (!checkNow.Enabled) return;
-            checkNow.Enabled = false;
+            if (!updateButton.Enabled) return;
+            updateButton.Enabled = false;
             try
             {
-                if (available == null)
+                var release = Updater.Available;
+                if (release == null)
                 {
+                    // "Install" for a version an earlier run saw checks again first; "Check now" only checks.
+                    bool install = Updater.Newer != null;
                     Status("Checking…");
-                    available = await Task.Run(() => Updater.CheckAsync());
-                    Settings.LastUpdateCheck = DateTime.Now;
-                    Settings.Save();
-                    if (available == null) { Status($"LiteShot {Updater.CurrentVersion} is the latest version."); return; }
-                    string notes = string.IsNullOrWhiteSpace(available.Notes) ? "" : " " + available.Notes.Trim();
-                    Status($"Version {available.Version} is available.{notes}");
-                    checkNow.Text = "Install";
-                    checkNow.Invalidate();
-                    return;
+                    release = await host.CheckForUpdatesAsync();
+                    Status(null);
+                    if (!install || release == null) return;
                 }
-                var release = available;
                 int shown = -1;
                 var progress = new Progress<double>(p =>
                 {
@@ -467,27 +484,83 @@ internal sealed class SettingsForm : Form
                 });
                 string file = await Task.Run(() => Updater.DownloadAsync(release, Updater.IsInstalled, progress));
                 Status("Installing… LiteShot will restart in a moment.");
-                host.InstallUpdate(file);
+                host.InstallUpdate(release, file);
             }
             catch (Exception ex)
             {
-                Status(ex is UpdateException ? ex.Message
-                    : ex is HttpRequestException or TaskCanceledException ? "Couldn't reach the update server. Check your connection and try again."
-                    : ex.Message);
+                Status(Updater.Describe(ex));
             }
             finally
             {
-                if (!IsDisposed) checkNow.Enabled = true;
+                if (!IsDisposed)
+                {
+                    updateButton.Enabled = true;
+                    RefreshUpdates();
+                }
             }
         };
-        updateRow = new SettingRow(theme, "Check for updates", () => updateStatus, checkNow);
-        var autoUpdate = Toggle(Settings.AutoUpdate, v => Settings.AutoUpdate = v);
-        autoUpdate.Enabled = Updater.Configured;
-        add(new Card(theme)
-            .Add(new SettingRow(theme, "Update automatically",
-                "Checks every few hours and installs signed updates while LiteShot is idle.",
-                autoUpdate))
-            .Add(updateRow));
+        updateRow = new SettingRow(theme, $"LiteShot {Updater.CurrentVersion}", UpdateStatus, updateButton);
+
+        var mode = new Segmented(theme, 112, "Automatic", "Notify me", "Off")
+        {
+            SelectedIndex = Settings.AutoUpdate ? 0 : Settings.CheckForUpdates ? 1 : 2,
+            Enabled = Updater.Configured,
+        };
+        SettingRow? modeRow = null;
+        string ModeText() => mode.SelectedIndex switch
+        {
+            0 => "Installs signed updates by itself while LiteShot is idle, then tells you what's new.",
+            1 => "Tells you when a new version is out, and you choose when to install it.",
+            _ => "LiteShot only looks for updates when you ask.",
+        };
+        mode.SelectedChanged += (_, _) =>
+        {
+            Settings.AutoUpdate = mode.SelectedIndex == 0;
+            Settings.CheckForUpdates = mode.SelectedIndex < 2;
+            modeRow?.RefreshText();
+            Changed();
+        };
+        modeRow = new SettingRow(theme, "New versions", ModeText, mode, wide: true);
+        add(new Card(theme).Add(updateRow).Add(modeRow));
+
+        // What's new in the version on offer, or when this one arrived and what it brought.
+        string WhatsNew()
+        {
+            if (Updater.Available is { } next)
+                return string.IsNullOrWhiteSpace(next.Notes) ? "" : $"What's new in {next.Version}: {next.Notes.Trim()}";
+            string current = Updater.CurrentVersion.ToString();
+            string? notes = Settings.NotesVersion == current && !string.IsNullOrWhiteSpace(Settings.Notes) ? Settings.Notes.Trim() : null;
+            if (Settings.UpdatedAt is DateTime updated)
+                return $"Updated to {current} on {updated:MMMM d, yyyy}." + (notes != null ? $" What's new: {notes}" : "");
+            return notes != null ? $"What's new in {current}: {notes}" : "";
+        }
+        var whatsNew = Note("");
+        void FitNote()
+        {
+            int width = whatsNew.Width - whatsNew.Padding.Horizontal;
+            if (width <= 0 || whatsNew.Text.Length == 0) return;
+            int text = TextRenderer.MeasureText(whatsNew.Text, whatsNew.Font, new Size(width, 0), TextFormatFlags.WordBreak | TextFormatFlags.NoPrefix).Height;
+            whatsNew.Height = text + whatsNew.Padding.Vertical + (int)(6 * DeviceDpi / 96f);
+        }
+        whatsNew.SizeChanged += (_, _) => FitNote();
+        add(whatsNew);
+
+        void ShowUpdateState()
+        {
+            if (IsDisposed) return;
+            string label = Updater.Newer != null ? "Install" : "Check now";
+            if (updateButton.Text != label)
+            {
+                updateButton.Text = updateButton.AccessibleName = label;
+                updateButton.Invalidate();
+            }
+            updateRow.RefreshText();
+            whatsNew.Text = WhatsNew();
+            whatsNew.Visible = whatsNew.Text.Length > 0;
+            FitNote();
+        }
+        refreshUpdates = ShowUpdateState;
+        ShowUpdateState();
 
         add(Section("About"));
         var openSettings = new PillButton(theme, "Open folder", 120);

@@ -1,0 +1,26 @@
+<Project Sdk="Microsoft.NET.Sdk">
+
+  <!-- The parts of LiteShot that don't depend on Windows: Shield blur and the YuNet face detector. Plain net8.0, so a
+       macOS build can reference this project unchanged. Pixels cross the boundary as 32-bit BGRA rows. -->
+  <PropertyGroup>
+    <TargetFramework>net8.0</TargetFramework>
+    <Nullable>enable</Nullable>
+    <ImplicitUsings>enable</ImplicitUsings>
+    <AssemblyName>LiteShot.Core</AssemblyName>
+    <RootNamespace>LiteShot.Core</RootNamespace>
+    <Product>LiteShot</Product>
+    <Company>Devgm, LLC</Company>
+    <Authors>Devgm, LLC</Authors>
+    <Copyright>© 2026 Devgm, LLC. All rights reserved.</Copyright>
+  </PropertyGroup>
+
+  <ItemGroup>
+    <!-- YuNet (OpenCV Zoo, MIT: Models\YuNet-LICENSE.txt), the export with dynamic height and width. -->
+    <EmbeddedResource Include="Models\face_detection_yunet_2026may.onnx" LogicalName="LiteShot.Core.yunet.onnx" />
+  </ItemGroup>
+
+  <ItemGroup>
+    <PackageReference Include="Microsoft.ML.OnnxRuntime" Version="1.31.0" />
+  </ItemGroup>
+
+</Project>

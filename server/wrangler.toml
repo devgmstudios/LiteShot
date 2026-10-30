@@ -29,6 +29,14 @@ binding = "ASSETS"
 binding = "RELEASES"
 bucket_name = "liteshot-releases"
 
+# Download counts per day and file (`npm run stats` shows them). Created with `npx wrangler d1 create liteshot-stats`;
+# apply the schema with `npx wrangler d1 migrations apply liteshot-stats --remote` (or --local for `npm run dev`).
+[[d1_databases]]
+binding = "STATS"
+database_name = "liteshot-stats"
+database_id = "d665a223-7a2d-4942-81c1-97dec7bf592f"
+migrations_dir = "migrations"
+
 [dev]
 ip = "127.0.0.1"
 port = 8788

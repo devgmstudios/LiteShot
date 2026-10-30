@@ -177,53 +177,30 @@ for (const box of document.querySelectorAll('[data-compare]')) {
   apply();
 }
 
-// Feature animations (Lottie): the player loads with the first one that scrolls into view; the static icon stays
-// until its animation is ready, and reduced motion gets a still frame.
-const animated = document.querySelectorAll('[data-lottie]');
-if (animated.length) {
-  let player;
-  const loadPlayer = () => (player ??= new Promise((resolve, reject) => {
-    const script = document.createElement('script');
-    script.src = '/vendor/lottie_light.min.js';
-    script.onload = () => resolve(window.lottie);
-    script.onerror = reject;
-    document.head.append(script);
-  }));
-  const watch = new IntersectionObserver((entries) => {
-    for (const entry of entries) {
-      if (!entry.isIntersecting) continue;
-      watch.unobserve(entry.target);
-      const badge = entry.target;
-      loadPlayer().then((lottie) => {
-        const box = document.createElement('div');
-        box.className = 'lottie';
-        badge.append(box);
-        const anim = lottie.loadAnimation({ container: box, renderer: 'svg', loop: !still, autoplay: !still, path: `/lottie/${badge.dataset.lottie}.json` });
-        anim.addEventListener('DOMLoaded', () => {
-          badge.querySelector('svg.icon')?.remove();
-          if (still) anim.goToAndStop(120, true);
-        });
-      }).catch(() => { /* keep the static icon */ });
-    }
-  }, { rootMargin: '0px 0px -5% 0px' });
-  animated.forEach((el) => watch.observe(el));
-}
-
-// FacePrivacy.ai's blur brush, live: paint over the picture and a blurred copy shows through the brush.
+// Blur faces (F) and FacePrivacy.ai's blur brush, live. The "after" picture is LiteShot's own output (YuNet found the
+// faces, Shield blur covered each oval), so F reveals those ovals; the brush paints a blurred copy through a round tip.
 for (const demo of document.querySelectorAll('[data-blur-demo]')) {
   const canvas = demo.querySelector('canvas');
   const ctx = canvas.getContext('2d');
   const size = demo.querySelector('[data-brush]');
   const ring = demo.querySelector('.brush-ring');
+  const hint = demo.querySelector('[data-hint]');
+  const facesButton = demo.querySelector('[data-faces-button]');
+  // x y w h of each face's oval, in image pixels; the largest (the speaker) first.
+  const faces = (demo.dataset.faces ?? '').split(',').map((f) => f.trim().split(/\s+/).map(Number))
+    .filter((f) => f.length === 4).sort((a, b) => b[2] * b[3] - a[2] * a[3]);
   const blurred = document.createElement('canvas');
-  const img = new Image();
-  let painting = false, last = null;
+  const img = new Image(), after = new Image();
+  let painting = false, last = null, facesOn = false, reveal = null;
   const original = () => ctx.drawImage(img, 0, 0, canvas.width, canvas.height);
-  img.onload = () => {
+  img.src = demo.dataset.blurDemo;
+  after.src = demo.dataset.after ?? demo.dataset.blurDemo;
+  const loaded = Promise.all([img.decode(), after.decode().catch(() => {})]).then(() => {
     canvas.width = blurred.width = img.naturalWidth;
     canvas.height = blurred.height = img.naturalHeight;
-    // Shrink, then grow back in two smooth steps: a strong blur that works in every browser.
-    let source = img;
+    // Shrink, then grow back in two smooth steps: a strong blur that works in every browser. It starts from the
+    // picture with the faces covered, so painting over a face never brings it back.
+    let source = after.naturalWidth ? after : img;
     for (const k of [14, 4, 1]) {
       const step = document.createElement('canvas');
       step.width = Math.ceil(canvas.width / k);
@@ -235,8 +212,7 @@ for (const demo of document.querySelectorAll('[data-blur-demo]')) {
     }
     blurred.getContext('2d').drawImage(source, 0, 0);
     original();
-  };
-  img.src = demo.dataset.blurDemo;
+  });
 
   const scale = () => canvas.width / canvas.getBoundingClientRect().width;
   const at = (e) => {
@@ -267,7 +243,54 @@ for (const demo of document.querySelectorAll('[data-blur-demo]')) {
     ring.style.setProperty('--y', `${e.clientY - r.top}px`);
     ring.style.setProperty('--size', `${size.value}px`);
   };
+  // One face's oval of the "after" picture, grown to k of its size around its centre (plus a pixel for the soft edge).
+  const oval = ([x, y, w, h], k, ring = 0) => {
+    ctx.save();
+    ctx.beginPath();
+    ctx.ellipse(x + w / 2, y + h / 2, (w / 2 + 1.5) * k, (h / 2 + 1.5) * k, 0, 0, Math.PI * 2);
+    ctx.save();
+    ctx.clip();
+    ctx.drawImage(after, 0, 0);
+    ctx.restore();
+    if (ring > 0) {
+      ctx.lineWidth = Math.max(2, w / 40);
+      ctx.strokeStyle = `rgba(255, 255, 255, ${ring})`;
+      ctx.stroke();
+    }
+    ctx.restore();
+  };
+  // F: every oval fills in, largest first, a ring tracing each as it grows.
+  const blurFaces = () => {
+    if (facesOn || !after.naturalWidth) return Promise.resolve();
+    facesOn = true;
+    facesButton.disabled = true;
+    if (still) { faces.forEach((f) => oval(f, 1)); return Promise.resolve(); }
+    const base = document.createElement('canvas');
+    base.width = canvas.width;
+    base.height = canvas.height;
+    base.getContext('2d').drawImage(canvas, 0, 0);
+    return new Promise((done) => {
+      const finish = () => { reveal = null; ctx.drawImage(base, 0, 0); faces.forEach((f) => oval(f, 1)); done(); };
+      reveal = finish;
+      let start = 0;
+      const frame = (now) => {
+        if (reveal !== finish) return;      // finished early: the visitor started painting, or reset
+        start ||= now;
+        ctx.drawImage(base, 0, 0);
+        let running = false;
+        faces.forEach((f, i) => {
+          const t = Math.min(1, Math.max(0, (now - start - i * 70) / 460));
+          if (t < 1) running = true;
+          if (t > 0) oval(f, 1 - Math.pow(1 - t, 3), t < 1 ? 0.9 * (1 - t) : 0);
+        });
+        if (running) requestAnimationFrame(frame); else finish();
+      };
+      requestAnimationFrame(frame);
+    });
+  };
+  const yourTurn = 'Your turn: paint over anything';
   canvas.addEventListener('pointerdown', (e) => {
+    reveal?.();
     painting = true;
     last = null;
     canvas.setPointerCapture(e.pointerId);
@@ -280,41 +303,35 @@ for (const demo of document.querySelectorAll('[data-blur-demo]')) {
   });
   for (const type of ['pointerup', 'pointercancel']) canvas.addEventListener(type, () => { painting = false; last = null; });
   size.addEventListener('input', () => ring.style.setProperty('--size', `${size.value}px`));
-  const hint = demo.querySelector('[data-hint]');
-  demo.querySelector('[data-reset]').addEventListener('click', () => { original(); demo.classList.remove('used'); hint.textContent = 'Your turn: drag over the names'; });
+  facesButton.addEventListener('click', () => { demo.classList.add('used'); blurFaces(); });
+  // F, like in LiteShot, while the pointer or focus is on the demo.
+  document.addEventListener('keydown', (e) => {
+    if (e.key.toLowerCase() !== 'f' || e.ctrlKey || e.metaKey || e.altKey || e.repeat) return;
+    if (e.target.closest?.('textarea, [contenteditable], input:not([type="range"])')) return;
+    if (!demo.matches(':hover') && !demo.contains(document.activeElement)) return;
+    e.preventDefault();
+    demo.classList.add('used');
+    blurFaces();
+  });
+  demo.querySelector('[data-reset]').addEventListener('click', () => {
+    reveal = null;
+    facesOn = false;
+    facesButton.disabled = false;
+    original();
+    demo.classList.remove('used');
+    hint.textContent = 'Press F, or paint over anything';
+  });
 
-  // Show it working: once the picture is in view, the brush glides over the first names by itself.
-  const strokes = [[[88, 34], [250, 34]], [[88, 172], [212, 172]], [[150, 205], [268, 205]]];
+  // Show it working: once the picture is in view, LiteShot "presses F" by itself.
   const autoplay = () => {
-    if (still) { for (const s of strokes) { last = null; paint({ x: s[0][0], y: s[0][1] }); paint({ x: s[1][0], y: s[1][1] }); } last = null; hint.textContent = 'Your turn: drag over the names'; return; }
-    demo.classList.add('auto');
-    let i = 0, start = 0;
-    const r = canvas.getBoundingClientRect(), k = r.width / canvas.width;
-    const step = (now) => {
-      if (painting) { demo.classList.remove('auto'); return; }      // the visitor took over
-      if (!start) { start = now; last = null; }
-      const [[x1, y1], [x2, y2]] = strokes[i];
-      const t = Math.min(1, (now - start) / 650);
-      const e = t < 0.5 ? 2 * t * t : 1 - Math.pow(-2 * t + 2, 2) / 2;
-      const p = { x: x1 + (x2 - x1) * e, y: y1 + (y2 - y1) * e };
-      paint(p);
-      ring.style.setProperty('--x', `${p.x * k}px`);
-      ring.style.setProperty('--y', `${p.y * k}px`);
-      ring.style.setProperty('--size', `${size.value}px`);
-      if (t < 1) return requestAnimationFrame(step);
-      if (++i < strokes.length) { start = 0; return setTimeout(() => requestAnimationFrame(step), 180); }
-      last = null;
-      demo.classList.remove('auto');
-      hint.textContent = 'Your turn: drag over the names';
-    };
-    hint.textContent = 'Blurring names…';
-    requestAnimationFrame(step);
+    if (facesOn) return;
+    hint.textContent = 'Pressing F…';
+    setTimeout(() => blurFaces().then(() => { if (facesOn) hint.textContent = yourTurn; }), still ? 900 : 500);
   };
   new IntersectionObserver((entries, obs) => {
     if (!entries.some((e) => e.isIntersecting)) return;
     obs.disconnect();
-    const ready = () => setTimeout(autoplay, 400);
-    if (img.complete && img.naturalWidth) ready(); else img.addEventListener('load', ready, { once: true });
+    loaded.then(() => setTimeout(autoplay, 400), () => { /* no picture, nothing to show */ });
   }, { threshold: 0.6 }).observe(canvas);
 }
 

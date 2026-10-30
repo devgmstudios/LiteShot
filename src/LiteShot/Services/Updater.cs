@@ -60,17 +60,64 @@ internal static class Updater
         return client;
     }
 
-    /// <summary>The newest release if it's newer than this copy, otherwise null.</summary>
-    public static async Task<UpdateInfo?> CheckAsync(CancellationToken ct = default)
+    /// <summary>The newest release on this copy's channel, even if it isn't newer than this copy; null if there's none.</summary>
+    public static async Task<UpdateInfo?> LatestAsync(CancellationToken ct = default)
     {
         string server = Server ?? throw new UpdateException("Updates aren't set up in this build.");
         string channel = Uri.EscapeDataString(AppSettings.Current.UpdateChannel);
         using var response = await Http.GetAsync($"{server}/v1/latest?channel={channel}", ct);
         if (response.StatusCode == HttpStatusCode.NotFound) return null;
         if (!response.IsSuccessStatusCode) throw new UpdateException($"The update server answered {(int)response.StatusCode}.");
-        var info = Parse(await response.Content.ReadAsStringAsync(ct), server);
-        return info.Version > CurrentVersion ? info : null;
+        return Parse(await response.Content.ReadAsStringAsync(ct), server);
     }
+
+    /// <summary>The newest release if it's newer than this copy, otherwise null.</summary>
+    public static async Task<UpdateInfo?> CheckAsync(CancellationToken ct = default) =>
+        await LatestAsync(ct) is { } info && info.Version > CurrentVersion ? info : null;
+
+    /// <summary>The newer release the last check found, ready to install; null until a check finds one.</summary>
+    public static UpdateInfo? Available { get; private set; }
+
+    /// <summary>
+    /// The newer version LiteShot knows about: the one the last check found, or, before this run has checked, the newest
+    /// version an earlier run saw.
+    /// </summary>
+    public static Version? Newer =>
+        Available?.Version ?? (Version.TryParse(AppSettings.Current.LatestVersion, out var seen) && seen > CurrentVersion ? seen : null);
+
+    /// <summary>
+    /// Checks for a newer release and remembers the answer: when it checked, the newest version, and that version's
+    /// notes when it's this one (so a copy updated by hand can still say what's new). Call it from the UI thread;
+    /// only the request runs in the background. Returns the newer release, or null when this copy is up to date.
+    /// </summary>
+    public static async Task<UpdateInfo?> CheckNowAsync()
+    {
+        var latest = await Task.Run(() => LatestAsync());
+        var settings = AppSettings.Current;
+        settings.LastUpdateCheck = DateTime.Now;
+        settings.LatestVersion = latest?.Version.ToString();
+        if (latest != null && latest.Version == CurrentVersion && !string.IsNullOrWhiteSpace(latest.Notes))
+        {
+            settings.NotesVersion = latest.Version.ToString();
+            settings.Notes = latest.Notes.Trim();
+        }
+        settings.Save();
+        Available = latest != null && latest.Version > CurrentVersion ? latest : null;
+        return Available;
+    }
+
+    /// <summary>What to tell the user when checking for or downloading an update fails.</summary>
+    public static string Describe(Exception ex) =>
+        ex is UpdateException ? ex.Message
+        : ex is HttpRequestException or TaskCanceledException ? "Couldn't reach the update server. Check your connection and try again."
+        : ex.Message;
+
+    /// <summary>
+    /// True when this run is a newer version than the last one: it installed itself (<paramref name="justUpdated"/>,
+    /// from --updated) or was installed by hand. A copy that has never recorded a version only counts with --updated.
+    /// </summary>
+    internal static bool WasUpdated(string? lastRunVersion, bool justUpdated) =>
+        justUpdated || (Version.TryParse(lastRunVersion, out var before) && before < CurrentVersion);
 
     /// <summary>Checks the release's signature, then reads it. Anything unexpected throws, and nothing is installed.</summary>
     internal static UpdateInfo Parse(string envelopeJson, string server, string? publicKeyPem = null)

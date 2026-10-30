@@ -18,7 +18,7 @@
     <Company>Devgm, LLC</Company>
     <Authors>Devgm, LLC</Authors>
     <Copyright>© 2026 Devgm, LLC. All rights reserved.</Copyright>
-    <Version>1.1.2</Version>
+    <Version>1.1.3</Version>
     <Platforms>x64</Platforms>
     <PlatformTarget>x64</PlatformTarget>
     <RuntimeIdentifier>win-x64</RuntimeIdentifier>
@@ -30,6 +30,7 @@
   <ItemGroup>
     <EmbeddedResource Include="app.ico" LogicalName="LiteShot.app.ico" />
     <EmbeddedResource Include="Fonts\*.ttf" LogicalName="LiteShot.Fonts.%(Filename)%(Extension)" />
+    <EmbeddedResource Include="Names\*.txt" LogicalName="LiteShot.Names.%(Filename)%(Extension)" />
     <EmbeddedResource Include="update-public-key.pem" LogicalName="LiteShot.update-public-key.pem" Condition="Exists('update-public-key.pem')" />
     <AssemblyMetadata Include="UpdateServer" Value="$(UpdateServer)" />
     <InternalsVisibleTo Include="LiteShot.Harness" />
@@ -37,6 +38,10 @@
 
   <ItemGroup>
     <PackageReference Include="System.Security.Cryptography.ProtectedData" Version="8.0.0" />
+  </ItemGroup>
+
+  <ItemGroup>
+    <ProjectReference Include="..\LiteShot.Core\LiteShot.Core.csproj" />
   </ItemGroup>
 
 </Project>

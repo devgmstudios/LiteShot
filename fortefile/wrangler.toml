@@ -5,6 +5,10 @@
 #   # Backstop in case the hourly cron ever stops: R2 itself deletes anything under files/ after 1 day.
 #   npx wrangler r2 bucket lifecycle add fortefile-files expire-after-1-day files/ --expire-days 1 --force
 #   npx wrangler r2 bucket lifecycle list fortefile-files
+#   # Legal holds. Never give this bucket a lifecycle rule.
+#   npx wrangler r2 bucket create fortefile-holds
+#   # Admin token for tools/admin.mjs: 32 random bytes, kept in %APPDATA%\Devgm\fortefile\admin-token.txt.
+#   npx wrangler secret put ADMIN_TOKEN < "%APPDATA%\Devgm\fortefile\admin-token.txt"
 #   npm run deploy
 #
 # Custom domain: uncomment `routes` below and `npm run deploy` again. fortefile.com must be a zone on the
@@ -28,6 +32,11 @@ routes = [
 [[r2_buckets]]
 binding = "FILES"
 bucket_name = "fortefile-files"
+
+# Reported files kept for legal reasons (18 U.S.C. § 2258A(h)). No lifecycle rule, no cron, admin routes only.
+[[r2_buckets]]
+binding = "HOLDS"
+bucket_name = "fortefile-holds"
 
 # Every request reaches the worker first (API routing, /f/{id}, security headers); everything else is
 # passed on to the static files in public/ through env.ASSETS.

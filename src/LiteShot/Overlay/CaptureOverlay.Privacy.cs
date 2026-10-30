@@ -1,8 +1,11 @@
+using LiteShot.Core;
+
 namespace LiteShot.Overlay;
 
 /// <summary>
 /// Privacy: "Hide personal info" (H, remembered between captures) blurs names, faces, emails, phone and card numbers
-/// and the user's keywords automatically; faces can also be blurred with one click, or painted over with the brush.
+/// and the user's keywords automatically; faces can also be blurred with one click (Shield blur by FacePrivacy.ai),
+/// or painted over with the brush.
 /// </summary>
 internal sealed partial class CaptureOverlay
 {
@@ -15,13 +18,17 @@ internal sealed partial class CaptureOverlay
     void StartPrivacyScan()
     {
         if (!HidingPersonal || privacyScan != null) return;
-        // The UI thread keeps painting from the capture, so the scan gets its own copy.
-        var copy = shot.Clone(new Rectangle(Point.Empty, shot.Size), shot.PixelFormat);
         var keywords = AppSettings.Current.RedactKeywords.ToList();
-        privacyScan = Task.Run(async () =>
+        if (page != null) privacyScan = ScanPage(keywords);
+        else
         {
-            using (copy) return await PersonalInfo.FindAsync(copy, keywords, faces: true).ConfigureAwait(false);
-        });
+            // The UI thread keeps painting from the capture, so the scan gets its own copy.
+            var copy = shot.Clone(new Rectangle(Point.Empty, shot.Size), shot.PixelFormat);
+            privacyScan = Task.Run(async () =>
+            {
+                using (copy) return await PersonalInfo.FindAsync(copy, keywords, faces: true).ConfigureAwait(false);
+            });
+        }
         privacyScan.ContinueWith(_ =>
         {
             try { if (!closing && IsHandleCreated) BeginInvoke(new Action(() => ApplyPrivacy(wait: false))); }
@@ -87,7 +94,6 @@ internal sealed partial class CaptureOverlay
     {
         if (!hasSel || closing || findingFaces) return;
         CommitText();
-        if (!FaceFinder.Supported) { ShowFlash("Face detection isn't available on this PC"); return; }
         findingFaces = true;
         InvalidateRect(blurFacesButton.Bounds, 3);
         var area = sel;
@@ -114,7 +120,7 @@ internal sealed partial class CaptureOverlay
         var fresh = faces
             .Select(f => new Rectangle(f.X + area.X, f.Y + area.Y, f.Width, f.Height))
             .Where(f => !existing.Any(e => Overlap(e, f) > 0.5f))
-            .Select(f => new BlurShape { A = f.Location, B = new PointF(f.Right, f.Bottom), Oval = true, Size = Math.Max(4, f.Width / 7f), Color = color })
+            .Select(f => new BlurShape { A = f.Location, B = new PointF(f.Right, f.Bottom), Oval = true, Size = ShieldBlur.DefaultStrength, Color = color })
             .ToList();
         if (faces.Count == 0) { ShowFlash("No faces found"); return; }
         if (fresh.Count == 0) { ShowFlash("Those faces are already blurred"); return; }
@@ -122,15 +128,18 @@ internal sealed partial class CaptureOverlay
         ShowFlash(fresh.Count == 1 ? "Blurred 1 face" : $"Blurred {fresh.Count} faces");
     }
 
-    // ───────────────────────────── blur brush cursor ─────────────────────────────
+    // ───────────────────────────── brush footprints ─────────────────────────────
 
     Rectangle lastBrush;
 
-    /// <summary>A circle the size of the blur brush follows the pointer inside the selection.</summary>
+    /// <summary>
+    /// A circle the size of the blur brush, or a dot of the marker's ink under its pen cursor, follows the pointer inside
+    /// the selection, so you can see what a stroke will cover.
+    /// </summary>
     Rectangle BrushCursorRect()
     {
-        if (tool != Tool.BlurBrush || !hasSel || !sel.Contains(mouse) || drag is not (DragMode.None or DragMode.Draw)) return Rectangle.Empty;
-        float r = LiveSize(Tool.BlurBrush) / 2;
+        if (tool is not (Tool.BlurBrush or Tool.Marker) || !hasSel || !sel.Contains(mouse) || drag is not (DragMode.None or DragMode.Draw)) return Rectangle.Empty;
+        float r = LiveSize(tool) / 2;
         return Ui.Outer(new RectangleF(mouse.X - r, mouse.Y - r, r * 2, r * 2), 3);
     }
 
@@ -147,8 +156,14 @@ internal sealed partial class CaptureOverlay
     {
         var r = BrushCursorRect();
         if (r.IsEmpty) return;
-        float d = LiveSize(Tool.BlurBrush);
+        float d = LiveSize(tool);
         var circle = new RectangleF(mouse.X - d / 2, mouse.Y - d / 2, d, d);
+        // The marker's dot is tinted with its ink, as the stroke will be; while drawing, the stroke itself shows it.
+        if (tool == Tool.Marker && drag == DragMode.None)
+        {
+            using var ink = new SolidBrush(Color.FromArgb(105, color));
+            g.FillEllipse(ink, circle);
+        }
         using var shade = new Pen(Color.FromArgb(120, 0, 0, 0), 3f);
         using var ring = new Pen(Color.FromArgb(235, 255, 255, 255), 1.4f);
         g.DrawEllipse(shade, circle);

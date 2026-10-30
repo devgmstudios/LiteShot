@@ -157,8 +157,47 @@ await test('download: HEAD has headers, no body', async () => {
   assert((await res.arrayBuffer()).byteLength === 0, 'HEAD had a body');
 });
 
+// --- download counts ---
+const BROWSER = 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/130.0 Safari/537.36';
+const getStats = async () => expectStatus(await call('GET', '/v1/stats'), 200);
+await test('stats: no token -> 401', async () => expectStatus(await call('GET', '/v1/stats', { token: null }), 401));
+await test('stats: POST -> 405', async () => expectStatus(await call('POST', '/v1/stats'), 405));
+await test('downloads are counted by kind and source; HEAD and misses are not', async () => {
+  const before = await getStats();
+  const fetchAs = async (method, path, agent) => (await call(method, path, { token: null, headers: { 'User-Agent': agent } })).arrayBuffer();
+  await fetchAs('GET', '/v1/download/0.0.1/LiteShot.exe', BROWSER);
+  await fetchAs('GET', '/v1/download/0.0.1/LiteShot-Setup-0.0.1.msi', BROWSER);
+  await fetchAs('GET', '/v1/download/0.0.1/LiteShot-Setup-0.0.1.msi', BROWSER);
+  await fetchAs('GET', '/v1/download/0.0.1/LiteShot.exe', 'LiteShot/1.1.2');
+  await fetchAs('GET', '/v1/download/0.0.1/LiteShot.exe', 'Mozilla/5.0 (compatible; Googlebot/2.1; +http://www.google.com/bot.html)');
+  await fetchAs('HEAD', '/v1/download/0.0.1/LiteShot.exe', BROWSER);
+  await fetchAs('GET', '/v1/download/0.0.999/LiteShot.exe', BROWSER);
+  // Counts are written after each response; give them a moment.
+  let after, diff;
+  for (let i = 0; i < 20; i++) {
+    after = await getStats();
+    diff = {
+      installer: after.downloads.installer - before.downloads.installer,
+      portable: after.downloads.portable - before.downloads.portable,
+      total: after.downloads.total - before.downloads.total,
+      updates: after.updates.portable - before.updates.portable,
+      bots: after.bots - before.bots,
+    };
+    if (diff.installer >= 2 && diff.updates >= 1 && diff.bots >= 1) break;
+    await new Promise((r) => setTimeout(r, 150));
+  }
+  const ok = diff.installer === 2 && diff.portable === 1 && diff.total === 3 && diff.updates === 1 && diff.bots === 1;
+  assert(ok, `changes ${JSON.stringify(diff)}`);
+  const today = new Date().toISOString().slice(0, 10);
+  const day = after.last30Days.find((d) => d.day === today);
+  assert(day && day.installer + day.portable >= 3, `today ${JSON.stringify(day)}`);
+  const v = after.versions.find((x) => x.version === '0.0.1');
+  assert(v && v.downloads.total >= 3 && v.updates >= 1, `0.0.1 ${JSON.stringify(v)}`);
+  assert(!after.versions.some((x) => x.version === '0.0.999'), 'a missing file was counted');
+});
+
 // --- channel manifests ---
-const bad = (name, body, includes) =>
+const bad =(name, body, includes) =>
   test(`channel: ${name} -> 400`, async () => expectStatus(await call('PUT', `/v1/channels/${CH}`, { body }), 400, includes));
 await bad('not JSON', 'not json');
 await bad('missing signature', JSON.stringify({ payload: '{}' }));

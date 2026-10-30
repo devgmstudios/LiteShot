@@ -59,10 +59,20 @@ internal sealed class AppSettings
     public bool ShowNotifications { get; set; } = true;
     /// <summary>Off unless the user opts in: check for, download and install updates on its own.</summary>
     public bool AutoUpdate { get; set; }
+    /// <summary>On unless the user turns it off: look for new versions every few hours and say when one is out.</summary>
+    public bool CheckForUpdates { get; set; } = true;
     public string UpdateChannel { get; set; } = "stable";
     /// <summary>Overrides the update server built into the app (for testing a local server).</summary>
     public string? UpdateServer { get; set; }
     public DateTime? LastUpdateCheck { get; set; }
+    /// <summary>The newest version the last check saw, so a new version is announced once and still shows after a restart.</summary>
+    public string? LatestVersion { get; set; }
+    /// <summary>The version that ran last, to notice when LiteShot has been updated, by itself or by hand.</summary>
+    public string? LastRunVersion { get; set; }
+    public DateTime? UpdatedAt { get; set; }
+    /// <summary>Release notes and the version they belong to, kept so the new version can say what's new.</summary>
+    public string? NotesVersion { get; set; }
+    public string? Notes { get; set; }
     public bool FirstRunShown { get; set; }
 
     public int AnnotationColor { get; set; } = unchecked((int)0xFFFF3B30);

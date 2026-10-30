@@ -93,6 +93,8 @@ internal static class Native
 
     [DllImport("user32.dll")] public static extern bool GetCursorInfo(ref CURSORINFO ci);
     [DllImport("user32.dll")] public static extern bool GetIconInfo(IntPtr hIcon, out ICONINFO info);
+    [DllImport("user32.dll")] public static extern IntPtr CreateIconIndirect(ref ICONINFO info);
+    [DllImport("user32.dll")] public static extern bool DestroyIcon(IntPtr hIcon);
     [DllImport("user32.dll")] public static extern bool DrawIconEx(IntPtr hdc, int x, int y, IntPtr hIcon, int w, int h, int step, IntPtr brush, int flags);
     [DllImport("gdi32.dll")] public static extern bool DeleteObject(IntPtr h);
 

@@ -3,12 +3,37 @@
 // Encrypted files are AES-256-GCM output (IV || ciphertext || tag) made by the uploader. The key only ever
 // travels in the link's #fragment, so this worker never sees it. Public (unencrypted) files are PNG/JPEG
 // screenshots that live at most an hour, so a reverse image search can fetch them.
+//
+// The HOLDS bucket keeps reported files for legal reasons (18 U.S.C. § 2258A(h): a year after a report to
+// NCMEC). No lifecycle rule or cron touches it, and only the /api/admin routes (tools/admin.mjs) can read it.
+//   holds/{id}/file         the bytes exactly as they were stored, with the original customMetadata
+//   holds/{id}/record.json  a Hold: why, when, hashes, the reporter's key if it works, the report number
 
 interface Env {
   FILES: R2Bucket;
+  HOLDS: R2Bucket;
   ASSETS: Fetcher;
   UPLOAD_LIMITER?: RateLimit;
+  ADMIN_TOKEN?: string; // secret; without it the admin routes don't exist
   TEST_HOOKS?: string; // "1" only in `npm run dev`: allows X-Test-Expire-In and /__test/files/{id} on localhost
+}
+
+interface Hold {
+  id: string;
+  reason: string;
+  heldAt: string;
+  size: number;
+  sha256: string; // of the stored bytes (ciphertext for encrypted files)
+  uploaded: string;
+  expires: string; // when the file would have been deleted
+  encrypted: boolean;
+  type: string; // as stored: application/octet-stream for every encrypted file
+  key?: string; // from the reported link's #fragment, kept only when it decrypts the file
+  contentType?: string; // sniffed from the decrypted bytes
+  report?: string; // NCMEC CyberTipline report number
+  reportedAt?: string;
+  keepUntil: string; // a year after the report (or the hold), later if extended; release refuses before it
+  notes: string[];
 }
 
 type Handler = (req: Request, env: Env, params: string[], url: URL) => Promise<Response>;
@@ -18,6 +43,7 @@ const MAX_BYTES = 25 * 1024 * 1024;
 const LIFETIMES = [3600, 43200, 86400];
 const DEFAULT_LIFETIME = 86400;
 const PUBLIC_MAX_LIFETIME = 3600;
+const HOLD_DAYS = 365;
 const MIN_ENCRYPTED_BYTES = 12 + 16; // IV + GCM tag
 const ID_RE = /^[A-Za-z0-9_-]{22}$/;
 const PUBLIC_TYPES: Record<string, { ext: string; magic: number[] }> = {
@@ -79,6 +105,12 @@ const isExpired = (obj: R2Object, now = Date.now()) => !(Number(obj.customMetada
 const expiresIso = (obj: R2Object) => new Date(Number(obj.customMetadata!.expires)).toISOString();
 const bodyOf = (obj: R2Object) => ('body' in obj ? (obj as R2ObjectBody).body : null);
 const testHooks = (env: Env, url: URL) => env.TEST_HOOKS === '1' && ['127.0.0.1', 'localhost', '[::1]'].includes(url.hostname);
+const bearer = (req: Request) => /^Bearer\s+(\S+)\s*$/i.exec(req.headers.get('Authorization') ?? '')?.[1];
+const unauthorized = () => new HttpError(401, 'unauthorized', { 'WWW-Authenticate': 'Bearer' });
+const holdKey = (id: string, part: 'file' | 'record.json') => `holds/${id}/${part}`;
+const daysAfter = (date: Date, days: number) => new Date(date.getTime() + days * 86400_000);
+const sniff = (bytes: Uint8Array) =>
+  Object.keys(PUBLIC_TYPES).find((t) => PUBLIC_TYPES[t].magic.every((b, i) => bytes[i] === b)) ?? 'unknown';
 
 // IPv6 users usually own a whole /64, so limit by prefix rather than by address.
 function clientKey(ip: string) {
@@ -185,14 +217,158 @@ const getPublic: Handler = async (req, env, [id, ext]) => {
 };
 
 const deleteFile: Handler = async (req, env, [id]) => {
-  const unauthorized = new HttpError(401, 'unauthorized', { 'WWW-Authenticate': 'Bearer' });
-  const given = /^Bearer\s+(\S+)\s*$/i.exec(req.headers.get('Authorization') ?? '')?.[1];
-  if (!given) throw unauthorized;
+  const given = bearer(req);
+  if (!given) throw unauthorized();
   const obj = await load(env, id, true);
   if (!obj) return notFound();
   // Compare fixed-length digests in constant time; only the hash of the token is stored.
   const stored = unhex(obj.customMetadata?.deleteHash ?? '');
-  if (!stored || !crypto.subtle.timingSafeEqual(await sha256(given), stored)) throw unauthorized;
+  if (!stored || !crypto.subtle.timingSafeEqual(await sha256(given), stored)) throw unauthorized();
+  await env.FILES.delete(fileKey(id));
+  return json({ ok: true });
+};
+
+// --- admin: take reported files down, and keep the ones the law says to keep ---
+
+const admin =
+  (handler: Handler): Handler =>
+  async (req, env, params, url) => {
+    if (!env.ADMIN_TOKEN) return json({ error: 'not found' }, 404);
+    const given = bearer(req);
+    if (!given || !crypto.subtle.timingSafeEqual(await sha256(given), await sha256(env.ADMIN_TOKEN))) throw unauthorized();
+    return handler(req, env, params, url);
+  };
+
+async function readJson(req: Request) {
+  const body: unknown = await req.json().catch(() => null);
+  check(body && typeof body === 'object' && !Array.isArray(body), 'body must be a JSON object');
+  return body as Record<string, unknown>;
+}
+
+async function decrypt(data: Uint8Array, keyText: string) {
+  try {
+    const raw = Uint8Array.from(atob(keyText.replace(/-/g, '+').replace(/_/g, '/').replace(/=+$/, '')), (c) => c.charCodeAt(0));
+    const key = await crypto.subtle.importKey('raw', raw, 'AES-GCM', false, ['decrypt']);
+    return new Uint8Array(await crypto.subtle.decrypt({ name: 'AES-GCM', iv: data.subarray(0, 12) }, key, data.subarray(12)));
+  } catch {
+    return null;
+  }
+}
+
+async function readHold(env: Env, id: string) {
+  const obj = await env.HOLDS.get(holdKey(id, 'record.json'));
+  if (!obj) throw new HttpError(404, 'no hold for that file');
+  return obj.json<Hold>();
+}
+
+const saveHold = (env: Env, hold: Hold) =>
+  env.HOLDS.put(holdKey(hold.id, 'record.json'), JSON.stringify(hold, null, 2), { httpMetadata: { contentType: JSON_TYPE } });
+
+const extend = (hold: Hold, until: Date) => {
+  hold.keepUntil = new Date(Math.max(Date.parse(hold.keepUntil), until.getTime())).toISOString();
+};
+
+// Copies the file into HOLDS, then deletes it from FILES, so the link dies and the uploader's delete token
+// can't reach the copy. Expired files that cleanup hasn't removed yet are kept too: the bytes still exist.
+const createHold: Handler = async (req, env) => {
+  const { id, reason, key } = await readJson(req);
+  check(typeof id === 'string' && ID_RE.test(id), 'id must be a fortefile file id');
+  check(typeof reason === 'string' && reason.trim(), 'reason required');
+  check(key === undefined || typeof key === 'string', 'key must be a string');
+  if (await env.HOLDS.head(holdKey(id, 'record.json'))) throw new HttpError(409, 'that file is already held');
+  const obj = await env.FILES.get(fileKey(id));
+  if (!obj) throw new HttpError(404, 'not found: the file has expired or was deleted');
+  const bytes = new Uint8Array(await obj.arrayBuffer());
+  const { deleteHash: _, ...meta } = obj.customMetadata ?? {};
+  const encrypted = meta.encrypted !== '0';
+  const plain = encrypted && key ? await decrypt(bytes, key) : null;
+  const heldAt = new Date();
+  const hold: Hold = {
+    id,
+    reason: reason.trim(),
+    heldAt: heldAt.toISOString(),
+    size: bytes.byteLength,
+    sha256: hex(await crypto.subtle.digest('SHA-256', bytes)),
+    uploaded: obj.uploaded.toISOString(),
+    expires: new Date(Number(meta.expires) || obj.uploaded.getTime()).toISOString(),
+    encrypted,
+    type: meta.type ?? 'application/octet-stream',
+    ...(plain && key ? { key: key.replace(/=+$/, ''), contentType: sniff(plain) } : {}),
+    keepUntil: daysAfter(heldAt, HOLD_DAYS).toISOString(),
+    notes: key && !plain ? [`${heldAt.toISOString()} the key given with the report didn't decrypt the file, so it wasn't kept`] : [],
+  };
+  await env.HOLDS.put(holdKey(id, 'file'), bytes, { customMetadata: meta, sha256: hold.sha256 });
+  await saveHold(env, hold);
+  await env.FILES.delete(fileKey(id));
+  return json(hold, 201);
+};
+
+const listHolds: Handler = async (_req, env) => {
+  const holds: Hold[] = [];
+  let cursor: string | undefined;
+  do {
+    const list = await env.HOLDS.list({ prefix: 'holds/', cursor });
+    for (const o of list.objects.filter((o) => o.key.endsWith('/record.json'))) {
+      const rec = await env.HOLDS.get(o.key);
+      if (rec) holds.push(await rec.json<Hold>());
+    }
+    cursor = list.truncated ? list.cursor : undefined;
+  } while (cursor);
+  return json({ holds: holds.sort((a, b) => a.heldAt.localeCompare(b.heldAt)) });
+};
+
+const getHold: Handler = async (_req, env, [id]) => json(await readHold(env, id));
+
+// Records the CyberTipline report (the year runs from it), extends the hold, or adds a note. Never shortens it.
+const updateHold: Handler = async (req, env, [id]) => {
+  const hold = await readHold(env, id);
+  const { report, reportedAt, keepUntil, note } = await readJson(req);
+  if (report !== undefined) {
+    check(typeof report === 'string' && report.trim(), 'report must be the CyberTipline report number');
+    const at = reportedAt === undefined ? new Date() : new Date(String(reportedAt));
+    check(!isNaN(at.getTime()), 'reportedAt must be a date');
+    hold.report = report.trim();
+    hold.reportedAt = at.toISOString();
+    extend(hold, daysAfter(at, HOLD_DAYS));
+  }
+  if (keepUntil !== undefined) {
+    const until = new Date(String(keepUntil));
+    check(!isNaN(until.getTime()), 'keepUntil must be a date');
+    extend(hold, until);
+  }
+  if (note !== undefined) {
+    check(typeof note === 'string' && note.trim(), 'note must be text');
+    hold.notes.push(`${new Date().toISOString()} ${note.trim()}`);
+  }
+  await saveHold(env, hold);
+  return json(hold);
+};
+
+const getHoldFile: Handler = async (_req, env, [id]) => {
+  const obj = await env.HOLDS.get(holdKey(id, 'file'));
+  if (!obj) throw new HttpError(404, 'no hold for that file');
+  return new Response(obj.body, {
+    headers: {
+      'Content-Type': 'application/octet-stream',
+      'Content-Length': String(obj.size),
+      'Cache-Control': 'no-store',
+      'X-Content-Type-Options': 'nosniff',
+      'Content-Security-Policy': "default-src 'none'; sandbox",
+    },
+  });
+};
+
+const releaseHold: Handler = async (_req, env, [id], url) => {
+  const hold = await readHold(env, id);
+  const early = Date.parse(hold.keepUntil) > Date.now();
+  check(!early || url.searchParams.get('force') === '1', `held until ${hold.keepUntil}; add force=1 to release it early`, 409);
+  await env.HOLDS.delete([holdKey(id, 'file'), holdKey(id, 'record.json')]);
+  return json({ ok: true });
+};
+
+// Takes a link down without keeping anything (copyright notices, most abuse reports).
+const removeFile: Handler = async (_req, env, [id]) => {
+  if (!(await env.FILES.head(fileKey(id)))) return notFound();
   await env.FILES.delete(fileKey(id));
   return json({ ok: true });
 };
@@ -211,6 +387,10 @@ const routes: [RegExp, Record<string, Handler>][] = [
   [/^\/api\/files\/([^/]+)$/, { GET: getFile, DELETE: deleteFile }],
   [/^\/r\/([^/.]+)\.(png|jpg)$/, { GET: getPublic }],
   [/^\/f\/([A-Za-z0-9_-]{22})$/, { GET: viewer }],
+  [/^\/api\/admin\/files\/([A-Za-z0-9_-]{22})$/, { DELETE: admin(removeFile) }],
+  [/^\/api\/admin\/holds$/, { GET: admin(listHolds), POST: admin(createHold) }],
+  [/^\/api\/admin\/holds\/([A-Za-z0-9_-]{22})$/, { GET: admin(getHold), PATCH: admin(updateHold), DELETE: admin(releaseHold) }],
+  [/^\/api\/admin\/holds\/([A-Za-z0-9_-]{22})\/file$/, { GET: admin(getHoldFile) }],
 ];
 const testRoutes: [RegExp, Record<string, Handler>][] = [[/^\/__test\/files\/([^/]+)$/, { GET: inspect }]];
 

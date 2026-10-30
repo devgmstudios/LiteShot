@@ -32,8 +32,8 @@ Neither is code-signed yet, so Windows SmartScreen will warn that the publisher 
 | | |
 |---|---|
 | More tools | Ellipse, numbered steps (1, 2, 3…), pixelate for redaction, redo |
-| Blur names automatically | Turn it on under **Settings › Capture**: text that looks like a person's name is blurred as soon as you capture, using the OCR built into Windows, so nothing leaves your PC. Ctrl+Z brings the names back; click a blur and press Delete to remove just one |
-| Blur faces | The face button next to Pixelate (or **F**) finds every face in the selection with the face detector built into Windows and blurs each one |
+| Blur names automatically | Turn it on under **Settings › Capture**: text that looks like a person's name is blurred as soon as you capture, using the OCR built into Windows, so nothing leaves your PC. Names from many cultures are recognized, whole ("Robles de la Fuente", "Aumalo Jr"), and the page's layout catches the rest: every name in a column headed Name, Customer, Owner and the like, and the remaining rows of a list of people. Ctrl+Z brings the names back; click a blur and press Delete to remove just one |
+| Blur faces | The face button next to Pixelate (or **F**) finds every face in the selection, from large video tiles down to small avatars, side profiles included (their oval also takes in the ear, the back of the head and a beard), and covers each one with an oval of [Shield blur by FacePrivacy.ai](https://faceprivacy.ai). Shield blur keeps the outline and skin tone but can't be sharpened back into the face. Faces are found on your PC with the open-source YuNet detector; nothing is uploaded |
 | Editable drawings | With no tool selected, click a drawing to select it, drag to move, Delete to remove, change its color or size |
 | Precision | Pixel loupe with coordinates and hex color (turn it on under **Settings › Capture**; press **C** to copy the color); arrow keys nudge, Shift+arrows resize, Shift draws straight lines and squares |
 | Window capture | Hover a window and click once to capture exactly that window |
@@ -145,10 +145,12 @@ dotnet run --project tools/LiteShot.Publish -c Release -- publish --server https
 ```
 src/LiteShot/
   Overlay/        capture surface, glass material, toolbars, text style bar, AI prompt, annotation shapes
-  Services/       saving, clipboard, printing, uploads, OCR, SyncNode and AI
+  Services/       saving, clipboard, printing, uploads, OCR, faces, SyncNode and AI
   UI/             settings, AI result and progress windows, pinned screenshots, menus
   Fonts/          bundled fonts (OFL / Apache licenses included)
   TrayApp.cs      tray icon, hotkeys, results
+src/LiteShot.Core/        no Windows APIs, for a future macOS build: Shield blur and the YuNet face detector
+  Models/         the YuNet model (MIT license included)
 installer/                WiX installer (per-user MSI)
 server/                   update server and website (Cloudflare Worker + R2)
 fortefile/                fortefile.com: encrypted, self-deleting uploads (Cloudflare Worker + R2)
@@ -157,7 +159,7 @@ tools/                    regenerate the icon (MakeIcon.ps1) and installer artwo
                           and publish signed releases (LiteShot.Publish)
 ```
 
-Run the harness with `dotnet run --project tests/LiteShot.Harness -- <output folder>`. It checks selection, every tool, undo and redo, moving drawings, the palette, the final image, OCR, saving, text styling and fonts, the AI popover and windows, SyncNode error handling, and name and face blurring, and writes a PNG of each state. With the local update server running (`npm run dev` in `server/`), add `--update-server http://127.0.0.1:8788` to also test signed updates, tampered releases and the exe swap. `--icons` renders every icon on one sheet.
+Run the harness with `dotnet run --project tests/LiteShot.Harness -- <output folder>`. It checks selection, every tool, undo and redo, moving drawings, the palette, the final image, OCR, saving, text styling and fonts, the AI popover and windows, SyncNode error handling, and name and face blurring, and writes a PNG of each state. With the local update server running (`npm run dev` in `server/`), add `--update-server http://127.0.0.1:8788` to also test signed updates, tampered releases and the exe swap. `--icons` renders every icon on one sheet. `--faces` runs only the face checks, on scenes built from public-domain NASA portraits (`tests/LiteShot.Harness/Faces`): a video call where every face must be found and covered with Shield blur, a team page of 25 faces, a gallery of 30 thumbnails with faces down to 12 px, a 5120 px two-monitor desktop, and photo cards of side profiles (public domain, in the same folder), plus text, code and UI that must not count as faces.
 
 Settings are stored in `%APPDATA%\LiteShot\settings.json`.
 
@@ -167,4 +169,12 @@ Issues and pull requests are welcome. Build with `build.ps1` (or `dotnet build`)
 
 ## License
 
-LiteShot is released under the [MIT license](LICENSE), © 2026 Devgm, LLC. The bundled fonts keep their own licenses (SIL Open Font License or Apache 2.0), included in `src/LiteShot/Fonts`. LiteShot is an independent project and isn't affiliated with Lightshot or Skillbrains.
+LiteShot is released under the [MIT license](LICENSE), © 2026 Devgm, LLC. The bundled fonts keep their own licenses (SIL Open Font License or Apache 2.0), included in `src/LiteShot/Fonts`.
+
+Third-party parts:
+
+- **Shield blur by [FacePrivacy.ai](https://faceprivacy.ai)**, version 4.2.1, ported to C# in `src/LiteShot.Core/ShieldBlur.cs` from the reference implementation and [technical note FP-TN-01](https://faceprivacy.ai/research/shield-blur/). Shield Blur License 1.0 (MIT with attribution), © 2026 UnFind LLC.
+- **YuNet** face detector by Shiqi Yu, from the [OpenCV Zoo](https://github.com/opencv/opencv_zoo/tree/main/models/face_detection_yunet). MIT license, included in `src/LiteShot.Core/Models`.
+- **[ONNX Runtime](https://github.com/microsoft/onnxruntime)** by Microsoft, which runs YuNet. MIT license.
+
+LiteShot is an independent project and isn't affiliated with Lightshot or Skillbrains.
