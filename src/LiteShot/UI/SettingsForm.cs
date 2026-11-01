@@ -521,7 +521,10 @@ internal sealed class SettingsForm : Form
             Changed();
         };
         modeRow = new SettingRow(theme, "New versions", ModeText, mode, wide: true);
-        add(new Card(theme).Add(updateRow).Add(modeRow));
+        var countRow = new SettingRow(theme, "Count this copy",
+            "Once a day the update check includes a random number, so Devgm can count how many copies are in use. Nothing about you or your PC is sent.",
+            Toggle(Settings.CountUsage, v => Settings.CountUsage = v));
+        add(new Card(theme).Add(updateRow).Add(modeRow).Add(countRow));
 
         // What's new in the version on offer, or when this one arrived and what it brought.
         string WhatsNew()

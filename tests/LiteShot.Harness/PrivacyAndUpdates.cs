@@ -21,6 +21,7 @@ internal static class PrivacyAndUpdates
         PersonalOnScreen(outDir, check);
         NamesInTable(outDir, check);
         NamesInFeed(outDir, check);
+        UsageCount(check);
         NamesOnScreen(outDir, newOverlay, desktop, check);
         BlurBrush(outDir, newOverlay, desktop, check);
         Faces(outDir, check);
@@ -997,7 +998,9 @@ internal static class PrivacyAndUpdates
         var settings = AppSettings.Current;
         string? savedServer = settings.UpdateServer;
         string savedChannel = settings.UpdateChannel;
+        bool savedCount = settings.CountUsage;
         settings.UpdateServer = server;
+        settings.CountUsage = false;   // test checks aren't copies in use
         string updates = Path.Combine(Environment.GetFolderPath(Environment.SpecialFolder.LocalApplicationData), "LiteShot", "Updates", "9.9.9");
         try
         {
@@ -1042,7 +1045,65 @@ internal static class PrivacyAndUpdates
         {
             settings.UpdateServer = savedServer;
             settings.UpdateChannel = savedChannel;
+            settings.CountUsage = savedCount;
             try { if (Directory.Exists(updates)) Directory.Delete(updates, recursive: true); } catch { }
+        }
+    }
+
+    /// <summary>
+    /// Copies in use: the first update check of the day carries the install id, later ones don't, and none do with the
+    /// setting off. Uses a stand-in server on localhost.
+    /// </summary>
+    internal static void UsageCount(Action<bool, string> check)
+    {
+        var settings = AppSettings.Current;
+        var saved = (settings.UpdateServer, settings.CountUsage, settings.InstallId, settings.LastCountedDay);
+        var probe = new System.Net.Sockets.TcpListener(System.Net.IPAddress.Loopback, 0);
+        probe.Start();
+        int port = ((System.Net.IPEndPoint)probe.LocalEndpoint).Port;
+        probe.Stop();
+        using var listener = new System.Net.HttpListener();
+        listener.Prefixes.Add($"http://localhost:{port}/");
+        listener.Start();
+        var seen = new List<string?>();
+        _ = Task.Run(async () =>
+        {
+            while (listener.IsListening)
+            {
+                try
+                {
+                    var ctx = await listener.GetContextAsync();
+                    lock (seen) seen.Add(ctx.Request.Headers["X-LiteShot-Install"]);
+                    ctx.Response.StatusCode = 404;
+                    ctx.Response.Close();
+                }
+                catch { return; }
+            }
+        });
+        try
+        {
+            settings.UpdateServer = $"http://localhost:{port}";
+            settings.CountUsage = true;
+            settings.InstallId = null;
+            settings.LastCountedDay = null;
+            Run(() => Updater.LatestAsync());
+            Run(() => Updater.LatestAsync());
+            string? id = settings.InstallId;
+            settings.LastCountedDay = null;
+            settings.CountUsage = false;
+            Run(() => Updater.LatestAsync());
+            lock (seen)
+            {
+                check(seen.Count == 3 && seen[0] is { Length: 32 } first && first == id && first.All(Uri.IsHexDigit),
+                    "usage count: the day's first update check carries the random install id");
+                check(seen.Count == 3 && seen[1] == null, "usage count: later checks that day don't");
+                check(seen.Count == 3 && seen[2] == null, "usage count: nothing is sent with the setting off");
+            }
+        }
+        finally
+        {
+            (settings.UpdateServer, settings.CountUsage, settings.InstallId, settings.LastCountedDay) = saved;
+            listener.Stop();
         }
     }
 

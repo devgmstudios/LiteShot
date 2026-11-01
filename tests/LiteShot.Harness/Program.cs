@@ -137,6 +137,7 @@ internal static class Program
             using var pinBmp = new Bitmap(pin.Width, pin.Height);
             pin.DrawToBitmap(pinBmp, new Rectangle(Point.Empty, pin.Size));
             Check(pin.Size == doc.Size, "pin window opens at the screenshot's size");
+            PinTransforms(pin, doc.Size);
             pin.Close();
         }
 
@@ -540,6 +541,63 @@ internal static class Program
 
     static void SetStatic(Type t, string property, object value) =>
         t.GetProperty(property, BindingFlags.Static | BindingFlags.Public)!.SetValue(null, value);
+
+    [System.Runtime.InteropServices.DllImport("user32.dll")]
+    static extern IntPtr SendMessage(IntPtr h, int msg, IntPtr wParam, IntPtr lParam);
+
+    /// <summary>Resizing (dragging edges and corners), rotating and click-through on a pin, through its real window messages.</summary>
+    static void PinTransforms(PinForm pin, Size shot)
+    {
+        // Presses on an edge, drags by (dx, dy) and lets go, as the mouse would.
+        Rectangle Drag(int hit, Point grab, int dx, int dy)
+        {
+            const int WM_MOUSEMOVE = 0x0200, WM_LBUTTONUP = 0x0202;
+            IntPtr Pos(int x, int y) => (IntPtr)((y & 0xFFFF) << 16 | (x & 0xFFFF));
+            var screen = new Point(pin.Left + grab.X, pin.Top + grab.Y);
+            SendMessage(pin.Handle, Native.WM_NCLBUTTONDOWN, hit, Pos(screen.X, screen.Y));
+            for (int i = 1; i <= 4; i++)
+            {
+                var c = pin.PointToClient(new Point(screen.X + dx * i / 4, screen.Y + dy * i / 4));
+                SendMessage(pin.Handle, WM_MOUSEMOVE, 1, Pos(c.X, c.Y));
+            }
+            var end = pin.PointToClient(new Point(screen.X + dx, screen.Y + dy));
+            SendMessage(pin.Handle, WM_LBUTTONUP, 0, Pos(end.X, end.Y));
+            return pin.Bounds;
+        }
+        int Hit(int x, int y) => (int)SendMessage(pin.Handle, Native.WM_NCHITTEST, 0, (IntPtr)(((pin.Top + y) & 0xFFFF) << 16 | ((pin.Left + x) & 0xFFFF)));
+
+        var start = pin.Bounds;
+        Check(Hit(pin.Width / 2, pin.Height / 2) == Native.HTCAPTION && Hit(pin.Width - 2, pin.Height / 2) == Native.HTRIGHT
+            && Hit(1, 1) == Native.HTTOPLEFT && Hit(pin.Width / 2, pin.Height - 1) == Native.HTBOTTOM, "pin: edges and corners resize, the middle drags");
+
+        var wide = Drag(Native.HTRIGHT, new Point(pin.Width - 2, pin.Height / 2), shot.Width / 4, 0);
+        Check(wide.Location == start.Location && wide.Width == shot.Width * 5 / 4 && Math.Abs(wide.Width * shot.Height - wide.Height * shot.Width) <= shot.Width
+            && Math.Abs(pin.Zoom - wide.Width / (float)shot.Width) < 0.01f, $"pin: dragging the right edge grows it and keeps the shape ({wide.Width}×{wide.Height}, {pin.Zoom:0.##}×)");
+        var huge = Drag(Native.HTRIGHT, new Point(pin.Width - 2, pin.Height / 2), shot.Width * 4, 0);
+        var max = SystemInformation.MaxWindowTrackSize;
+        Check(huge.Width <= max.Width && huge.Height <= max.Height && Math.Abs(huge.Width * shot.Height - huge.Height * shot.Width) <= shot.Width,
+            $"pin: dragged past the screen's limit it stops there, still in shape ({huge.Width}×{huge.Height})");
+        pin.Bounds = wide;
+
+        var small = Drag(Native.HTTOPLEFT, new Point(1, 1), wide.Width / 2, 10);
+        Check(small.Right == wide.Right && small.Bottom == wide.Bottom && Math.Abs(small.Width * shot.Height - small.Height * shot.Width) <= shot.Width
+            && Math.Abs(pin.Zoom - small.Width / (float)shot.Width) < 0.01f, $"pin: a corner drag keeps the opposite corner and the shape ({small.Width}×{small.Height})");
+
+        var near = Drag(Native.HTBOTTOM, new Point(pin.Width / 2, pin.Height - 1), 0, (int)(shot.Height * 1.02f) - small.Height);
+        Check(pin.Zoom == 1f && near.Size == shot, "pin: resizing close to 100% snaps back to pixel-exact");
+
+        pin.Turn(RotateFlipType.Rotate90FlipNone);
+        Check(pin.Size == new Size(shot.Height, shot.Width), $"pin: rotating swaps width and height ({pin.Width}×{pin.Height})");
+        pin.Turn(RotateFlipType.Rotate270FlipNone);
+        pin.Turn(RotateFlipType.RotateNoneFlipX);
+        Check(pin.Size == shot, "pin: rotating back and flipping keep the size");
+
+        pin.ClickThrough = true;
+        bool through = (Native.GetWindowLong(pin.Handle, Native.GWL_EXSTYLE) & Native.WS_EX_TRANSPARENT) != 0 && pin.Opacity <= 0.71;
+        pin.ClickThrough = false;
+        bool back = (Native.GetWindowLong(pin.Handle, Native.GWL_EXSTYLE) & Native.WS_EX_TRANSPARENT) == 0 && pin.Opacity == 1;
+        Check(through && back, "pin: click-through fades it and lets clicks pass, and turns off again");
+    }
 
     static void Check(bool ok, string what)
     {

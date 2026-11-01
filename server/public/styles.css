@@ -533,6 +533,7 @@ h2 { font-size: clamp(2rem, 5vw, 3.4rem); line-height: 1.04; letter-spacing: -0.
 .trust-item { padding: 22px; border-radius: var(--radius-sm); }
 .trust-item h3 { margin: 0 0 8px; font-size: 1.1rem; }
 .trust-item p { margin: 0; color: var(--text-2); font-size: 0.95rem; }
+.trust-item a { color: inherit; text-decoration: underline; text-underline-offset: 3px; }
 .verify-card { padding: clamp(24px, 4vw, 40px); }
 .verify-card h2 { margin-top: 0; }
 .verify-card h3 { margin: 26px 0 6px; font-size: 1.1rem; }
@@ -558,6 +559,12 @@ h2 { font-size: clamp(2rem, 5vw, 3.4rem); line-height: 1.04; letter-spacing: -0.
 .oss-note { color: var(--text-3); font-size: 0.92rem; }
 @media (max-width: 640px) { .oss { grid-template-columns: 1fr; } }
 .license-text { padding: clamp(24px, 4vw, 44px); white-space: pre-wrap; font: 0.95rem/1.7 var(--font); color: var(--text-2); }
+.prose { padding: clamp(24px, 4vw, 44px); color: var(--text-2); line-height: 1.7; }
+.prose h2 { margin: 30px 0 8px; font-size: 1.2rem; color: var(--text); }
+.prose h2:first-child { margin-top: 0; }
+.prose p { margin: 0 0 12px; max-width: 72ch; }
+.prose a { color: inherit; text-decoration: underline; text-underline-offset: 3px; }
+.prose .updated { margin-top: 24px; color: var(--text-3); font-size: 0.9rem; }
 
 /* who it's for */
 .who { display: grid; grid-template-columns: repeat(3, 1fr); gap: 16px; }

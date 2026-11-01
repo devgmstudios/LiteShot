@@ -196,6 +196,32 @@ await test('downloads are counted by kind and source; HEAD and misses are not', 
   assert(!after.versions.some((x) => x.version === '0.0.999'), 'a missing file was counted');
 });
 
+// --- copies in use ---
+await test('copies are counted once a day by install id; bad ids, browsers and repeats are not', async () => {
+  const before = (await getStats()).installs;
+  const id = () => createHash('sha256').update(String(Math.random())).digest('hex').slice(0, 32);
+  const [a, b] = [id(), id()];
+  const check = async (headers) => (await call('GET', `/v1/latest?channel=${CH}`, { token: null, headers })).arrayBuffer();
+  await check({ 'User-Agent': 'LiteShot/0.0.1', 'X-LiteShot-Install': a });
+  await check({ 'User-Agent': 'LiteShot/0.0.1', 'X-LiteShot-Install': a });
+  await check({ 'User-Agent': 'LiteShot/0.0.1', 'X-LiteShot-Install': b });
+  await check({ 'User-Agent': 'LiteShot/0.0.1', 'X-LiteShot-Install': 'not-an-id' });
+  await check({ 'User-Agent': BROWSER, 'X-LiteShot-Install': id() });
+  await check({ 'User-Agent': 'LiteShot/0.0.1' });
+  let after;
+  for (let i = 0; i < 20; i++) {
+    after = (await getStats()).installs;
+    if (after.today - before.today >= 2) break;
+    await new Promise((r) => setTimeout(r, 150));
+  }
+  const diff = { today: after.today - before.today, week: after.week - before.week, total: after.total - before.total };
+  assert(diff.today === 2 && diff.week === 2 && diff.total === 2, `changes ${JSON.stringify(diff)}`);
+  const today = new Date().toISOString().slice(0, 10);
+  const day = after.last30Days.find((d) => d.day === today);
+  assert(day && day.active >= 2 && day.new >= 2, `today ${JSON.stringify(day)}`);
+  assert(after.versions.find((v) => v.version === '0.0.1')?.n >= 2, `versions ${JSON.stringify(after.versions)}`);
+});
+
 // --- channel manifests ---
 const bad =(name, body, includes) =>
   test(`channel: ${name} -> 400`, async () => expectStatus(await call('PUT', `/v1/channels/${CH}`, { body }), 400, includes));

@@ -1,4 +1,5 @@
 using System.Diagnostics;
+using System.Globalization;
 using System.Net;
 using System.Reflection;
 using System.Security.Cryptography;
@@ -65,10 +66,28 @@ internal static class Updater
     {
         string server = Server ?? throw new UpdateException("Updates aren't set up in this build.");
         string channel = Uri.EscapeDataString(AppSettings.Current.UpdateChannel);
-        using var response = await Http.GetAsync($"{server}/v1/latest?channel={channel}", ct);
+        using var request = new HttpRequestMessage(HttpMethod.Get, $"{server}/v1/latest?channel={channel}");
+        string? counted = CountMe(request);
+        using var response = await Http.SendAsync(request, ct);
+        // The server has it, whatever it answered; CheckNowAsync saves the settings.
+        if (counted != null) AppSettings.Current.LastCountedDay = counted;
         if (response.StatusCode == HttpStatusCode.NotFound) return null;
         if (!response.IsSuccessStatusCode) throw new UpdateException($"The update server answered {(int)response.StatusCode}.");
         return Parse(await response.Content.ReadAsStringAsync(ct), server);
+    }
+
+    /// <summary>
+    /// On the first check of the (UTC) day, adds this copy's random install id so the server can count how many copies are
+    /// in use and on which versions. Returns the day to remember once the server has it; null when nothing was added.
+    /// </summary>
+    static string? CountMe(HttpRequestMessage request)
+    {
+        var settings = AppSettings.Current;
+        string today = DateTime.UtcNow.ToString("yyyy-MM-dd", CultureInfo.InvariantCulture);
+        if (!settings.CountUsage || settings.LastCountedDay == today) return null;
+        if (settings.InstallId is not { Length: 32 }) settings.InstallId = Guid.NewGuid().ToString("N");
+        request.Headers.Add("X-LiteShot-Install", settings.InstallId);
+        return today;
     }
 
     /// <summary>The newest release if it's newer than this copy, otherwise null.</summary>

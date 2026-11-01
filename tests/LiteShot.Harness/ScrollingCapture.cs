@@ -50,6 +50,30 @@ internal static class ScrollingCapture
             result.Save(Path.Combine(outDir, "scroll-02-sticky.png"), ImageFormat.Png);
         }
 
+        // A web app: a fixed side menu (with a badge that keeps changing), a details panel, and the list between them
+        // scrolling with its own scrollbar. Only the list lines up; the menu and panel appear once, not repeated.
+        {
+            using var list = Article(AppList, 5200, seed: 3);
+            var s = new ScrollStitcher();
+            int[] offsets = { 0, 280, 610, 900, 1240 };
+            for (int i = 0; i < offsets.Length; i++)
+                using (var f = AppFrame(list, offsets[i], badge: i))
+                    check(s.Add(f) == StitchStep.Added, $"scroll: web app frame at {offsets[i]} is added");
+            using var result = s.Compose();
+            result.Save(Path.Combine(outDir, "scroll-03-web-app.png"), ImageFormat.Png);
+            check(result.Height == offsets[^1] + H, $"scroll: web app stitched to {result.Height} px ({offsets[^1] + H})");
+            using var listPart = Crop(result, AppNav, 0, AppList - 14, result.Height);
+            using var expected = Crop(list, 0, 0, AppList - 14, result.Height);
+            check(Pixels(listPart).AsSpan().SequenceEqual(Pixels(expected)), "scroll: the list between the menu and the panel is whole, in order");
+            using var first = AppFrame(list, 0, badge: 0);
+            bool menuOnce = true;
+            for (int x = 0; x < AppNav && menuOnce; x += 3)
+                for (int y = H; y < result.Height && menuOnce; y += 5)
+                    menuOnce = result.GetPixel(x, y) == result.GetPixel(x, H);
+            check(menuOnce, "scroll: the side menu isn't repeated down the page");
+            check(Enumerable.Range(0, 60).All(y => result.GetPixel(40, 100 + y) == first.GetPixel(40, 100 + y)), "scroll: the side menu shows as on screen at the top");
+        }
+
         // A page that ends early: the last step moves less than asked, then nothing moves.
         {
             using var shortPage = Article(W, 1500);
@@ -243,6 +267,32 @@ internal static class ScrollingCapture
         int ty = header + (track - thumb) * offset / Math.Max(1, page.Height - content);
         g.FillRectangle(Brushes.Gainsboro, width - 14, header, 14, track);
         g.FillRectangle(Brushes.Gray, width - 12, ty, 10, thumb);
+        return frame;
+    }
+
+    const int AppNav = 200, AppList = 540;
+
+    /// <summary>A web app window: side menu, the list at <paramref name="offset"/> with its scrollbar, and a details panel.</summary>
+    static Bitmap AppFrame(Bitmap list, int offset, int badge)
+    {
+        var frame = new Bitmap(W, H, PixelFormat.Format32bppPArgb);
+        using var g = Graphics.FromImage(frame);
+        g.TextRenderingHint = TextRenderingHint.AntiAliasGridFit;
+        using var font = new Font("Segoe UI", 15f, GraphicsUnit.Pixel);
+        g.Clear(Color.FromArgb(243, 244, 247));
+        string[] menu = { "Inbox", "Leads", "Contacts", "Deals", "Reports", "Calendar", "Files", "Settings" };
+        for (int i = 0; i < menu.Length; i++) g.DrawString(menu[i], font, Brushes.DimGray, 24, 24 + i * 44);
+        using (var red = new SolidBrush(Color.FromArgb(220, 40 + badge * 30, 60))) g.FillRectangle(red, 150, 74, 26, 9);
+        g.DrawLine(Pens.Silver, AppNav - 1, 0, AppNav - 1, H);
+        g.DrawImage(list, new Rectangle(AppNav, 0, AppList, H), new Rectangle(0, offset, AppList, H), GraphicsUnit.Pixel);
+        int track = H, thumb = Math.Max(30, track * H / list.Height), ty = (track - thumb) * offset / (list.Height - H);
+        g.FillRectangle(Brushes.Gainsboro, AppNav + AppList - 14, 0, 14, track);
+        g.FillRectangle(Brushes.Gray, AppNav + AppList - 12, ty, 10, thumb);
+        int px = AppNav + AppList;
+        g.FillRectangle(Brushes.White, px, 0, W - px, H);
+        g.DrawLine(Pens.Silver, px, 0, px, H);
+        string[] details = { "Owner", "Stage: Proposal", "Value: 12,400", "Next step", "Send the quote", "Tags", "renewal, q4" };
+        for (int i = 0; i < details.Length; i++) g.DrawString(details[i], font, Brushes.Black, px + 14, 24 + i * 36);
         return frame;
     }
 

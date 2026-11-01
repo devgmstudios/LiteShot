@@ -2,7 +2,8 @@
 // in public/ as static assets.
 //   releases/{version}/{file}   release binaries
 //   channels/{channel}.json     signed envelope { payload, signature }, stored and served verbatim
-// The worker never verifies signatures; the app does. Downloads are counted in D1 (STATS), per day and file.
+// The worker never verifies signatures; the app does. Downloads are counted in D1 (STATS), per day and file, and so
+// are copies in use: a copy's first update check of the day carries a random install id.
 
 interface Env {
   RELEASES: R2Bucket;
@@ -17,6 +18,7 @@ const VERSION_RE = /^\d+\.\d+\.\d+$/;
 const FILE_RE = /^[A-Za-z0-9._-]{1,100}$/;
 const CHANNEL_RE = /^[a-z0-9-]{1,20}$/;
 const SHA256_RE = /^[0-9a-f]{64}$/;
+const INSTALL_RE = /^[0-9a-f]{32}$/;
 const JSON_TYPE = 'application/json; charset=utf-8';
 const MAX_MANIFEST_BYTES = 64 * 1024;
 
@@ -97,6 +99,33 @@ function countDownload(req: Request, env: Env, ctx: ExecutionContext, version: s
   );
 }
 
+/**
+ * Counts a copy of LiteShot as in use today. Only a SHA-256 of its random install id is stored, with its version and
+ * channel; not the IP address or anything else about the request. Runs after the response.
+ */
+function countInstall(req: Request, env: Env, ctx: ExecutionContext, channel: string) {
+  const id = req.headers.get('X-LiteShot-Install')?.toLowerCase();
+  const version = /^LiteShot\/(\d+\.\d+\.\d+)/.exec(req.headers.get('User-Agent') ?? '')?.[1];
+  if (!env.STATS || !id || !INSTALL_RE.test(id) || !version) return;
+  const stats = env.STATS;
+  const day = new Date().toISOString().slice(0, 10);
+  ctx.waitUntil(
+    (async () => {
+      const install = hex(await crypto.subtle.digest('SHA-256', new TextEncoder().encode(id)));
+      const writes = [
+        stats.prepare(
+          `INSERT INTO installs (install, first_day, last_day, version, channel) VALUES (?1, ?2, ?2, ?3, ?4)
+           ON CONFLICT (install) DO UPDATE SET last_day = ?2, version = ?3, channel = ?4`,
+        ).bind(install, day, version, channel),
+        stats.prepare('INSERT OR IGNORE INTO active (day, install, version) VALUES (?1, ?2, ?3)').bind(day, install, version),
+      ];
+      // Now and then, drop daily rows older than 400 days.
+      if (Math.random() < 0.01) writes.push(stats.prepare(`DELETE FROM active WHERE day < date('now', '-400 days')`));
+      await stats.batch(writes);
+    })().catch((e) => console.error('install count failed', e)),
+  );
+}
+
 const root: Handler = async () => json({ name: 'LiteShot update server', ok: true });
 
 /** The site's download buttons: the newest stable file of a kind, or back to the download section if none yet. */
@@ -113,9 +142,10 @@ const downloadLatest = (kind: string): Handler => async (_req, env, _params, url
   return Response.redirect(new URL('/download', url).toString(), 302);
 };
 
-const latest: Handler = async (_req, env, _params, url) => {
+const latest: Handler = async (req, env, _params, url, ctx) => {
   const channel = url.searchParams.get('channel') ?? 'stable';
   check(CHANNEL_RE.test(channel), 'invalid channel');
+  countInstall(req, env, ctx, channel);
   const obj = await env.RELEASES.get(`channels/${channel}.json`);
   if (!obj) return json({ error: 'no release' }, 404);
   return new Response(obj.body, { headers: { 'Content-Type': JSON_TYPE, 'Cache-Control': 'public, max-age=60' } });
@@ -234,11 +264,24 @@ const stats: Handler = async (_req, env) => {
   type Row = { source: string; kind: string; n: number };
   type DayRow = { day: string; kind: string; n: number };
   type VersionRow = { version: string; source: string; kind: string; n: number };
-  const [totals, days, versions] = await env.STATS.batch<Row | DayRow | VersionRow>([
+  type InstallRow = { total: number; today: number; week: number; month: number };
+  type ActiveRow = { day: string; active: number; new: number };
+  type InstallVersionRow = { version: string; n: number };
+  const [totals, days, versions, installs, active, installVersions] = await env.STATS.batch<Row | DayRow | VersionRow | InstallRow | ActiveRow | InstallVersionRow>([
     env.STATS.prepare('SELECT source, kind, SUM(count) AS n FROM downloads GROUP BY source, kind'),
     env.STATS.prepare(`SELECT day, kind, SUM(count) AS n FROM downloads WHERE source = 'site' AND day >= date('now', '-29 days')
                        GROUP BY day, kind ORDER BY day`),
     env.STATS.prepare('SELECT version, source, kind, SUM(count) AS n FROM downloads GROUP BY version, source, kind'),
+    // Copies in use: ever counted, and seen today, in the last 7 days and in the last 30.
+    env.STATS.prepare(`SELECT COUNT(*) AS total,
+                         COUNT(CASE WHEN last_day = date('now') THEN 1 END) AS today,
+                         COUNT(CASE WHEN last_day >= date('now', '-6 days') THEN 1 END) AS week,
+                         COUNT(CASE WHEN last_day >= date('now', '-29 days') THEN 1 END) AS month
+                       FROM installs`),
+    env.STATS.prepare(`SELECT a.day, COUNT(*) AS active, COUNT(CASE WHEN i.first_day = a.day THEN 1 END) AS new
+                       FROM active a JOIN installs i ON i.install = a.install
+                       WHERE a.day >= date('now', '-29 days') GROUP BY a.day ORDER BY a.day`),
+    env.STATS.prepare(`SELECT version, COUNT(*) AS n FROM installs WHERE last_day >= date('now', '-6 days') GROUP BY version`),
   ]);
   const count = (rows: { source: string; kind: string; n: number }[], source: string) => {
     const of = (kind: string) => rows.filter((r) => r.source === source && r.kind === kind).reduce((n, r) => n + r.n, 0);
@@ -262,6 +305,12 @@ const stats: Handler = async (_req, env) => {
     bots: count(totals.results as Row[], 'bot').total,
     last30Days: [...byDay.values()],
     versions: byVersion,
+    installs: {
+      ...(installs.results as InstallRow[])[0],
+      last30Days: active.results as ActiveRow[],
+      // Copies seen in the last 7 days, by the version they run.
+      versions: (installVersions.results as InstallVersionRow[]).sort((a, b) => compareVersions(b.version, a.version)),
+    },
   }, 200, { 'Cache-Control': 'no-store' });
 };
 

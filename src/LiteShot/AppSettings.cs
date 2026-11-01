@@ -65,6 +65,12 @@ internal sealed class AppSettings
     /// <summary>Overrides the update server built into the app (for testing a local server).</summary>
     public string? UpdateServer { get; set; }
     public DateTime? LastUpdateCheck { get; set; }
+    /// <summary>On unless the user turns it off: the first update check of each day says this copy is in use, by <see cref="InstallId"/>.</summary>
+    public bool CountUsage { get; set; } = true;
+    /// <summary>A random number made once per copy, so the update server can count copies; nothing about the PC or the user.</summary>
+    public string? InstallId { get; set; }
+    /// <summary>The UTC day this copy was last counted, so it's counted once a day however often it checks.</summary>
+    public string? LastCountedDay { get; set; }
     /// <summary>The newest version the last check saw, so a new version is announced once and still shows after a restart.</summary>
     public string? LatestVersion { get; set; }
     /// <summary>The version that ran last, to notice when LiteShot has been updated, by itself or by hand.</summary>

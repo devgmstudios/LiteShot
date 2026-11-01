@@ -20,7 +20,8 @@ internal enum StitchStep
 /// Joins the frames of a scrolling capture into one tall image. Each frame is lined up with the one before by
 /// matching rows of pixels, and only the rows that scrolled into view are kept. Rows that stay put while the page
 /// moves (a sticky header, a cookie bar, a chat's message box) appear once: a header as the first frame shows it,
-/// a footer as the last frame shows it.
+/// a footer as the last frame shows it. Columns that stay put (a fixed side menu, a details panel, an inner
+/// scrollbar) are left out of the matching, and below the first frame the side panels are filled with their background.
 /// </summary>
 internal sealed class ScrollStitcher
 {
@@ -30,14 +31,22 @@ internal sealed class ScrollStitcher
     // A shift counts when this share of the overlapping rows, and at least MinMatchedRows of them, match exactly.
     const float MinMatch = 0.85f;
     const int MinMatchedRows = 6;
+    // A column scrolls when at least this share of the moving rows changed in it; fewer is a badge or a spinner.
+    const int ChangedShare = 40;
+    // Columns with fewer colour changes from top to bottom (margins, a scrollbar's track and thumb) say nothing about the shift.
+    const int MinDetail = 6;
 
     readonly int maxHeight;
 
     /// <summary>The tallest image it will make; frames past it are cut off.</summary>
     public int MaxHeight => maxHeight;
     int width, height, ignoreRight;
-    int[]? first;
-    RowPrint? previous;
+    int[]? first, previous;
+    // The columns lined up between frames: all but the scrollbar strip until the second frame shows which ones scroll.
+    int[] cols = Array.Empty<int>();
+    bool colsKnown;
+    // The columns that scroll; outside them is a fixed side panel.
+    int bandLo, bandHi;
     // Each later frame: its pixels from row Start down, and how many rows scrolled into view (Shift; Take of them kept).
     readonly List<(int[] Pixels, int Start, int Shift, int Take)> strips = new();
     int footer = int.MaxValue;
@@ -70,25 +79,39 @@ internal sealed class ScrollStitcher
             height = Math.Min(frame.Height, maxHeight);
             // The page's scrollbar moves while the content scrolls; leave its strip out of the matching.
             ignoreRight = width >= 200 ? Math.Min(width / 10, 32) : 0;
-            first = ReadRows(frame, 0, height);
-            previous = Print(first, 0, height);
+            cols = Enumerable.Range(0, width - ignoreRight).ToArray();
+            bandLo = 0;
+            bandHi = width - ignoreRight;
+            first = previous = ReadRows(frame, 0, height);
             return height >= frame.Height ? StitchStep.Added : StitchStep.Full;
         }
         if (frame.Width != width || frame.Height < height) throw new ArgumentException("Every frame must be the size of the first.");
         if (Height >= maxHeight) return StitchStep.Full;
 
         var pixels = ReadRows(frame, 0, height);
-        var next = Print(pixels, 0, height);
-        var a = previous!.Value;
-        int top = 0;
-        while (top < height && a.Hashes[top] == next.Hashes[top]) top++;
-        if (top == height) return StitchStep.Same;
-        int bottom = 0;
-        while (bottom < height - top && a.Hashes[height - 1 - bottom] == next.Hashes[height - 1 - bottom]) bottom++;
+        var use = cols;
+        var a = Print(previous!, use);
+        var next = Print(pixels, use);
+        var (top, bottom) = Unchanged(a, next);
         if (height - top - bottom < MinMovingRows) return StitchStep.Same;
+        int lo = bandLo, hi = bandHi;
+        if (!colsKnown)
+        {
+            // The second frame shows which columns scroll; line up those alone.
+            (use, lo, hi) = Scrolling(previous!, pixels, top, height - bottom);
+            if (hi <= lo) return StitchStep.Same;
+            if (use.Length == 0) use = Enumerable.Range(lo, hi - lo).ToArray();
+            a = Print(previous!, use);
+            next = Print(pixels, use);
+            (top, bottom) = Unchanged(a, next);
+            if (height - top - bottom < MinMovingRows) return StitchStep.Same;
+        }
 
         int shift = FindShift(a, next, top, height - bottom, expectedShift);
         if (shift <= 0) return StitchStep.Lost;
+        cols = use;
+        colsKnown = true;
+        (bandLo, bandHi) = (lo, hi);
 
         // The footer can only shrink as frames come in, so keeping this frame from (footer + shift) rows above its
         // bottom covers whatever the final footer turns out to be.
@@ -99,7 +122,7 @@ internal sealed class ScrollStitcher
         var kept = new int[(height - start) * width];
         Array.Copy(pixels, start * width, kept, 0, kept.Length);
         strips.Add((kept, start, shift, take));
-        previous = next;
+        previous = pixels;
         LastShift = shift;
         return take < shift || Height >= maxHeight ? StitchStep.Full : StitchStep.Added;
     }
@@ -124,6 +147,18 @@ internal sealed class ScrollStitcher
             foreach (var (pixels, start, shift, take) in strips) Copy(pixels, height - f - shift - start, take);
             if (strips.Count == 0) Copy(first, height - f, f);
             else Copy(strips[^1].Pixels, height - f - strips[^1].Start, f);
+            // Under the first frame, a fixed side panel would show its own rows again: fill it with its background.
+            // Plain margins are left as the frames show them, so a full-width section further down keeps its edges.
+            int n = width - ignoreRight;
+            bool left = Busy(0, bandLo, height - f), right = Busy(bandHi, n, height - f);
+            var row = new int[width];
+            for (int c = 0; c < n; c++)
+                if ((left && c < bandLo) || (right && c >= bandHi)) row[c] = Background(c, height - f);
+            for (int yy = height - f; yy < total - f; yy++)
+            {
+                if (left) Marshal.Copy(row, 0, data.Scan0 + yy * data.Stride, bandLo);
+                if (right) Marshal.Copy(row, bandHi, data.Scan0 + yy * data.Stride + bandHi * 4, n - bandHi);
+            }
         }
         finally { image.UnlockBits(data); }
         return image;
@@ -161,18 +196,17 @@ internal sealed class ScrollStitcher
 
     readonly record struct RowPrint(ulong[] Hashes, bool[] Flat);
 
-    RowPrint Print(int[] pixels, int fromRow, int rows)
+    RowPrint Print(int[] pixels, int[] columns)
     {
-        var hashes = new ulong[rows];
-        var flat = new bool[rows];
-        int cols = width - ignoreRight;
-        for (int r = 0; r < rows; r++)
+        var hashes = new ulong[height];
+        var flat = new bool[height];
+        for (int r = 0; r < height; r++)
         {
-            int o = (fromRow + r) * width;
+            int o = r * width;
             ulong h = 14695981039346656037UL;
             bool same = true;
-            int firstPixel = pixels[o];
-            for (int x = 0; x < cols; x++)
+            int firstPixel = pixels[o + columns[0]];
+            foreach (int x in columns)
             {
                 int p = pixels[o + x];
                 h = (h ^ (uint)p) * 1099511628211UL;
@@ -182,6 +216,64 @@ internal sealed class ScrollStitcher
             flat[r] = same;
         }
         return new RowPrint(hashes, flat);
+    }
+
+    /// <summary>How many rows at the top and at the bottom are the same in both frames.</summary>
+    (int Top, int Bottom) Unchanged(RowPrint a, RowPrint b)
+    {
+        int top = 0;
+        while (top < height && a.Hashes[top] == b.Hashes[top]) top++;
+        int bottom = 0;
+        while (bottom < height - top && a.Hashes[height - 1 - bottom] == b.Hashes[height - 1 - bottom]) bottom++;
+        return (top, bottom);
+    }
+
+    /// <summary>
+    /// Which columns scrolled between frames <paramref name="a"/> and <paramref name="b"/> across rows [lo, hi): the band
+    /// from the first to the last that changed, and the ones in it with enough detail to line up.
+    /// </summary>
+    (int[] Detailed, int Lo, int Hi) Scrolling(int[] a, int[] b, int lo, int hi)
+    {
+        int n = width - ignoreRight;
+        var changed = new int[n];
+        var detail = new int[n];
+        for (int r = lo; r < hi; r++)
+        {
+            int o = r * width;
+            for (int x = 0; x < n; x++)
+            {
+                if (a[o + x] != b[o + x]) changed[x]++;
+                if (r > lo && (a[o + x] != a[o - width + x] || b[o + x] != b[o - width + x])) detail[x]++;
+            }
+        }
+        int need = Math.Max(MinMovingRows, (hi - lo) / ChangedShare);
+        int first = Array.FindIndex(changed, c => c >= need), last = Array.FindLastIndex(changed, c => c >= need);
+        if (first < 0) return (Array.Empty<int>(), 0, 0);
+        // Out to the edge of what moved at all, but not across a still gap into a side panel.
+        while (first > 0 && changed[first - 1] > 0) first--;
+        while (last < n - 1 && changed[last + 1] > 0) last++;
+        var detailed = Enumerable.Range(first, last - first + 1).Where(x => changed[x] >= need && detail[x] > MinDetail).ToArray();
+        return (detailed, first, last + 1);
+    }
+
+    /// <summary>Whether columns [from, to) of the first frame show something (a menu, a panel), not just a background.</summary>
+    bool Busy(int from, int to, int bottom)
+    {
+        for (int c = from; c < to; c++)
+        {
+            int changes = 0;
+            for (int r = Header + 1; r < bottom; r++)
+                if (first![r * width + c] != first[(r - 1) * width + c] && ++changes > MinDetail) return true;
+        }
+        return false;
+    }
+
+    /// <summary>The colour column <paramref name="c"/> of the first frame shows most, above row <paramref name="bottom"/>.</summary>
+    int Background(int c, int bottom)
+    {
+        var counts = new Dictionary<int, int>();
+        for (int r = Header; r < bottom; r++) counts[first![r * width + c]] = counts.GetValueOrDefault(first[r * width + c]) + 1;
+        return counts.Count == 0 ? first![c] : counts.MaxBy(kv => kv.Value).Key;
     }
 
     static int[] ReadRows(Bitmap bitmap, int fromRow, int rows)

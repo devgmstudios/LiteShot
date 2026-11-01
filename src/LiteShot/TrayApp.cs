@@ -17,7 +17,7 @@ internal sealed class TrayApp : ApplicationContext
     readonly RegisteredWaitHandle captureWait, exitWait;
     readonly List<PinForm> pins = new();
     ToolStripMenuItem captureItem = null!, fullItem = null!, lastItem = null!, scrollItem = null!, recentItem = null!, folderItem = null!, optionsItem = null!, exitItem = null!;
-    ToolStripMenuItem shortcutsItem = null!, startupItem = null!, updateItem = null!;
+    ToolStripMenuItem shortcutsItem = null!, startupItem = null!, updateItem = null!, clickablePinsItem = null!, closePinsItem = null!;
     CaptureOverlay? overlay;
     SettingsForm? settingsForm;
     Action? balloonClick;
@@ -92,6 +92,9 @@ internal sealed class TrayApp : ApplicationContext
         recentItem.DropDownOpening += (_, _) => FillRecentUploads();
         recentItem.DropDown.Renderer = new ModernMenuRenderer();
         folderItem = new ToolStripMenuItem("Open screenshots folder", null, (_, _) => ImageOutput.OpenFolder(Settings.SaveFolder));
+        // A click-through pin can't be right-clicked, so these are the way back to it.
+        clickablePinsItem = new ToolStripMenuItem("Make pins clickable", null, (_, _) => pins.ForEach(p => p.ClickThrough = false));
+        closePinsItem = new ToolStripMenuItem("Close all pins", null, (_, _) => CloseAllPins());
         shortcutsItem = new ToolStripMenuItem("Change shortcuts…", null, (_, _) => ShowSettings(SettingsForm.ShortcutsPage));
         startupItem = new ToolStripMenuItem("Start with Windows", null, (_, _) => StartupRegistration.Set(!StartupRegistration.IsEnabled));
         optionsItem = new ToolStripMenuItem("Settings", null, (_, _) => ShowSettings());
@@ -100,12 +103,17 @@ internal sealed class TrayApp : ApplicationContext
         m.Items.AddRange(new ToolStripItem[]
         {
             captureItem, fullItem, lastItem, scrollItem, new ToolStripSeparator(),
-            recentItem, folderItem, new ToolStripSeparator(),
+            recentItem, folderItem, clickablePinsItem, closePinsItem, new ToolStripSeparator(),
             shortcutsItem, startupItem, optionsItem, updateItem, exitItem,
         });
         foreach (ToolStripItem item in m.Items)
             if (item is ToolStripMenuItem) item.Padding = new Padding(4, 5, 4, 5);
-        m.Opening += (_, _) => RefreshMenuIcons();
+        m.Opening += (_, _) =>
+        {
+            RefreshMenuIcons();
+            clickablePinsItem.Visible = pins.Any(p => p.ClickThrough);
+            closePinsItem.Visible = pins.Count > 0;
+        };
         ModernMenuRenderer.Attach(m);
         ModernMenuRenderer.Attach(recentItem.DropDown);
         return m;

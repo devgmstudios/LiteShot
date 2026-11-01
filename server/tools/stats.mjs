@@ -1,4 +1,4 @@
-// Prints LiteShot's download counts from the update server: `npm run stats` (add -- --json for the raw numbers).
+// Prints LiteShot's download counts and copies in use from the update server: `npm run stats` (add -- --json for the raw numbers).
 //   LITESHOT_SERVER         default https://liteshot.app
 //   LITESHOT_PUBLISH_TOKEN  default: publish-token.txt beside the signing key (%APPDATA%\Devgm\LiteShot Publishing)
 import { readFileSync } from 'node:fs';
@@ -34,6 +34,25 @@ console.log(`\nLiteShot downloads (${server})\n`);
 console.log(`  Downloads  ${n(s.downloads.total).padStart(7)}   ${split(s.downloads)}`);
 console.log(`  Updates    ${n(s.updates.total).padStart(7)}   ${split(s.updates)}   (copies updating themselves)`);
 console.log(`  Bots       ${n(s.bots).padStart(7)}   (crawlers and scanners, not counted above)`);
+
+const i = s.installs;
+if (i) {
+  console.log('\nCopies in use (counted once a day by their update check, from 1.1.5 on)\n');
+  console.log(`  Today      ${n(i.today).padStart(7)}`);
+  console.log(`  7 days     ${n(i.week).padStart(7)}`);
+  console.log(`  30 days    ${n(i.month).padStart(7)}`);
+  console.log(`  Ever       ${n(i.total).padStart(7)}`);
+  if (i.last30Days.length) {
+    console.log('\nLast 30 days (copies in use, + new copies)');
+    const most = Math.max(...i.last30Days.map((d) => d.active), 1);
+    for (const d of i.last30Days)
+      console.log(`  ${d.day}  ${n(d.active).padStart(6)}  +${n(d.new).padEnd(5)} ${'█'.repeat(Math.ceil((d.active / most) * 30))}`);
+  }
+  if (i.versions.length) {
+    console.log('\nVersions in use (last 7 days)');
+    for (const v of i.versions) console.log(`  ${v.version.padEnd(9)} ${n(v.n).padStart(6)}`);
+  }
+}
 
 if (s.last30Days.length) {
   console.log('\nLast 30 days (downloads)');
