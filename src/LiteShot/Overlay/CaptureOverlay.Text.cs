@@ -56,22 +56,22 @@ internal sealed partial class CaptureOverlay
 
     Toolbar BuildTextBar()
     {
-        textColorButton = new ToolButton { Tip = "Text color", OnClick = () => TogglePalette(textColorButton), CustomPaint = PaintColorButton };
+        textColorButton = new ToolButton { Tip = "Text color", Label = "Color", OnClick = () => TogglePalette(textColorButton), CustomPaint = PaintColorButton };
         return new Toolbar(vertical: false)
             .Group(new ToolButton { Tip = "Font", Shortcut = "Click to choose", Width = 168, PaintsFullButton = true, CustomPaint = PaintFontButton, OnClick = () => ShowFontMenu() })
             .Group(
                 new ToolButton { Tip = "Smaller", Shortcut = "Ctrl+[", Glyph = MinusGlyph, OnClick = () => StepTextSize(-1) },
-                new ToolButton { Tip = "Font size", Shortcut = "Click for sizes", Width = 46, PaintsFullButton = true, CustomPaint = PaintSizeValue, OnClick = ShowSizeMenu },
+                new ToolButton { Tip = "Font size", Label = "Size", Shortcut = "Click for sizes", Width = 46, PaintsFullButton = true, CustomPaint = PaintSizeValue, OnClick = ShowSizeMenu },
                 new ToolButton { Tip = "Larger", Shortcut = "Ctrl+]", Glyph = PlusGlyph, OnClick = () => StepTextSize(1) })
             .Group(
                 new ToolButton { Tip = "Bold", Shortcut = "Ctrl+B", CustomPaint = (g, r, t) => PaintLetter(g, r, t, "B", FontStyle.Bold), OnClick = () => ApplyTextStyle(x => x.Bold = !x.Bold), IsActive = () => StyleSource.Bold },
                 new ToolButton { Tip = "Italic", Shortcut = "Ctrl+I", CustomPaint = (g, r, t) => PaintLetter(g, r, t, "I", FontStyle.Italic), OnClick = () => ApplyTextStyle(x => x.Italic = !x.Italic), IsActive = () => StyleSource.Italic })
             .Group(
-                new ToolButton { Tip = "Align left", Shortcut = "Ctrl+L", Glyph = AlignGlyph(TextAlign.Left), OnClick = () => ApplyTextStyle(x => x.Align = TextAlign.Left), IsActive = () => StyleSource.Align == TextAlign.Left },
+                new ToolButton { Tip = "Align left", Label = "Left", Shortcut = "Ctrl+L", Glyph = AlignGlyph(TextAlign.Left), OnClick = () => ApplyTextStyle(x => x.Align = TextAlign.Left), IsActive = () => StyleSource.Align == TextAlign.Left },
                 new ToolButton { Tip = "Center", Shortcut = "Ctrl+E", Glyph = AlignGlyph(TextAlign.Center), OnClick = () => ApplyTextStyle(x => x.Align = TextAlign.Center), IsActive = () => StyleSource.Align == TextAlign.Center },
-                new ToolButton { Tip = "Align right", Shortcut = "Ctrl+R", Glyph = AlignGlyph(TextAlign.Right), OnClick = () => ApplyTextStyle(x => x.Align = TextAlign.Right), IsActive = () => StyleSource.Align == TextAlign.Right })
+                new ToolButton { Tip = "Align right", Label = "Right", Shortcut = "Ctrl+R", Glyph = AlignGlyph(TextAlign.Right), OnClick = () => ApplyTextStyle(x => x.Align = TextAlign.Right), IsActive = () => StyleSource.Align == TextAlign.Right })
             .Group(
-                new ToolButton { Tip = "Text look", Shortcut = "Plain · Outline · Label · Shadow", CustomPaint = PaintLookButton, OnClick = () => ApplyTextStyle(x => x.Look = (TextLook)(((int)x.Look + 1) % 4)) },
+                new ToolButton { Tip = "Text look", Label = "Look", Shortcut = "Plain · Outline · Label · Shadow", CustomPaint = PaintLookButton, OnClick = () => ApplyTextStyle(x => x.Look = (TextLook)(((int)x.Look + 1) % 4)) },
                 textColorButton);
     }
 
@@ -305,7 +305,7 @@ internal sealed partial class CaptureOverlay
     void PaintLetter(Graphics g, RectangleF r, GlassTone tone, string letter, FontStyle style)
     {
         bool active = style == FontStyle.Bold ? StyleSource.Bold : StyleSource.Italic;
-        var color = active ? (SystemTheme.HighContrast ? SystemColors.HighlightText : Color.White) : tone.Glyph;
+        var color = active ? tone.OnGlyph : tone.Glyph;
         using var font = new Font(style == FontStyle.Italic ? Ui.Family("Georgia", "Segoe UI") : Ui.RegularFamily, r.Height * 0.95f, style, GraphicsUnit.Pixel);
         Ui.DrawTextCentered(g, letter, font, color, r);
     }

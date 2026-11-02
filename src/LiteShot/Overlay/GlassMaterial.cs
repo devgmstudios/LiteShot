@@ -7,15 +7,23 @@ namespace LiteShot.Overlay;
 /// <summary>
 /// The glyph palette for one piece of glass. Like Liquid Glass, each panel adapts to what is behind it:
 /// light content gets light glass with dark glyphs, dark content gets smoky glass with white glyphs.
+/// Bright mode trades the glass for solid black with white glyphs and yellow for whatever is turned on.
 /// </summary>
-internal readonly record struct GlassTone(bool Light)
+internal readonly record struct GlassTone(bool Light, bool Bright = false)
 {
+    public static readonly Color BrightPanel = Color.FromArgb(14, 14, 16), BrightOn = Color.FromArgb(255, 214, 10);
+
     public Color Glyph => SystemTheme.HighContrast ? SystemColors.WindowText
-        : Light ? Color.FromArgb(28, 28, 30) : Color.White;
-    public Color Secondary => SystemTheme.HighContrast ? SystemColors.GrayText : Ui.WithAlpha(Glyph, 150);
-    public Color Disabled => SystemTheme.HighContrast ? SystemColors.GrayText : Ui.WithAlpha(Glyph, 85);
+        : Bright ? Color.White : Light ? Color.FromArgb(28, 28, 30) : Color.White;
+    public Color Secondary => SystemTheme.HighContrast ? SystemColors.GrayText
+        : Bright ? Color.FromArgb(215, 215, 215) : Ui.WithAlpha(Glyph, 150);
+    public Color Disabled => SystemTheme.HighContrast ? SystemColors.GrayText
+        : Bright ? Color.FromArgb(125, 125, 125) : Ui.WithAlpha(Glyph, 85);
     public Color Hover => SystemTheme.HighContrast ? SystemColors.Highlight
-        : Light ? Color.FromArgb(26, 0, 0, 0) : Color.FromArgb(40, 255, 255, 255);
+        : Bright ? Color.FromArgb(80, 255, 255, 255) : Light ? Color.FromArgb(26, 0, 0, 0) : Color.FromArgb(40, 255, 255, 255);
+    /// <summary>The fill behind a button that is turned on, and the glyph drawn over it.</summary>
+    public Color On => SystemTheme.HighContrast ? SystemColors.Highlight : Bright ? BrightOn : SystemTheme.Accent;
+    public Color OnGlyph => SystemTheme.HighContrast ? SystemColors.HighlightText : Bright ? Color.Black : Color.White;
 }
 
 /// <summary>
@@ -124,6 +132,7 @@ internal sealed class GlassMaterial : IDisposable
     public GlassTone ToneAt(RectangleF r, Rectangle lit)
     {
         if (SystemTheme.HighContrast) return new GlassTone(!SystemTheme.Dark);
+        if (AppSettings.Current.BrightMode) return new GlassTone(false, Bright: true);
         if (!SystemTheme.TransparencyEnabled) return new GlassTone(SystemTheme.AppsUseLightTheme);
         double sum = 0;
         int n = 0;
@@ -155,6 +164,14 @@ internal sealed class GlassMaterial : IDisposable
         }
 
         if (shadow) DrawShadow(g, r, radius, s);
+        if (tone.Bright)
+        {
+            using var bg = new SolidBrush(GlassTone.BrightPanel);
+            using var border = new Pen(Color.White, Math.Max(1.5f, 2f * s));
+            g.FillPath(bg, shape);
+            g.DrawPath(border, shape);
+            return;
+        }
 
         var outer = g.Save();
         g.SetClip(shape, CombineMode.Intersect);

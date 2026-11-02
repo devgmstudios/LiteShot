@@ -174,6 +174,12 @@ internal sealed class SettingsForm : Form
                 Toggle(Settings.ShowMagnifier, v => Settings.ShowMagnifier = v)))
             .Add(new SettingRow(theme, "Window detection", "Hover a window and click once to capture exactly that window.",
                 Toggle(Settings.DetectWindows, v => Settings.DetectWindows = v))));
+        add(Section("Easy to see"));
+        var names = Toggle(Settings.ButtonLabels, v => Settings.ButtonLabels = v);
+        add(new Card(theme)
+            .Add(new SettingRow(theme, "Bright mode", "Solid black toolbars with bigger white icons, and yellow for whatever is turned on.",
+                Toggle(Settings.BrightMode, v => { Settings.BrightMode = v; if (v) names.Checked = true; })))
+            .Add(new SettingRow(theme, "Button names", "A short name on every toolbar button, so there's no need to hover to see what it does.", names)));
         add(Section("Screenshot"));
         add(new Card(theme)
             .Add(new SettingRow(theme, "Include the mouse pointer", "Draws the pointer into captured screenshots.",

@@ -59,7 +59,7 @@ internal sealed partial class CaptureOverlay : Form
     string? flashText;
     Point flashAnchor;
     float S = 1f;
-    Font labelFont = null!, smallFont = null!;
+    Font labelFont = null!, smallFont = null!, buttonFont = null!;
     Rectangle lastFrame, lastMag, lastFlash, lastTip;
     DateTime lastCoalescedUndo;
     object? coalesceTarget;
@@ -264,6 +264,7 @@ internal sealed partial class CaptureOverlay : Form
             glass.Dispose();
             labelFont?.Dispose();
             smallFont?.Dispose();
+            buttonFont?.Dispose();
         }
         base.Dispose(disposing);
         if (disposing) aiFont?.Dispose();   // after the prompt box that uses it is gone
@@ -315,8 +316,10 @@ internal sealed partial class CaptureOverlay : Form
         S = scale;
         labelFont?.Dispose();
         smallFont?.Dispose();
+        buttonFont?.Dispose();
         labelFont = Ui.MakeFont(12.5f * S, semibold: true);
         smallFont = Ui.MakeFont(12.5f * S);
+        buttonFont = Ui.MakeFont((AppSettings.Current.BrightMode ? 12.5f : 11.5f) * S, semibold: true);
     }
 
     Rectangle ClampInside(Rectangle r) => new(
@@ -477,6 +480,7 @@ internal sealed partial class CaptureOverlay : Form
     {
         var mon = MonitorAt(Center(sel));
         float gap = 10 * S;
+        tools.LabelFont = actions.LabelFont = textBar.LabelFont = AppSettings.Current.ButtonLabels ? buttonFont : null;
         var vs = tools.Measure(S);
         var hs = actions.Measure(S);
 

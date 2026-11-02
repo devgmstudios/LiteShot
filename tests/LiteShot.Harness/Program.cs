@@ -28,6 +28,13 @@ internal static class Program
         Application.SetHighDpiMode(HighDpiMode.PerMonitorV2);
         if (args.Contains("--live-scroll")) { LiveScrollCheck.Run(outDir, Check); return failures == 0 ? 0 : 1; }
         if (args.Contains("--scroll")) { ScrollingCapture.Run(outDir, Check); return failures == 0 ? 0 : 1; }
+        if (args.Contains("--bright"))
+        {
+            using var d = SyntheticDesktop(SystemInformation.VirtualScreen.Size);
+            var lw0 = LightWindow(d.Size);
+            BrightMode(d, SystemInformation.VirtualScreen, new List<Rectangle>(), new Point(lw0.X + 60, lw0.Y + 80), new Point(lw0.X + 820, lw0.Y + 620));
+            return failures == 0 ? 0 : 1;
+        }
 
         var virt = SystemInformation.VirtualScreen;
         using var desktop = SyntheticDesktop(virt.Size);
@@ -114,6 +121,9 @@ internal static class Program
         Snap(o, "07-reduced-transparency", Inflate(Rectangle.Union(Get<Rectangle>(o, "sel"), Rectangle.Round(Get<Toolbar>(o, "tools").Bounds)), 120));
         o.Dispose();
         SetStatic(typeof(SystemTheme), "TransparencyEnabled", true);
+
+        // 7a. Bright mode with button names: solid black bars, every button named, nothing overlapping.
+        BrightMode(desktop, virt, windows, a, b);
 
         // 7b. Output paths: OCR with the Windows engine, saving, file naming, pinning.
         using (var doc = desktop.Clone(LightWindow(virt.Size), PixelFormat.Format32bppArgb))
@@ -245,6 +255,78 @@ internal static class Program
     }
 
     // ───────────────────────────── driving the overlay ─────────────────────────────
+
+    static void BrightMode(Bitmap desktop, Rectangle virt, List<Rectangle> windows, Point a, Point b)
+    {
+        // In memory only: the overlay never saves settings, and both go back as they were.
+        var settings = AppSettings.Current;
+        bool wasBright = settings.BrightMode, hadNames = settings.ButtonLabels;
+        try
+        {
+            settings.ButtonLabels = true;
+            var o = NewOverlay(desktop, virt, windows);
+            Drag(o, a, b);
+            var sel = Get<Rectangle>(o, "sel");
+            var tools = Get<Toolbar>(o, "tools");
+            var actions = Get<Toolbar>(o, "actions");
+            Rectangle Around() => Inflate(Rectangle.Union(Rectangle.Union(sel, Rectangle.Round(tools.Bounds)), Rectangle.Round(actions.Bounds)), 60);
+            Snap(o, "07a-button-names", Around());
+            NamesFit(o, "names");
+            o.Dispose();
+
+            settings.BrightMode = true;
+            o = NewOverlay(desktop, virt, windows);
+            Drag(o, a, b);
+            tools = Get<Toolbar>(o, "tools");
+            actions = Get<Toolbar>(o, "actions");
+            Key(o, Keys.P);
+            Snap(o, "07b-bright-mode", Around());
+            NamesFit(o, "bright");
+            Check(Bars(o).SelectMany(t => t.Groups).All(g => g.Tone.Bright), "bright mode: every bar is solid black");
+            using (var full = Render(o))
+            {
+                var g0 = tools.Groups[0].Bounds;
+                var inside = full.GetPixel((int)(g0.X + g0.Width / 2), (int)(g0.Bottom - 3));
+                Check(inside.R < 40 && inside.G < 40 && inside.B < 40, $"bright mode: the bar is black behind its buttons ({inside.R},{inside.G},{inside.B})");
+                var pen = tools.Buttons.First().Bounds;
+                var on = full.GetPixel((int)(pen.Right - 6), (int)(pen.Y + pen.Height / 2));
+                Check(on.R > 230 && on.G > 190 && on.B < 60, $"bright mode: the chosen tool is yellow ({on.R},{on.G},{on.B})");
+            }
+            Key(o, Keys.T);
+            Snap(o, "07c-bright-text-bar", Inflate(Rectangle.Union(Rectangle.Union(sel, Rectangle.Round(tools.Bounds)), Rectangle.Round(Get<Toolbar>(o, "textBar").Bounds)), 60));
+            NamesFit(o, "bright text bar");
+            o.Dispose();
+        }
+        finally
+        {
+            settings.BrightMode = wasBright;
+            settings.ButtonLabels = hadNames;
+        }
+
+        static IEnumerable<Toolbar> Bars(CaptureOverlay o) => (IEnumerable<Toolbar>)o.GetType().GetProperty("Bars", BindingFlags.Instance | BindingFlags.NonPublic)!.GetValue(o)!;
+
+        static Bitmap Render(CaptureOverlay o)
+        {
+            var size = SystemInformation.VirtualScreen.Size;
+            var full = new Bitmap(size.Width, size.Height, PixelFormat.Format32bppPArgb);
+            using var g = Graphics.FromImage(full);
+            Invoke(o, "OnPaint", new PaintEventArgs(g, new Rectangle(Point.Empty, size)));
+            return full;
+        }
+
+        static void NamesFit(CaptureOverlay o, string what)
+        {
+            var font = Get<Font>(o, "buttonFont");
+            var buttons = Bars(o).SelectMany(t => t.Buttons).ToList();
+            var cramped = buttons.Where(x => Ui.Measure(x.Name, font).Width > x.Bounds.Width - 4).Select(x => x.Name).ToList();
+            Check(cramped.Count == 0, $"{what}: every button name fits its button{(cramped.Count > 0 ? " — not " + string.Join(", ", cramped) : "")}");
+            bool overlap = buttons.Any(x => buttons.Any(y => x != y && RectangleF.Intersect(x.Bounds, y.Bounds) is { Width: > 0.5f, Height: > 0.5f }));
+            Check(!overlap, $"{what}: no two buttons overlap ({buttons.Count} buttons)");
+            var bars = Bars(o).Select(t => t.Bounds).ToList();
+            bool barsOverlap = bars.Any(x => bars.Any(y => x != y && x.IntersectsWith(y)));
+            Check(!barsOverlap, $"{what}: the bars don't cover each other");
+        }
+    }
 
     static CaptureOverlay NewOverlay(Bitmap desktop, Rectangle virt, List<Rectangle> windows)
     {

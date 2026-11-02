@@ -47,6 +47,10 @@ internal sealed class AppSettings
     public List<string> AiVideoPrompts { get; set; } = new();
 
     public bool ShowMagnifier { get; set; }
+    /// <summary>Easier to see: solid black toolbars with white icons, bigger icons, and yellow for what's turned on.</summary>
+    public bool BrightMode { get; set; }
+    /// <summary>A short name on every toolbar button, so nobody has to hover to find out what it does.</summary>
+    public bool ButtonLabels { get; set; }
     public bool DetectWindows { get; set; } = true;
     public bool CaptureCursor { get; set; }
     /// <summary>"Hide personal info": blur names, faces, emails, phone and card numbers and <see cref="RedactKeywords"/> on every capture.</summary>

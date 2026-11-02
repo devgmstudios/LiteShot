@@ -6,18 +6,19 @@ internal sealed partial class CaptureOverlay
 
     Toolbar BuildToolsBar()
     {
-        ToolButton T(Tool t, string tip, string key, Icons.Glyph glyph) => new()
+        ToolButton T(Tool t, string tip, string key, Icons.Glyph glyph, string? label = null) => new()
         {
             Tip = tip,
+            Label = label,
             Shortcut = key,
             Glyph = glyph,
             OnClick = () => SetTool(t),
             IsActive = () => tool == t,
         };
 
-        colorButton = new ToolButton { Tip = "Color and size", OnClick = () => TogglePalette(colorButton), CustomPaint = PaintColorButton };
+        colorButton = new ToolButton { Tip = "Color and size", Label = "Color", OnClick = () => TogglePalette(colorButton), CustomPaint = PaintColorButton };
         blurFacesButton = new ToolButton { Tip = $"Blur faces · {Core.ShieldBlur.Credit}", Shortcut = "F", Glyph = Icons.FaceBlur, OnClick = BlurFaces, IsActive = () => findingFaces };
-        hidePersonalButton = new ToolButton { Tip = "Hide personal info", Shortcut = "H", Glyph = Icons.HidePersonal, OnClick = ToggleHidePersonal, IsActive = () => HidingPersonal };
+        hidePersonalButton = new ToolButton { Tip = "Hide personal info", Label = "Hide info", Shortcut = "H", Glyph = Icons.HidePersonal, OnClick = ToggleHidePersonal, IsActive = () => HidingPersonal };
         return new Toolbar(vertical: true)
             .Group(
                 T(Tool.Pen, "Pen", "P", Icons.Pen),
@@ -27,7 +28,7 @@ internal sealed partial class CaptureOverlay
                 T(Tool.Ellipse, "Ellipse", "E", Icons.Ellipse),
                 T(Tool.Marker, "Marker", "M", Icons.Marker),
                 T(Tool.Text, "Text", "T", Icons.Text),
-                T(Tool.Counter, "Step number", "N", Icons.Counter))
+                T(Tool.Counter, "Step number", "N", Icons.Counter, "Number"))
             .Group(
                 hidePersonalButton,
                 T(Tool.Pixelate, "Pixelate", "B", Icons.Pixelate),
@@ -41,24 +42,24 @@ internal sealed partial class CaptureOverlay
 
     Toolbar BuildActionsBar()
     {
-        static ToolButton B(string tip, string? key, Icons.Glyph glyph, Action click) =>
-            new() { Tip = tip, Shortcut = key, Glyph = glyph, OnClick = click };
+        static ToolButton B(string tip, string? key, Icons.Glyph glyph, Action click, string? label = null) =>
+            new() { Tip = tip, Label = label, Shortcut = key, Glyph = glyph, OnClick = click };
 
         shareButton = B("Share", null, Icons.Share, ShowShareMenu);
-        scrollButton = B("Scrolling capture", "S", Icons.ScrollCapture, StartScrollCapture);
+        scrollButton = B("Scrolling capture", "S", Icons.ScrollCapture, StartScrollCapture, "Scroll");
         return new Toolbar(vertical: false)
             .Group(scrollButton)
             .Group(
-                B("Upload and copy link", "Ctrl+D", Icons.Upload, () => DoUpload(UploadKind.Link, null)),
+                B("Upload and copy link", "Ctrl+D", Icons.Upload, () => DoUpload(UploadKind.Link, null), "Upload"),
                 shareButton,
-                B("Search similar images", "Ctrl+K", Icons.Search, () => DoUpload(UploadKind.Search, null)),
+                B("Search similar images", "Ctrl+K", Icons.Search, () => DoUpload(UploadKind.Search, null), "Search"),
                 B("Print", "Ctrl+P", Icons.Print, DoPrint))
             .Group(
-                aiEditButton = B("Edit with AI", "SyncNode", Icons.Sparkles, () => OpenAiPrompt(AiKind.Edit)),
-                aiVideoButton = B("Make a video", "SyncNode", Icons.Video, () => OpenAiPrompt(AiKind.Video)))
+                aiEditButton = B("Edit with AI", "SyncNode", Icons.Sparkles, () => OpenAiPrompt(AiKind.Edit), "AI edit"),
+                aiVideoButton = B("Make a video", "SyncNode", Icons.Video, () => OpenAiPrompt(AiKind.Video), "Video"))
             .Group(
-                B("Pin to screen", "Ctrl+T", Icons.Pin, DoPin),
-                B("Copy text (OCR)", "Ctrl+Shift+C", Icons.Ocr, DoOcr))
+                B("Pin to screen", "Ctrl+T", Icons.Pin, DoPin, "Pin"),
+                B("Copy text (OCR)", "Ctrl+Shift+C", Icons.Ocr, DoOcr, "Copy text"))
             .Group(
                 B("Copy", "Ctrl+C", Icons.Copy, DoCopy),
                 B("Save", "Ctrl+S", Icons.Save, DoSave))
