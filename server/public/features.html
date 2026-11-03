@@ -1,0 +1,315 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>Features — LiteShot</title>
+  <meta name="description" content="Everything LiteShot does: capture, mark up, hide personal info and faces, share links that delete themselves, edit with AI, pin, copy text, and Bright mode for easier seeing.">
+  <meta http-equiv="Content-Security-Policy" content="default-src 'self'; img-src 'self' data:; style-src 'self'; script-src 'self'; connect-src 'self'; base-uri 'none'; form-action 'none'">
+  <meta name="theme-color" content="#fbf6f1" media="(prefers-color-scheme: light)">
+  <meta name="theme-color" content="#0f0b16" media="(prefers-color-scheme: dark)">
+  <meta property="og:type" content="website">
+  <meta property="og:title" content="LiteShot features">
+  <meta property="og:description" content="Capture, mark up, hide what's personal, share a link that deletes itself. Free for Windows 10 and 11.">
+  <meta property="og:image" content="https://liteshot.app/img/og.png">
+  <meta property="og:url" content="https://liteshot.app/features">
+  <link rel="canonical" href="https://liteshot.app/features">
+  <meta name="twitter:card" content="summary_large_image">
+  <link rel="icon" href="/favicon.ico" sizes="any">
+  <link rel="apple-touch-icon" href="/img/apple-touch-icon.png">
+  <script src="/boot.js"></script>
+  <link rel="stylesheet" href="/styles.css">
+  <script src="/app.js" defer></script>
+</head>
+<body class="sub">
+  <svg class="sprite" width="0" height="0" aria-hidden="true">
+    <defs>
+      <symbol id="i-pen" viewBox="0 0 24 24"><g fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M4.2 19.8l1.2-4.6 10-10a2.3 2.3 0 0 1 3.2 3.2l-10 10z"/><path d="M13.6 7.2l3.2 3.2"/></g></symbol>
+      <symbol id="i-line" viewBox="0 0 24 24"><path d="M5 19L19 5" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round"/></symbol>
+      <symbol id="i-arrow" viewBox="0 0 24 24"><g fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M5.5 18.5L17.5 6.5"/><path d="M9 6h9v9"/></g></symbol>
+      <symbol id="i-rect" viewBox="0 0 24 24"><rect x="3.5" y="5.5" width="17" height="13" rx="3.2" fill="none" stroke="currentColor" stroke-width="1.8"/></symbol>
+      <symbol id="i-circle" viewBox="0 0 24 24"><circle cx="12" cy="12" r="8.5" fill="none" stroke="currentColor" stroke-width="1.8"/></symbol>
+      <symbol id="i-marker" viewBox="0 0 24 24"><g fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M15.2 4.2l4.6 4.6-7.6 7.6-4.6-4.6z"/><path d="M7.6 11.8l-2.6 5 2.2 2.2 5-2.6"/></g><rect x="12.5" y="19.4" width="8.5" height="2.2" rx="1.1" fill="currentColor"/></symbol>
+      <symbol id="i-text" viewBox="0 0 24 24"><g fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M2.8 19.5L8.2 5l5.4 14.5"/><path d="M4.8 14.4h6.8"/><path d="M20.8 19.5v-5.2a2.8 2.8 0 0 0-5.3-1.2"/><path d="M20.8 16.4c-3.6-.6-5.6.2-5.6 1.7 0 1.2 1 1.7 2.2 1.7 2 0 3.4-1.4 3.4-3.4"/></g></symbol>
+      <symbol id="i-counter" viewBox="0 0 24 24"><circle cx="12" cy="12" r="9" fill="none" stroke="currentColor" stroke-width="1.8"/><path d="M10 9.2l2.6-1.8v9.2" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/></symbol>
+      <symbol id="i-pixelate" viewBox="0 0 24 24"><rect x="3.5" y="3.5" width="17" height="17" rx="4" fill="none" stroke="currentColor" stroke-width="1.8"/><path d="M3.5 3.5h4.25v4.25H3.5zM12 3.5h4.25v4.25H12zM7.75 7.75H12V12H7.75zM16.25 7.75h4.25V12h-4.25zM3.5 12h4.25v4.25H3.5zM12 12h4.25v4.25H12zM7.75 16.25H12v4.25H7.75zM16.25 16.25h4.25v4.25h-4.25z" fill="currentColor"/></symbol>
+      <symbol id="i-face" viewBox="0 0 24 24"><circle cx="12" cy="9.2" r="5.4" fill="none" stroke="currentColor" stroke-width="1.8"/><rect x="9.3" y="6.5" width="2.5" height="2.5" rx=".5" fill="currentColor"/><rect x="12.2" y="9.4" width="2.5" height="2.5" rx=".5" fill="currentColor"/><rect x="12.2" y="6.5" width="2.5" height="2.5" rx=".5" fill="currentColor" opacity=".5"/><rect x="9.3" y="9.4" width="2.5" height="2.5" rx=".5" fill="currentColor" opacity=".5"/><path d="M4.6 21c.6-3.6 3.6-5.9 7.4-5.9s6.8 2.3 7.4 5.9" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round"/></symbol>
+      <symbol id="i-bank" viewBox="0 0 24 24"><g fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M3.5 9.5L12 4l8.5 5.5z"/><path d="M5.5 10v7.5M9.8 10v7.5M14.2 10v7.5M18.5 10v7.5M3.5 20h17"/></g></symbol>
+      <symbol id="i-code" viewBox="0 0 24 24"><g fill="none" stroke="currentColor" stroke-width="1.9" stroke-linecap="round" stroke-linejoin="round"><path d="M8.5 7L3.5 12l5 5M15.5 7l5 5-5 5M13.5 4.5l-3 15"/></g></symbol>
+      <symbol id="i-people" viewBox="0 0 24 24"><g fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><circle cx="9" cy="8.5" r="3.4"/><path d="M2.8 19.5c.5-3.3 3-5.4 6.2-5.4s5.7 2.1 6.2 5.4"/><path d="M15.6 5.4a3.2 3.2 0 0 1 0 6.2M17.6 14.4c2 .7 3.3 2.5 3.6 5.1"/></g></symbol>
+      <symbol id="i-sparkles" viewBox="0 0 24 24"><path d="M10 5.5c.7 4.4 2.3 6.4 6.5 8-4.2 1.6-5.8 3.6-6.5 8-.7-4.4-2.3-6.4-6.5-8 4.2-1.6 5.8-3.6 6.5-8z" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linejoin="round"/><path d="M18.6 1.8c.3 1.8.9 2.6 2.6 3.6-1.7 1-2.3 1.8-2.6 3.6-.3-1.8-.9-2.6-2.6-3.6 1.7-1 2.3-1.8 2.6-3.6zM19 15.8c.2 1.3.6 1.8 1.6 2.6-1 .8-1.4 1.3-1.6 2.6-.2-1.3-.6-1.8-1.6-2.6 1-.8 1.4-1.3 1.6-2.6z" fill="currentColor"/></symbol>
+      <symbol id="i-video" viewBox="0 0 24 24"><g fill="none" stroke="currentColor" stroke-width="1.8" stroke-linejoin="round"><rect x="2.5" y="6" width="13.5" height="12" rx="3"/><path d="M16 10.6l4.4-2.7 1.1.7v6.8l-1.1.7-4.4-2.7z"/></g></symbol>
+      <symbol id="i-cloud" viewBox="0 0 24 24"><g fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M7.2 18.6h10.4a3.9 3.9 0 0 0 .5-7.8 5.6 5.6 0 0 0-10.8-.6 4.2 4.2 0 0 0-.1 8.4z"/><path d="M12.2 16.2v-5.8M9.6 12.8l2.6-2.6 2.6 2.6"/></g></symbol>
+      <symbol id="i-pin" viewBox="0 0 24 24"><g fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" transform="rotate(40 12 12)"><path d="M8.2 3.6h7.6M9.6 3.6v5.8L7 12.2v2h10v-2l-2.6-2.8V3.6M12 14.2v7"/></g></symbol>
+      <symbol id="i-ocr" viewBox="0 0 24 24"><g fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M3.8 9V6.3a2.5 2.5 0 0 1 2.5-2.5H9M15 3.8h2.7a2.5 2.5 0 0 1 2.5 2.5V9M20.2 15v2.7a2.5 2.5 0 0 1-2.5 2.5H15M9 20.2H6.3a2.5 2.5 0 0 1-2.5-2.5V15"/><path d="M8.2 9h7.6M8.2 12h7.6M8.2 15h4.4"/></g></symbol>
+      <symbol id="i-capture" viewBox="0 0 24 24"><g fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M3.8 9V6.3a2.5 2.5 0 0 1 2.5-2.5H9M15 3.8h2.7a2.5 2.5 0 0 1 2.5 2.5V9M20.2 15v2.7a2.5 2.5 0 0 1-2.5 2.5H15M9 20.2H6.3a2.5 2.5 0 0 1-2.5-2.5V15"/><path d="M12 8.5v7M8.5 12h7"/></g></symbol>
+      <symbol id="i-monitor" viewBox="0 0 24 24"><g fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><rect x="2.5" y="3.5" width="19" height="13.5" rx="2.8"/><path d="M12 17v3.5M8 20.5h8"/></g></symbol>
+      <symbol id="i-lock" viewBox="0 0 24 24"><g fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><rect x="5" y="10.5" width="14" height="10" rx="2.8"/><path d="M8.5 10.5V8a3.5 3.5 0 0 1 7 0v2.5"/></g></symbol>
+      <symbol id="i-clock" viewBox="0 0 24 24"><g fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="8.5"/><path d="M12 7.5V12l3.2 2"/></g></symbol>
+      <symbol id="i-shield" viewBox="0 0 24 24"><g fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M12 3l7 2.8v5.4c0 4.4-3 8-7 9.8-4-1.8-7-5.4-7-9.8V5.8z"/><path d="M8.8 12.2l2.2 2.2 4.2-4.4"/></g></symbol>
+      <symbol id="i-check" viewBox="0 0 24 24"><path d="M5 12.5l4.5 4.5L19 7.5" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"/></symbol>
+      <symbol id="i-download" viewBox="0 0 24 24"><g fill="none" stroke="currentColor" stroke-width="1.9" stroke-linecap="round" stroke-linejoin="round"><path d="M12 3.5v11M7.8 10.4l4.2 4.2 4.2-4.2"/><path d="M4.5 15v2.5A2.5 2.5 0 0 0 7 20h10a2.5 2.5 0 0 0 2.5-2.5V15"/></g></symbol>
+      <symbol id="i-copy" viewBox="0 0 24 24"><g fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><rect x="8.5" y="8.5" width="12" height="12" rx="2.8"/><path d="M15.5 8.4V6.3a2.8 2.8 0 0 0-2.8-2.8H6.3a2.8 2.8 0 0 0-2.8 2.8v6.4a2.8 2.8 0 0 0 2.8 2.8h2.1"/></g></symbol>
+      <symbol id="i-eye" viewBox="0 0 24 24"><g fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M2.5 12S6 5.5 12 5.5 21.5 12 21.5 12 18 18.5 12 18.5 2.5 12 2.5 12z"/><circle cx="12" cy="12" r="3.2"/></g></symbol>
+      <symbol id="i-scroll" viewBox="0 0 24 24"><g fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><rect x="5" y="2.8" width="14" height="18.4" rx="3"/><path d="M12 7.5v8M8.8 12.6l3.2 3.2 3.2-3.2"/></g></symbol>
+      <symbol id="i-search" viewBox="0 0 24 24"><g fill="none" stroke="currentColor" stroke-width="1.9" stroke-linecap="round"><circle cx="10.5" cy="10.5" r="6.2"/><path d="M15.2 15.2l5 5"/></g></symbol>
+      <symbol id="i-print" viewBox="0 0 24 24"><g fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M7 8.5V3.8h10v4.7"/><rect x="3.2" y="8.5" width="17.6" height="8" rx="2.6"/><path d="M7 14h10v6.2H7z"/></g></symbol>
+      <symbol id="i-share" viewBox="0 0 24 24"><g fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M12 14.5V3.5M8 7.2l4-3.7 4 3.7"/><path d="M8.5 10.5H7a2.5 2.5 0 0 0-2.5 2.5v5A2.5 2.5 0 0 0 7 20.5h10a2.5 2.5 0 0 0 2.5-2.5v-5a2.5 2.5 0 0 0-2.5-2.5h-1.5"/></g></symbol>
+      <symbol id="i-keyboard" viewBox="0 0 24 24"><g fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><rect x="2.5" y="6" width="19" height="12" rx="3"/><path d="M6.5 10h.01M10 10h.01M13.5 10h.01M17 10h.01M8 14h8"/></g></symbol>
+      <symbol id="i-refresh" viewBox="0 0 24 24"><g fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M19.5 12a7.5 7.5 0 1 1-2.2-5.3"/><path d="M19.8 4.2v4.4h-4.4"/></g></symbol>
+      <symbol id="i-palette" viewBox="0 0 24 24"><g fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M12 3.5a8.5 8.5 0 0 0 0 17c1.3 0 1.9-.9 1.9-1.8 0-1.3-1.1-1.6-1.1-2.7 0-1 .8-1.6 1.8-1.6h2.1a3.8 3.8 0 0 0 3.8-3.8c0-4-3.8-7.1-8.5-7.1z"/></g><circle cx="7.8" cy="11" r="1.3" fill="currentColor"/><circle cx="10.6" cy="7.3" r="1.3" fill="currentColor"/><circle cx="15" cy="7.6" r="1.3" fill="currentColor"/></symbol>
+    </defs>
+  </svg>
+
+  <div class="backdrop" aria-hidden="true"><div class="blob"></div><div class="blob"></div><div class="blob"></div></div>
+
+  <header class="nav glass">
+    <a class="brand" href="/"><img src="/img/icon-256.png" alt="" width="30" height="30">LiteShot</a>
+    <nav class="nav-links" aria-label="Sections">
+      <a href="/#how">How it works</a>
+      <a href="/features" aria-current="page">Features</a>
+      <a href="/#blur">Blur</a>
+      <a href="/#privacy">Privacy</a>
+      <a href="/#shortcuts">Shortcuts</a>
+      <a href="/#faq">FAQ</a>
+    </nav>
+    <a class="btn btn-primary" href="/download">Download</a>
+  </header>
+
+  <main>
+    <section class="wrap page-hero feat-hero">
+      <p class="kicker">Features</p>
+      <h1 class="page-title">Everything LiteShot does.</h1>
+      <p class="lede">Press PrtScn, drag, copy. That's still all it takes. Here's everything else, in one place. Every picture is the real app, rendered by its own code.</p>
+    </section>
+    <nav class="feat-nav glass" aria-label="Feature groups">
+      <a href="#capture"><svg class="icon"><use href="#i-capture"/></svg>Capture</a>
+      <a href="#markup"><svg class="icon"><use href="#i-pen"/></svg>Mark up</a>
+      <a href="#private"><svg class="icon"><use href="#i-shield"/></svg>Privacy</a>
+      <a href="#share"><svg class="icon"><use href="#i-lock"/></svg>Share</a>
+      <a href="#ai"><svg class="icon"><use href="#i-sparkles"/></svg>AI</a>
+      <a href="#pins"><svg class="icon"><use href="#i-pin"/></svg>Pins &amp; text</a>
+      <a href="#easy"><svg class="icon"><use href="#i-eye"/></svg>Easy to see</a>
+      <a href="#trust"><svg class="icon"><use href="#i-check"/></svg>Free &amp; safe</a>
+    </nav>
+
+    <!-- Easy to see goes first: it's new, and it's the one people ask about. -->
+    <section id="easy" class="wrap feat-group">
+      <div class="easy glass reveal">
+        <div class="easy-copy">
+          <p class="kicker"><span class="new-tag">New in 1.1.6</span> Easy to see</p>
+          <h2>Bright mode.</h2>
+          <p class="section-lede">For anyone who finds the glass toolbars hard to read. Solid black, bigger white icons, bright yellow for whatever is turned on, and a name on every button so there's no need to hover. Try the switch.</p>
+          <div class="seg glass" role="radiogroup" aria-label="Toolbar look">
+            <label><input type="radio" name="look" value="glass"><span>Glass</span></label>
+            <label><input type="radio" name="look" value="names"><span>Button names</span></label>
+            <label><input type="radio" name="look" value="bright" checked><span>Bright mode</span></label>
+          </div>
+          <ul class="easy-list">
+            <li><svg class="icon"><use href="#i-check"/></svg><span><b>Two switches</b>Settings › Capture › Easy to see. Turning on Bright mode turns on the names too.</span></li>
+            <li><svg class="icon"><use href="#i-check"/></svg><span><b>Follows Windows</b>High contrast themes, reduced transparency and reduced motion are respected.</span></li>
+            <li><svg class="icon"><use href="#i-check"/></svg><span><b>Keys for everything</b>Every tool and action has a shortcut, shown when you hover.</span></li>
+          </ul>
+        </div>
+        <figure class="easy-stage captioned">
+          <img class="look-glass" src="/img/easy-glass.webp" alt="LiteShot's editor with its usual glass toolbars: icons only, the Arrow tool highlighted in blue." width="1200" height="868" loading="lazy">
+          <img class="look-names" src="/img/easy-names.webp" alt="The same editor with button names on: Pen, Line, Arrow, Rectangle and the rest written beside the side toolbar's icons and under the bottom bar's." width="1200" height="868" loading="lazy">
+          <img class="look-bright" src="/img/easy-bright.webp" alt="The same editor in Bright mode: solid black toolbars with a white outline, white icons and names, and the Arrow tool filled bright yellow." width="1200" height="868" loading="lazy">
+          <span class="in-app"><i class="mark" aria-hidden="true"></i><b>LiteShot</b><span class="ctx">editor</span></span>
+        </figure>
+      </div>
+    </section>
+
+    <section id="capture" class="wrap feat-group">
+      <div class="feat-head reveal">
+        <span class="feat-icon"><svg class="icon"><use href="#i-capture"/></svg></span>
+        <div>
+          <p class="kicker">Capture</p>
+          <h2>Two clicks, any screen.</h2>
+          <p class="section-lede">PrtScn freezes every monitor and dims it. Click a window or drag an area, and the tools appear beside it.</p>
+        </div>
+      </div>
+      <div class="feat-split">
+        <div class="window glass reveal captioned"><img src="/img/how-1-capture.webp" alt="The LiteShot capture screen: the desktop frozen and dimmed except a chat window under the cursor, which is outlined, with a round pixel loupe showing coordinates and a color." width="1600" height="1000" loading="lazy"><span class="in-app"><i class="mark" aria-hidden="true"></i><b>LiteShot</b><span class="ctx">capture screen</span></span></div>
+        <div class="tiles reveal">
+          <article class="tile glass"><h3>Snaps to windows</h3><p>Hover a window and click once to capture exactly that window.</p></article>
+          <article class="tile glass"><h3>Scrolling capture <kbd>S</kbd></h3><p>LiteShot scrolls a long page by itself and stitches it into one tall image, even web apps with a side menu.</p></article>
+          <article class="tile glass"><h3>Last area again</h3><p><kbd>Ctrl</kbd> <kbd>PrtScn</kbd> reopens the area you used last. <kbd>Shift</kbd> <kbd>PrtScn</kbd> saves the full screen.</p></article>
+          <article class="tile glass"><h3>Pixel loupe</h3><p>Coordinates and the hex color under your cursor. Press C to copy the color.</p></article>
+          <article class="tile glass"><h3>Every monitor</h3><p>Multiple screens and mixed scaling, pixel-exact.</p></article>
+          <article class="tile glass"><h3>The pointer, if you want it</h3><p>Draw the mouse pointer into screenshots with one switch.</p></article>
+        </div>
+      </div>
+    </section>
+
+    <section id="markup" class="wrap feat-group">
+      <div class="feat-head reveal">
+        <span class="feat-icon"><svg class="icon"><use href="#i-pen"/></svg></span>
+        <div>
+          <p class="kicker">Mark up</p>
+          <h2>Point at what matters.</h2>
+          <p class="section-lede">Every tool has a one-letter key, and anything you draw can be clicked to move, recolor or resize later.</p>
+        </div>
+      </div>
+      <div class="feat-split flip">
+        <div class="tiles reveal">
+          <article class="tile glass"><h3>Drawing tools</h3><p>Pen <kbd>P</kbd>, line <kbd>L</kbd>, arrow <kbd>A</kbd>, box <kbd>R</kbd>, circle <kbd>E</kbd> and highlighter <kbd>M</kbd>.</p></article>
+          <article class="tile glass"><h3>Numbered steps <kbd>N</kbd></h3><p>Click, click, click: 1, 2, 3 for instructions anyone can follow.</p></article>
+          <article class="tile glass"><h3>Text that looks good <kbd>T</kbd></h3><p>Ten built-in fonts or your own, bold, italic, alignment, and plain, outline, label or shadow looks.</p></article>
+          <article class="tile glass"><h3>Color and size</h3><p>Thirteen colors plus any color you like, and five sizes for every tool.</p></article>
+          <article class="tile glass"><h3>Change your mind</h3><p>Move, recolor or resize any drawing. Undo and redo with <kbd>Ctrl</kbd> <kbd>Z</kbd> and <kbd>Y</kbd>.</p></article>
+          <article class="tile glass"><h3>Never tinted</h3><p>Toolbars float beside your capture; the screenshot itself is never dimmed or blurred.</p></article>
+        </div>
+        <div class="stack reveal">
+          <div class="window glass captioned"><img src="/img/editor.webp" alt="A quarterly report marked up in LiteShot: a highlighter over the revenue line, a pixelated account number, a box around the chart with step 1, an arrow with step 2, and a Best quarter yet! label." width="1347" height="1195" loading="lazy"><span class="in-app"><i class="mark" aria-hidden="true"></i><b>LiteShot</b><span class="ctx">editor</span></span></div>
+        </div>
+      </div>
+    </section>
+
+    <section id="private" class="wrap feat-group">
+      <div class="feat-head reveal">
+        <span class="feat-icon"><svg class="icon"><use href="#i-shield"/></svg></span>
+        <div>
+          <p class="kicker">Privacy</p>
+          <h2>Personal info hides itself.</h2>
+          <p class="section-lede">Switch on Hide personal info and LiteShot blurs what's personal the moment you capture. It all runs on your PC.</p>
+        </div>
+      </div>
+      <div class="feat-split">
+        <div class="window glass reveal captioned"><img src="/img/privacy.webp" alt="A chat captured in LiteShot with the people's names blurred automatically, and the Blur faces button showing its tooltip." width="1327" height="949" loading="lazy"><span class="in-app"><i class="mark" aria-hidden="true"></i><b>LiteShot</b><span class="ctx">Hide personal info</span></span></div>
+        <div class="tiles reveal">
+          <article class="tile glass"><h3>Hide personal info <kbd>H</kbd></h3><p>Names, emails, phone and card numbers are blurred on every capture until you switch it off.</p></article>
+          <article class="tile glass"><h3>Your keywords</h3><p>Client names, fund names, project codes: add them once and they're hidden every time.</p></article>
+          <article class="tile glass"><h3>Blur faces <kbd>F</kbd></h3><p>Every face gets an oval Shield blur by <a href="https://faceprivacy.ai/blur/">FacePrivacy.ai</a>, side profiles too.</p></article>
+          <article class="tile glass"><h3>Blur brush <kbd>U</kbd></h3><p>Paint blur over anything else, or pixelate it with <kbd>B</kbd>.</p></article>
+          <article class="tile glass"><h3>Unblur just one</h3><p>Click a blur and press Delete. Press H again to show everything.</p></article>
+          <article class="tile glass"><h3>Nothing uploaded</h3><p>Windows' own text recognition finds them, on your PC.</p></article>
+        </div>
+      </div>
+    </section>
+
+    <section id="share" class="wrap feat-group">
+      <div class="feat-head reveal">
+        <span class="feat-icon"><svg class="icon"><use href="#i-lock"/></svg></span>
+        <div>
+          <p class="kicker">Share and save</p>
+          <h2>Links that delete themselves.</h2>
+          <p class="section-lede">Copy it, save it, or share a private link. Uploads are encrypted on your PC first, so nobody else, us included, can open them.</p>
+        </div>
+      </div>
+      <div class="feat-split flip">
+        <div class="tiles reveal">
+          <article class="tile glass"><h3><svg class="icon"><use href="#i-copy"/></svg>Copy <kbd>Ctrl</kbd> <kbd>C</kbd></h3><p>Straight to the clipboard, and the overlay closes.</p></article>
+          <article class="tile glass"><h3><svg class="icon"><use href="#i-download"/></svg>Save <kbd>Ctrl</kbd> <kbd>S</kbd></h3><p>PNG, JPG or BMP, with your own file name pattern, or save copies on their own.</p></article>
+          <article class="tile glass"><h3><svg class="icon"><use href="#i-share"/></svg>Share</h3><p>Post the private link to X, Facebook, Reddit, Pinterest or VK, or email it.</p></article>
+          <article class="tile glass"><h3><svg class="icon"><use href="#i-search"/></svg>Search similar <kbd>Ctrl</kbd> <kbd>K</kbd></h3><p>Find where an image appears on the web, with Google Lens.</p></article>
+          <article class="tile glass"><h3><svg class="icon"><use href="#i-print"/></svg>Print <kbd>Ctrl</kbd> <kbd>P</kbd></h3><p>Right from the editor.</p></article>
+          <article class="tile glass"><h3><svg class="icon"><use href="#i-clock"/></svg>Delete sooner</h3><p>Every link you made is in the tray menu, ready to delete early.</p></article>
+        </div>
+        <div class="link-card glass reveal">
+          <p class="link-step"><kbd>Ctrl</kbd> <kbd>D</kbd> encrypts, uploads and copies the link.</p>
+          <div class="link-pill glass"><svg class="icon"><use href="#i-lock"/></svg><span>fortefile.com/f/k9Q2vX7mLw0aB3Tr<em>#key-stays-in-the-link</em></span></div>
+          <div class="countdown">Deletes in <strong data-countdown>24:00:00</strong></div>
+          <ul class="link-facts">
+            <li><svg class="icon"><use href="#i-check"/></svg>Encrypted on your PC before it leaves</li>
+            <li><svg class="icon"><use href="#i-check"/></svg>The key lives only in your link</li>
+            <li><svg class="icon"><use href="#i-check"/></svg>Gone after 24 hours, or sooner</li>
+          </ul>
+        </div>
+      </div>
+    </section>
+
+    <section id="ai" class="wrap feat-group">
+      <div class="feat-head reveal">
+        <span class="feat-icon"><svg class="icon"><use href="#i-sparkles"/></svg></span>
+        <div>
+          <p class="kicker">AI</p>
+          <h2>Edit with AI, or make it move.</h2>
+          <p class="section-lede">Describe a change, like "remove the background", or turn the screenshot into a short video. Only when you ask: nothing is sent otherwise.</p>
+        </div>
+      </div>
+      <div class="feat-split">
+        <div class="window glass reveal captioned"><img src="/img/ai.webp" alt="The Edit with AI prompt with suggestion chips and a Generate button, floating above the actions toolbar." width="882" height="515" loading="lazy"><span class="in-app"><i class="mark" aria-hidden="true"></i><b>LiteShot</b><span class="ctx">Edit with AI</span></span></div>
+        <div class="tiles two reveal">
+          <article class="tile glass"><h3><svg class="icon"><use href="#i-sparkles"/></svg>Edit with AI</h3><p>FLUX and Nano Banana redraw the screenshot the way you describe it.</p></article>
+          <article class="tile glass"><h3><svg class="icon"><use href="#i-video"/></svg>Make a video</h3><p>Seedance and Kling bring the screenshot to life in a few seconds of video.</p></article>
+          <article class="tile glass wide"><h3>Your own SyncNode key</h3><p>AI runs through your SyncNode account, so you pay only for what you use and there's nothing to sign up for with us.</p></article>
+        </div>
+      </div>
+    </section>
+
+    <section id="pins" class="wrap feat-group">
+      <div class="feat-head reveal">
+        <span class="feat-icon"><svg class="icon"><use href="#i-pin"/></svg></span>
+        <div>
+          <p class="kicker">Pins and text</p>
+          <h2>Keep it in view. Copy what it says.</h2>
+          <p class="section-lede">Float a screenshot above every window while you work, and pull the text out of any capture.</p>
+        </div>
+      </div>
+      <div class="feat-split flip">
+        <div class="tiles reveal">
+          <article class="tile glass"><h3>Pin to screen <kbd>Ctrl</kbd> <kbd>T</kbd></h3><p>It stays on top of everything. Drag it anywhere.</p></article>
+          <article class="tile glass"><h3>Resize and zoom</h3><p>Drag an edge or corner, or scroll to zoom. It keeps its shape.</p></article>
+          <article class="tile glass"><h3>Fade and click through</h3><p><kbd>Ctrl</kbd> + scroll fades it; <kbd>T</kbd> lets clicks pass through to the window underneath.</p></article>
+          <article class="tile glass"><h3>Turn it around</h3><p>Rotate with <kbd>R</kbd> and <kbd>L</kbd>, flip with <kbd>H</kbd> and <kbd>V</kbd>, nudge with the arrow keys.</p></article>
+          <article class="tile glass wide"><h3><svg class="icon"><use href="#i-ocr"/></svg>Copy text <kbd>Ctrl</kbd> <kbd>Shift</kbd> <kbd>C</kbd></h3><p>Pull the text out of a screenshot or a pin with the recognition built into Windows. Works offline.</p></article>
+        </div>
+        <div class="window glass reveal captioned"><img src="/img/how-pin.webp" alt="The Q3 KPI cards pinned as a floating screenshot above a chat window." width="1400" height="983" loading="lazy"><span class="in-app"><i class="mark" aria-hidden="true"></i><b>LiteShot</b><span class="ctx">pinned screenshot</span></span></div>
+      </div>
+    </section>
+
+    <section id="trust" class="wrap feat-group">
+      <div class="feat-head reveal">
+        <span class="feat-icon"><svg class="icon"><use href="#i-check"/></svg></span>
+        <div>
+          <p class="kicker">Free and safe</p>
+          <h2>No ads, no account, no catch.</h2>
+          <p class="section-lede">LiteShot is free, open source and keeps itself up to date, only with versions signed by Devgm.</p>
+        </div>
+      </div>
+      <div class="tiles four reveal">
+        <article class="tile glass"><h3><svg class="icon"><use href="#i-code"/></svg>Open source</h3><p>MIT-licensed. Read the code, build it yourself, make it better. <a href="/license">License</a></p></article>
+        <article class="tile glass"><h3><svg class="icon"><use href="#i-refresh"/></svg>Signed updates</h3><p>Install updates automatically while idle, or just get told. Only versions signed by Devgm.</p></article>
+        <article class="tile glass"><h3><svg class="icon"><use href="#i-shield"/></svg>Stays on your PC</h3><p>Nothing leaves your PC unless you upload it or use AI. <a href="/privacy">What's sent</a></p></article>
+        <article class="tile glass"><h3><svg class="icon"><use href="#i-monitor"/></svg>Windows 10 and 11</h3><p>An installer that runs with Windows, or a portable exe that runs from anywhere.</p></article>
+        <article class="tile glass"><h3><svg class="icon"><use href="#i-keyboard"/></svg>Keyboard first</h3><p>Every tool has a key, and the global shortcuts are yours to change. <a href="/#shortcuts">See them all</a></p></article>
+        <article class="tile glass"><h3><svg class="icon"><use href="#i-palette"/></svg>At home on Windows</h3><p>Your accent color, light and dark, Mica and rounded corners.</p></article>
+        <article class="tile glass"><h3><svg class="icon"><use href="#i-people"/></svg>Count, not track</h3><p>An optional daily random number tells us how many copies are in use. Nothing about you.</p></article>
+        <article class="tile glass"><h3><svg class="icon"><use href="#i-download"/></svg>Small and fast</h3><p>Starts in the tray and opens the moment you press PrtScn.</p></article>
+      </div>
+    </section>
+
+    <section id="download" class="wrap">
+      <div class="download glass reveal">
+        <img src="/img/icon-256.png" alt="" width="150" height="150">
+        <div>
+          <p class="kicker">Download</p>
+          <h2>Get LiteShot.</h2>
+          <p class="section-lede tight">Free for Windows 10 and 11. The installer adds LiteShot to Start and runs it with Windows; the portable exe runs from anywhere.</p>
+          <div class="cta">
+            <a class="btn btn-primary" href="/download/installer" data-download="msi"><svg class="icon"><use href="#i-download"/></svg><span data-label="msi">Installer (.msi)</span></a>
+            <a class="btn btn-glass glass" href="/download/portable" data-download="portable"><span data-label="portable">Portable (.exe)</span></a>
+          </div>
+          <p class="fine"><a href="/download">Checksums, VirusTotal reports and requirements →</a> · <a href="/changelog">Changelog</a></p>
+        </div>
+      </div>
+    </section>
+  </main>
+
+  <footer class="wrap">
+    <div class="foot">
+      <span>© 2026 Devgm, LLC · MIT licensed</span>
+      <nav aria-label="Footer">
+        <a href="/features">Features</a>
+        <a href="/download">Download</a>
+        <a href="/changelog">Changelog</a>
+        <a href="/license">Open source (MIT)</a>
+        <a href="/privacy">Privacy</a>
+        <a href="https://fortefile.com">fortefile.com</a>
+        <a href="/#faq">FAQ</a>
+      </nav>
+    </div>
+  </footer>
+</body>
+</html>

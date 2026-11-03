@@ -335,6 +335,22 @@ for (const demo of document.querySelectorAll('[data-blur-demo]')) {
   }, { threshold: 0.6 }).observe(canvas);
 }
 
+// Features page: the jump bar marks the group being read.
+const jumps = [...document.querySelectorAll('.feat-nav a')];
+if (jumps.length) {
+  const seen = new Map();
+  const io = new IntersectionObserver((entries) => {
+    for (const e of entries) seen.set(e.target.id, e.isIntersecting ? e.intersectionRatio : 0);
+    let best = null, most = 0;
+    for (const [id, r] of seen) if (r > most) { best = id; most = r; }
+    for (const a of jumps) {
+      if (a.hash === `#${best}`) a.setAttribute('aria-current', 'true');
+      else a.removeAttribute('aria-current');
+    }
+  }, { threshold: [0, 0.15, 0.3, 0.5, 0.7], rootMargin: '-120px 0px -30% 0px' });
+  for (const a of jumps) { const t = document.querySelector(a.hash); if (t) io.observe(t); }
+}
+
 // A shared link's life, counting down from 24 hours.
 const clock = document.querySelector('[data-countdown]');
 if (clock) {

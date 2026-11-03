@@ -420,6 +420,34 @@ internal static class Program
         Move(o, sel.X + 5, sel.Bottom + 400);
         Snap(o, "site-editor", Chrome(o));
 
+        // 1b. Easy to see: one small capture as glass, with button names, and in Bright mode, on one crop.
+        {
+            bool wasBright = settings.BrightMode, hadNames = settings.ButtonLabels;
+            var e = NewOverlay(desktop, virt, windows);
+            Drag(e, new Point(lw.X + 22, lw.Y + 58), new Point(lw.X + 640, lw.Y + 480));
+            Set(e, "color", Color.FromArgb(255, 214, 10));
+            Key(e, Keys.M); Drag(e, new Point(lw.X + 40, lw.Y + 186), new Point(lw.X + 395, lw.Y + 186));
+            Set(e, "color", Color.FromArgb(255, 149, 0));
+            Key(e, Keys.A); Drag(e, new Point(lw.X + 560, lw.Y + 330), new Point(lw.X + 420, lw.Y + 222));
+            Key(e, Keys.N); Click(e, new Point(lw.X + 560, lw.Y + 330));
+            Key(e, Keys.A);
+            Move(e, lw.X + 5, lw.Bottom + 400);
+            void Look(bool names, bool bright)
+            {
+                settings.ButtonLabels = names;
+                settings.BrightMode = bright;
+                Invoke(e, "UpdateScale", true);
+            }
+            Look(true, true);
+            Snap(e, "site-easy-bright", Chrome(e));
+            var crop = Chrome(e);
+            Look(false, false); Snap(e, "site-easy-glass", crop);
+            Look(true, false); Snap(e, "site-easy-names", crop);
+            Look(true, true); Snap(e, "site-easy-bright", crop);
+            Look(hadNames, wasBright);
+            e.Dispose();
+        }
+
         // 2. AI: the same capture with the Edit with AI prompt open.
         string? savedKey = settings.SyncNodeKey;
         AiService.ApiKey = "sn_placeholder_for_rendering";
