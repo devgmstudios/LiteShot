@@ -111,7 +111,7 @@ final class OverlayView: NSView {
         return Toolbar(vertical: false, groups: [
             [b("Pin to screen", "Pin", "⌘T", ["pin"]) { [unowned self] in self.pin() },
              b("Copy text", "Copy text", "⇧⌘C", ["text.viewfinder"]) { [unowned self] in self.copyText() }],
-            [b("Copy", "Copy", "⌘C", ["doc.on.doc"]) { [unowned self] in self.copy() },
+            [b("Copy", "Copy", "⌘C", ["doc.on.doc"]) { [unowned self] in self.copyToClipboard() },
              b("Save", "Save", "⌘S", ["square.and.arrow.down"]) { [unowned self] in self.save() }],
             [b("Close", "Close", "Esc", ["xmark"]) { [unowned self] in self.close() }],
         ])
@@ -651,7 +651,7 @@ final class OverlayView: NSView {
         }
         if cmd {
             switch key {
-            case "c": shift ? copyText() : copy()
+            case "c": shift ? copyText() : copyToClipboard()
             case "s": save()
             case "t": pin()
             case "z": shift ? redo() : undo()
@@ -675,7 +675,7 @@ final class OverlayView: NSView {
         case "f": blurFaces()
         case "h": toggleHidePersonal()
         default:
-            if e.keyCode == 36 || e.keyCode == 76 { copy(); return true }   // Return copies, like double-clicking
+            if e.keyCode == 36 || e.keyCode == 76 { copyToClipboard(); return true }   // Return copies, like double-clicking
             return false
         }
         return true
@@ -695,7 +695,7 @@ final class OverlayView: NSView {
 
     func close() { session?.finish() }
 
-    func copy() {
+    func copyToClipboard() {
         guard let img = renderResult() else { return }
         ImageActions.copy(img, scale: scale)
         close()
