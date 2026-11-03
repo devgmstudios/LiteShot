@@ -77,7 +77,7 @@ final class OverlayView: NSView {
                        action: { [unowned self] in self.setTool(tool) })
         }
         return Toolbar(vertical: true, groups: [
-            [t(.pen, "Pen", "Pen", "P", ["pencil.tip", "pencil"]),
+            [t(.pen, "Pen", "Pen", "P", ["pencil"]),
              t(.line, "Line", "Line", "L", ["line.diagonal"]),
              t(.arrow, "Arrow", "Arrow", "A", ["arrow.up.right"]),
              t(.rect, "Rectangle", "Rectangle", "R", ["rectangle"]),
