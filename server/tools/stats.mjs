@@ -29,7 +29,7 @@ if (process.argv.includes('--json')) {
 }
 
 const n = (v) => v.toLocaleString('en-US');
-const split = (c) => `installer ${n(c.installer)} · portable ${n(c.portable)}`;
+const split = (c) => `installer ${n(c.installer)} · portable ${n(c.portable)} · mac ${n(c.mac ?? 0)}`;
 console.log(`\nLiteShot downloads (${server})\n`);
 console.log(`  Downloads  ${n(s.downloads.total).padStart(7)}   ${split(s.downloads)}`);
 console.log(`  Updates    ${n(s.updates.total).padStart(7)}   ${split(s.updates)}   (copies updating themselves)`);
@@ -56,9 +56,9 @@ if (i) {
 
 if (s.last30Days.length) {
   console.log('\nLast 30 days (downloads)');
-  const most = Math.max(...s.last30Days.map((d) => d.installer + d.portable), 1);
+  const most = Math.max(...s.last30Days.map((d) => d.installer + d.portable + (d.mac ?? 0)), 1);
   for (const d of s.last30Days) {
-    const total = d.installer + d.portable;
+    const total = d.installer + d.portable + (d.mac ?? 0);
     console.log(`  ${d.day}  ${n(total).padStart(6)}  ${'█'.repeat(Math.ceil((total / most) * 30))}`);
   }
 }

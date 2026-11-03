@@ -1,7 +1,8 @@
 // LiteShot update server and website: serves signed channel manifests and release files from R2, and the site
 // in public/ as static assets.
 //   releases/{version}/{file}   release binaries
-//   channels/{channel}.json     signed envelope { payload, signature }, stored and served verbatim
+//   channels/{channel}.json     signed envelope { payload, signature }, stored and served verbatim; "stable" is the
+//                               Windows app, "mac" the Mac app
 // The worker never verifies signatures; the app does. Downloads are counted in D1 (STATS), per day and file, and so
 // are copies in use: a copy's first update check of the day carries a random install id.
 
@@ -75,12 +76,12 @@ const authed = (handler: Handler): Handler => async (req, env, params, url, ctx)
 const BOT_RE = /bot|crawl|spider|slurp|preview|scan|headless|python|go-http|java\//i;
 
 /**
- * Adds one to the day's count for this file: one row per day, kind (installer / portable), source (site, update or
+ * Adds one to the day's count for this file: one row per day, kind (installer / portable / mac), source (site, update or
  * bot) and version. Nothing about who downloaded is kept. Runs after the response, so it never slows a download.
  */
 function countDownload(req: Request, env: Env, ctx: ExecutionContext, version: string, file: string) {
   if (!env.STATS) return;
-  const kind = file.endsWith('.msi') ? 'installer' : file.endsWith('.exe') ? 'portable' : 'other';
+  const kind = file.endsWith('.msi') ? 'installer' : file.endsWith('.exe') ? 'portable' : file.endsWith('.zip') ? 'mac' : 'other';
   const agent = req.headers.get('User-Agent') ?? '';
   // LiteShot sends "LiteShot/<version>" when it downloads an update for itself.
   const source = agent.startsWith('LiteShot/') ? 'update' : !agent || BOT_RE.test(agent) ? 'bot' : 'site';
@@ -128,9 +129,9 @@ function countInstall(req: Request, env: Env, ctx: ExecutionContext, channel: st
 
 const root: Handler = async () => json({ name: 'LiteShot update server', ok: true });
 
-/** The site's download buttons: the newest stable file of a kind, or back to the download section if none yet. */
-const downloadLatest = (kind: string): Handler => async (_req, env, _params, url) => {
-  const obj = await env.RELEASES.get('channels/stable.json');
+/** The site's download buttons: the newest file of a kind on a channel, or back to the download page if none yet. */
+const downloadLatest = (kind: string, channel = 'stable'): Handler => async (_req, env, _params, url) => {
+  const obj = await env.RELEASES.get(`channels/${channel}.json`);
   try {
     const info = JSON.parse(((await obj?.json()) as { payload: string }).payload);
     const file = (info.files as { kind: string; name: string }[]).find((f) => f.kind === kind);
@@ -258,7 +259,7 @@ const deleteRelease: Handler = async (_req, env, [version]) => {
   return json({ ok: true, version, deleted: keys.length });
 };
 
-/** Download counts: people from the site (installer + portable), LiteShot updating itself, bots, and per day. */
+/** Download counts: people from the site (installer, portable, Mac), LiteShot updating itself, bots, and per day. */
 const stats: Handler = async (_req, env) => {
   check(env.STATS, 'download counts are not set up', 503);
   type Row = { source: string; kind: string; n: number };
@@ -285,13 +286,13 @@ const stats: Handler = async (_req, env) => {
   ]);
   const count = (rows: { source: string; kind: string; n: number }[], source: string) => {
     const of = (kind: string) => rows.filter((r) => r.source === source && r.kind === kind).reduce((n, r) => n + r.n, 0);
-    const installer = of('installer'), portable = of('portable');
-    return { total: installer + portable, installer, portable };
+    const installer = of('installer'), portable = of('portable'), mac = of('mac');
+    return { total: installer + portable + mac, installer, portable, mac };
   };
-  const byDay = new Map<string, { day: string; installer: number; portable: number }>();
+  const byDay = new Map<string, { day: string; installer: number; portable: number; mac: number }>();
   for (const r of days.results as DayRow[]) {
-    const d = byDay.get(r.day) ?? { day: r.day, installer: 0, portable: 0 };
-    if (r.kind === 'installer' || r.kind === 'portable') d[r.kind] += r.n;
+    const d = byDay.get(r.day) ?? { day: r.day, installer: 0, portable: 0, mac: 0 };
+    if (r.kind === 'installer' || r.kind === 'portable' || r.kind === 'mac') d[r.kind] += r.n;
     byDay.set(r.day, d);
   }
   const versionRows = versions.results as VersionRow[];
@@ -318,6 +319,7 @@ const routes: [RegExp, Record<string, Handler>][] = [
   [/^\/v1$/, { GET: root }],
   [/^\/download\/installer$/, { GET: downloadLatest('msi') }],
   [/^\/download\/portable$/, { GET: downloadLatest('portable') }],
+  [/^\/download\/mac$/, { GET: downloadLatest('mac', 'mac') }],
   [/^\/v1\/latest$/, { GET: latest }],
   [/^\/v1\/download\/([^/]+)\/([^/]+)$/, { GET: download, HEAD: download }],
   [/^\/v1\/releases$/, { GET: authed(listReleases) }],

@@ -64,9 +64,10 @@ static class Program
               public key from it). --force replaces an existing key; the old file is renamed, not deleted.
 
           publish --server <url> [--token <t>] [--channel stable] [--notes "<text>"] [--dist <folder>]
-                  [--version x.y.z] [--key <pem>] [--public-key <pem>]
+                  [--version x.y.z] [--key <pem>] [--public-key <pem>] [--mac <LiteShot-mac-x.y.z.zip>]
               Uploads dist\LiteShot.exe and dist\LiteShot-Setup-<version>.msi, then signs and publishes the
-              channel manifest. Token defaults to %LITESHOT_PUBLISH_TOKEN%, then publish-token.txt next to the key.
+              channel manifest. --mac publishes the Mac app's zip instead, to channel "mac", versioned by its
+              file name. Token defaults to %LITESHOT_PUBLISH_TOKEN%, then publish-token.txt next to the key.
               --server defaults to the live update server. --version (for testing) skips reading
               the exe version and publishes whichever of the two files exist.
 
@@ -128,14 +129,15 @@ static class Program
 
     static async Task<int> Publish(Options o)
     {
-        o.Allow("server", "token", "channel", "notes", "dist", "version", "key", "public-key");
+        o.Allow("server", "token", "channel", "notes", "dist", "version", "key", "public-key", "mac");
         var server = ServerUrl(o);
         var token = o.Get("token") ?? Environment.GetEnvironmentVariable("LITESHOT_PUBLISH_TOKEN")
             ?? (File.Exists(DefaultTokenFile) ? File.ReadAllText(DefaultTokenFile).Trim() : null);
         if (string.IsNullOrWhiteSpace(token)) throw new UsageException($"no token: pass --token, set LITESHOT_PUBLISH_TOKEN or put it in {DefaultTokenFile}");
-        var channel = Channel(o);
+        var mac = o.Get("mac");
+        var channel = mac is not null && !o.Has("channel") ? "mac" : Channel(o);
         var notes = o.Get("notes") ?? "";
-        var dist = Path.GetFullPath(o.Get("dist") ?? RepoPath("dist", "dist"));
+        var dist = mac is not null ? Path.GetDirectoryName(Path.GetFullPath(mac))! : Path.GetFullPath(o.Get("dist") ?? RepoPath("dist", "dist"));
         using var key = LoadKey(o.Get("key") ?? DefaultPrivateKey);
         try { key.ExportParameters(true); }
         catch (CryptographicException) { throw new FailException("the signing key file has no private key"); }
@@ -151,16 +153,22 @@ static class Program
 
         string version;
         var testVersion = o.Get("version");
-        if (testVersion is not null)
+        // The Mac app is built on a Mac and versioned on its own; its zip's name carries the version.
+        var macMatch = mac is null ? null : Regex.Match(Path.GetFileName(mac), @"^LiteShot-mac-(\d+\.\d+\.\d+)\.zip$");
+        if (macMatch is { Success: false }) throw new UsageException("--mac must be a LiteShot-mac-<x.y.z>.zip from mac/scripts/bundle.sh");
+        if (macMatch is not null) version = macMatch.Groups[1].Value;
+        else if (testVersion is not null)
         {
             if (!VersionRe.IsMatch(testVersion)) throw new UsageException("--version must look like 1.2.3");
             version = testVersion;
         }
         else version = ExeVersion(Path.Combine(dist, "LiteShot.exe"));
 
-        var wanted = new[] { (Kind: "portable", Name: "LiteShot.exe"), (Kind: "msi", Name: $"LiteShot-Setup-{version}.msi") };
+        var wanted = mac is not null
+            ? new[] { (Kind: "mac", Name: Path.GetFileName(mac)) }
+            : new[] { (Kind: "portable", Name: "LiteShot.exe"), (Kind: "msi", Name: $"LiteShot-Setup-{version}.msi") };
         var missing = wanted.Where(f => !File.Exists(Path.Combine(dist, f.Name))).Select(f => f.Name).ToList();
-        if (testVersion is null && missing.Count > 0) throw new FailException($"missing in {dist}: {string.Join(", ", missing)}");
+        if ((testVersion is null || mac is not null) && missing.Count > 0) throw new FailException($"missing in {dist}: {string.Join(", ", missing)}");
         if (missing.Count == wanted.Length) throw new FailException($"neither {string.Join(" nor ", missing)} found in {dist}");
 
         using var http = Http(token);

@@ -84,6 +84,11 @@ await test('/download/portable redirects to the newest exe', async () => {
   const res = await call('GET', '/download/portable', { redirect: 'manual' });
   assert(res.status === 302 && /\/LiteShot\.exe$/.test(res.headers.get('location') ?? ''), `${res.status} ${res.headers.get('location')}`);
 });
+await test('/download/mac redirects to the newest Mac zip, or to the download page before one is out', async () => {
+  const res = await call('GET', '/download/mac', { redirect: 'manual' });
+  const to = res.headers.get('location') ?? '';
+  assert(res.status === 302 && (/\/v1\/download\/\d+\.\d+\.\d+\/LiteShot-mac-[\d.]+\.zip$/.test(to) || /\/download$/.test(to)), `${res.status} ${to}`);
+});
 await test('POST /v1 -> 405 with Allow', async () => {
   const res = await call('POST', '/v1');
   assert(res.headers.get('allow')?.includes('GET'), `Allow: ${res.headers.get('allow')}`);

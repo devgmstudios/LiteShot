@@ -520,6 +520,9 @@ h2 { font-size: clamp(2rem, 5vw, 3.4rem); line-height: 1.04; letter-spacing: -0.
 .dl-head p { margin: 0; color: var(--text-2); }
 .tag-rec { font-size: 0.72rem; font-weight: 700; letter-spacing: 0.02em; padding: 3px 9px; border-radius: 99px; color: var(--accent-ink); background: var(--accent); }
 .dl-card .btn { justify-self: start; }
+.dl-mac { grid-column: 1 / -1; }
+.dl-note { margin: 0; color: var(--text-2); font-size: 0.93rem; }
+.tag-beta { display: inline-block; margin-left: 6px; padding: 2px 9px; border-radius: 999px; vertical-align: 4px; font-size: 0.72rem; font-weight: 700; letter-spacing: 0.02em; color: var(--accent-ink); background: var(--accent); }
 .dl-facts { display: grid; grid-template-columns: repeat(2, 1fr); gap: 12px 18px; margin: 0; }
 .dl-facts .wide { grid-column: 1 / -1; }
 .dl-facts dt { font-size: 0.8rem; color: var(--text-3); margin-bottom: 2px; }

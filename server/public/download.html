@@ -73,7 +73,7 @@
     <section class="wrap page-hero">
       <p class="kicker">Download</p>
       <h1 class="page-title">Get LiteShot.</h1>
-      <p class="lede" data-release-line>Free and open source for Windows 10 and 11.</p>
+      <p class="lede" data-release-line>Free and open source for Windows 10 and 11, and now in beta for Mac.</p>
     </section>
 
     <section class="wrap downloads">
@@ -102,6 +102,19 @@
         </dl>
         <a class="vt" data-vt href="https://www.virustotal.com/" rel="noopener"><svg class="icon"><use href="#i-shield"/></svg>See the VirusTotal report for this file</a>
       </article>
+
+      <article id="mac" class="glass dl-card dl-mac" data-file="mac" data-channel="mac">
+        <div class="dl-head">
+          <div><h2>Mac <span class="tag-beta">Beta</span></h2><p>A native Mac app for macOS 14 and later, on Apple silicon and Intel. It lives in the menu bar: press <b>⌘⇧9</b> to capture, mark up, hide personal info and faces, copy the text, copy, save or pin. Uploads and AI are on the way.</p></div>
+        </div>
+        <a class="btn btn-glass glass" href="/download/mac"><svg class="icon"><use href="#i-download"/></svg><span data-dl-label>Download for Mac (.zip)</span></a>
+        <dl class="dl-facts">
+          <div><dt>File</dt><dd data-name>LiteShot-mac.zip</dd></div>
+          <div><dt>Size</dt><dd data-size>—</dd></div>
+          <div class="wide"><dt>SHA-256</dt><dd><code data-sha>loading…</code></dd></div>
+        </dl>
+        <p class="dl-note"><b>First time:</b> unzip, drag LiteShot to Applications and open it. macOS asks before opening an app from the web: choose <b>System Settings › Privacy & Security › Open Anyway</b>. Then allow <b>Screen Recording</b>, which every screenshot app needs.</p>
+      </article>
     </section>
 
     <section class="wrap trust">
@@ -121,8 +134,10 @@
         <pre><code>Get-FileHash .\LiteShot-Setup-<span data-version-only>1.1.2</span>.msi</code></pre>
         <h3>Windows says "unknown publisher"?</h3>
         <p>LiteShot isn't code-signed with a certificate yet, so SmartScreen may warn the first time. Choose <b>More info › Run anyway</b>, or check the file on VirusTotal first.</p>
+        <p>On a Mac, in Terminal: <code>shasum -a 256 LiteShot-mac-<span data-mac-version>0.1.0</span>.zip</code></p>
         <h3>Requirements</h3>
         <p>Windows 10 (1809 or later) or Windows 11, 64-bit. About 200 MB of disk space. Everything LiteShot needs is included.</p>
+        <p>Mac: macOS 14 Sonoma or later, Apple silicon or Intel. About 1 MB.</p>
         <p><a href="/changelog">What's new in each version →</a></p>
       </div>
     </section>
