@@ -11,3 +11,7 @@ dist/
 node_modules/
 .wrangler/
 .dev.vars
+
+# Swift (mac/)
+.build/
+.swiftpm/

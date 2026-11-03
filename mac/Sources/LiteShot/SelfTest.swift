@@ -1,0 +1,112 @@
+import AppKit
+import LiteShotCore
+
+/// `LiteShot --render-shots <folder>`: the real overlay on a made-up screen, drawn to PNGs in each look, with
+/// checks that the toolbars fit. Lets a build machine show what the UI looks like. Returns false on a failed check.
+enum SelfTest {
+    static func renderShots(to folder: URL) -> Bool {
+        _ = NSApplication.shared
+        try? FileManager.default.createDirectory(at: folder, withIntermediateDirectories: true)
+        let saved = (Settings.brightMode, Settings.buttonNames)
+        defer { Settings.brightMode = saved.0; Settings.buttonNames = saved.1 }
+
+        let size = CGSize(width: 1440, height: 900), scale: CGFloat = 2
+        let window = CGRect(x: 180, y: 120, width: 820, height: 560)
+        guard let screen = desktop(size: size, scale: scale, window: window) else { print("FAIL could not draw the desktop"); return false }
+        var ok = true
+        func check(_ pass: Bool, _ what: String) {
+            print(pass ? "PASS  \(what)" : "FAIL  \(what)")
+            if !pass { ok = false }
+        }
+
+        // Hovering a window outlines it.
+        let hovering = OverlayView(frame: CGRect(origin: .zero, size: size), image: screen, windows: [window])
+        hovering.hoverWindow = window
+        save(hovering, folder.appendingPathComponent("mac-1-hover.png"))
+
+        let looks: [(name: String, bright: Bool, names: Bool)] = [("glass", false, false), ("names", false, true), ("bright", true, true)]
+        for look in looks {
+            Settings.brightMode = look.bright
+            Settings.buttonNames = look.names
+            let view = OverlayView(frame: CGRect(origin: .zero, size: size), image: screen, windows: [window])
+            let sel = CGRect(x: window.minX + 30, y: window.minY + 50, width: 640, height: 420)
+            view.select(sel)
+            view.color = Palette.colors[1]
+            view.add(Annotation(.marker([CGPoint(x: sel.minX + 24, y: sel.minY + 112), CGPoint(x: sel.minX + 330, y: sel.minY + 112)]),
+                                color: Palette.colors[2], width: 3))
+            view.add(Annotation(.arrow(CGPoint(x: sel.minX + 560, y: sel.minY + 300), CGPoint(x: sel.minX + 380, y: sel.minY + 170)),
+                                color: Palette.colors[1], width: 4))
+            view.add(Annotation(.counter(1, at: CGPoint(x: sel.minX + 560, y: sel.minY + 300)), color: Palette.colors[1], width: 3))
+            view.add(Annotation(.pixelate(CGRect(x: sel.minX + 150, y: sel.minY + 196, width: 230, height: 26), oval: false), color: .black, width: 3))
+            view.add(Annotation(.text("Ship it Friday", at: CGPoint(x: sel.minX + 40, y: sel.minY + 330), size: 28), color: Palette.colors[0], width: 3))
+            view.tool = .arrow
+            view.layoutBars()
+            if !look.names { view.hoverButton(view.tools, group: 0, index: 2) }
+            save(view, folder.appendingPathComponent("mac-2-\(look.name).png"))
+
+            let bounds = CGRect(origin: .zero, size: size)
+            check(bounds.contains(view.tools.frame) && bounds.contains(view.actions.frame), "\(look.name): toolbars on screen")
+            check(!view.tools.frame.intersects(view.actions.frame), "\(look.name): toolbars don't overlap")
+            let frames = view.tools.buttonFrames.flatMap { $0 } + view.actions.buttonFrames.flatMap { $0 }
+            let overlap = frames.enumerated().contains { i, a in frames.enumerated().contains { j, b in i != j && a.intersection(b).width > 0.5 && a.intersection(b).height > 0.5 } }
+            check(!overlap, "\(look.name): no two buttons overlap")
+            if let font = view.tools.labelFont {
+                let cramped = (view.tools.groups.flatMap { $0 } + view.actions.groups.flatMap { $0 }).enumerated()
+                    .filter { i, b in (b.label as NSString).size(withAttributes: [.font: font]).width > frames[i].width - 4 }
+                    .map { $0.element.label }
+                check(cramped.isEmpty, "\(look.name): every name fits its button \(cramped)")
+            }
+            if let out = view.renderResult() {
+                check(out.width == Int(sel.width * scale) && out.height == Int(sel.height * scale), "\(look.name): the result is full resolution (\(out.width)×\(out.height))")
+                if look.name == "glass", let png = Renderer.png(out) { try? png.write(to: folder.appendingPathComponent("mac-3-result.png")) }
+            } else {
+                check(false, "\(look.name): the result renders")
+            }
+        }
+        return ok
+    }
+
+    private static func save(_ view: NSView, _ url: URL) {
+        guard let rep = view.bitmapImageRepForCachingDisplay(in: view.bounds) else { return }
+        view.cacheDisplay(in: view.bounds, to: rep)
+        try? rep.representation(using: .png, properties: [:])?.write(to: url)
+    }
+
+    /// A wallpaper-ish gradient with a document window on it, at `scale` pixels per point.
+    private static func desktop(size: CGSize, scale: CGFloat, window: CGRect) -> CGImage? {
+        let w = Int(size.width * scale), h = Int(size.height * scale)
+        guard let ctx = CGContext(data: nil, width: w, height: h, bitsPerComponent: 8, bytesPerRow: 0,
+                                  space: CGColorSpace(name: CGColorSpace.sRGB)!,
+                                  bitmapInfo: CGImageAlphaInfo.premultipliedFirst.rawValue | CGBitmapInfo.byteOrder32Little.rawValue)
+        else { return nil }
+        ctx.translateBy(x: 0, y: CGFloat(h))
+        ctx.scaleBy(x: scale, y: -scale)
+        NSGraphicsContext.saveGraphicsState()
+        NSGraphicsContext.current = NSGraphicsContext(cgContext: ctx, flipped: true)
+        NSGradient(colors: [NSColor(srgbRed: 0.1, green: 0.1, blue: 0.36, alpha: 1), NSColor(srgbRed: 0.48, green: 0.24, blue: 0.62, alpha: 1),
+                            NSColor(srgbRed: 0.94, green: 0.54, blue: 0.36, alpha: 1)])?.draw(in: CGRect(origin: .zero, size: size), angle: -35)
+        NSColor(white: 0, alpha: 0.25).setFill()
+        NSBezierPath(roundedRect: window.offsetBy(dx: 0, dy: 10), xRadius: 12, yRadius: 12).fill()
+        NSColor.white.setFill()
+        NSBezierPath(roundedRect: window, xRadius: 12, yRadius: 12).fill()
+        NSColor(white: 0.95, alpha: 1).setFill()
+        NSBezierPath(rect: CGRect(x: window.minX, y: window.minY + 12, width: window.width, height: 28)).fill()
+        for (i, c) in [NSColor.systemRed, .systemYellow, .systemGreen].enumerated() {
+            c.setFill()
+            NSBezierPath(ovalIn: CGRect(x: window.minX + 14 + CGFloat(i) * 20, y: window.minY + 14, width: 12, height: 12)).fill()
+        }
+        let title: [NSAttributedString.Key: Any] = [.font: NSFont.systemFont(ofSize: 30, weight: .bold), .foregroundColor: NSColor(white: 0.1, alpha: 1)]
+        ("Quarterly report" as NSString).draw(at: CGPoint(x: window.minX + 48, y: window.minY + 80), withAttributes: title)
+        let body: [NSAttributedString.Key: Any] = [.font: NSFont.systemFont(ofSize: 19), .foregroundColor: NSColor(white: 0.3, alpha: 1)]
+        let lines = ["Revenue grew 24% year over year, led by the new product line.",
+                     "Customer satisfaction reached an all-time high of 92%.",
+                     "Account numbers 4417-1234-5678 and 9921-7765-1102 are redacted.",
+                     "Next quarter we focus on onboarding and performance.",
+                     "The design team shipped the glass interface refresh."]
+        for (i, line) in lines.enumerated() {
+            (line as NSString).draw(at: CGPoint(x: window.minX + 48, y: window.minY + 150 + CGFloat(i) * 42), withAttributes: body)
+        }
+        NSGraphicsContext.restoreGraphicsState()
+        return ctx.makeImage()
+    }
+}

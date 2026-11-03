@@ -1,0 +1,126 @@
+import AppKit
+import XCTest
+@testable import LiteShotCore
+
+final class GeometryTests: XCTestCase {
+    func testRectFromCornersAnyDirection() {
+        XCTAssertEqual(Geometry.rect(CGPoint(x: 50, y: 40), CGPoint(x: 10, y: 90)), CGRect(x: 10, y: 40, width: 40, height: 50))
+    }
+
+    func testCornerHandleWinsAndResizeFlips() {
+        let r = CGRect(x: 100, y: 100, width: 200, height: 100)
+        XCTAssertEqual(Geometry.handle(at: CGPoint(x: 302, y: 199), in: r, radius: 8), 4)
+        XCTAssertNil(Geometry.handle(at: CGPoint(x: 200, y: 150), in: r, radius: 8))
+        // Dragging the right edge past the left one flips the selection instead of going negative.
+        XCTAssertEqual(Geometry.resize(r, handle: 3, to: CGPoint(x: 50, y: 0)), CGRect(x: 50, y: 100, width: 50, height: 100))
+    }
+
+    func testNormalizedBoxesComeOutTopLeft() {
+        let area = CGRect(x: 10, y: 20, width: 100, height: 200)
+        let r = Geometry.fromNormalized(CGRect(x: 0.5, y: 0.75, width: 0.25, height: 0.25), in: area)
+        XCTAssertEqual(r, CGRect(x: 60, y: 20, width: 25, height: 50))
+    }
+}
+
+final class PersonalInfoTests: XCTestCase {
+    func found(_ text: String) -> [String] { PersonalInfo.ranges(in: text).map { String(text[$0]) } }
+
+    func testFindsEmailsPhonesAndCards() {
+        XCTAssertEqual(found("Mail jordan.reyes@example.com today"), ["jordan.reyes@example.com"])
+        XCTAssertEqual(found("Call (555) 014-2290 after lunch"), ["(555) 014-2290"])
+        XCTAssertEqual(found("Card 4111 1111 1111 1111 on file"), ["4111 1111 1111 1111"])
+        XCTAssertEqual(found("SSN 078-05-1120"), ["078-05-1120"])
+    }
+
+    func testLeavesOrdinaryTextAndNonCardNumbersAlone() {
+        XCTAssertEqual(found("Revenue grew 24% year over year"), [])
+        XCTAssertEqual(found("Order 1234 5678 9012 3456"), [], "fails the Luhn check, so not a card")
+    }
+
+    func testKeywordsAnyCase() {
+        let text = "Project Falcon update for ACME corp"
+        let hits = PersonalInfo.ranges(in: text, keywords: ["falcon", "Acme Corp", "x"]).map { String(text[$0]) }
+        XCTAssertEqual(hits, ["Falcon", "ACME corp"])
+    }
+}
+
+final class RendererTests: XCTestCase {
+    /// A solid image of `size` pixels.
+    func solid(_ color: NSColor, size: Int) -> CGImage {
+        let ctx = CGContext(data: nil, width: size, height: size, bitsPerComponent: 8, bytesPerRow: 0,
+                            space: CGColorSpace(name: CGColorSpace.sRGB)!,
+                            bitmapInfo: CGImageAlphaInfo.premultipliedLast.rawValue)!
+        ctx.setFillColor(color.cgColor)
+        ctx.fill(CGRect(x: 0, y: 0, width: size, height: size))
+        return ctx.makeImage()!
+    }
+
+    /// RGBA of the pixel at (x, y), top-left origin.
+    func pixel(_ image: CGImage, _ x: Int, _ y: Int) -> (r: UInt8, g: UInt8, b: UInt8) {
+        let w = image.width, h = image.height
+        var data = [UInt8](repeating: 0, count: w * h * 4)
+        let ctx = CGContext(data: &data, width: w, height: h, bitsPerComponent: 8, bytesPerRow: w * 4,
+                            space: CGColorSpace(name: CGColorSpace.sRGB)!,
+                            bitmapInfo: CGImageAlphaInfo.premultipliedLast.rawValue)!
+        ctx.draw(image, in: CGRect(x: 0, y: 0, width: w, height: h))
+        let i = (y * w + x) * 4
+        return (data[i], data[i + 1], data[i + 2])
+    }
+
+    func testSelectionComesOutAtFullResolution() throws {
+        // A 200-pixel screen shown at 100 points: a Retina display.
+        let screen = solid(.red, size: 200)
+        let out = try XCTUnwrap(Renderer.render(screen: screen, screenSize: CGSize(width: 100, height: 100),
+                                                selection: CGRect(x: 10, y: 10, width: 30, height: 20), annotations: []))
+        XCTAssertEqual(out.width, 60)
+        XCTAssertEqual(out.height, 40)
+        let p = pixel(out, 30, 20)
+        XCTAssertGreaterThan(p.r, 200)
+        XCTAssertLessThan(p.g, 40)
+    }
+
+    func testAnnotationsLandWhereTheyWereDrawn() throws {
+        let screen = solid(.white, size: 100)
+        let box = Annotation(.rect(CGRect(x: 20, y: 20, width: 40, height: 40)), color: .systemBlue, width: 4)
+        let out = try XCTUnwrap(Renderer.render(screen: screen, screenSize: CGSize(width: 100, height: 100),
+                                                selection: CGRect(x: 0, y: 0, width: 100, height: 100), annotations: [box]))
+        let edge = pixel(out, 20, 40), inside = pixel(out, 40, 40)
+        XCTAssertGreaterThan(edge.b, 150)
+        XCTAssertLessThan(edge.r, 120, "the box's left edge is blue")
+        XCTAssertGreaterThan(inside.r, 240, "inside stays white")
+    }
+
+    func testTextIsUprightAndNearItsPoint() throws {
+        let screen = solid(.white, size: 200)
+        let label = Annotation(.text("Hi", at: CGPoint(x: 10, y: 10), size: 60), color: .black, width: 3)
+        let out = try XCTUnwrap(Renderer.render(screen: screen, screenSize: CGSize(width: 200, height: 200),
+                                                selection: CGRect(x: 0, y: 0, width: 200, height: 200), annotations: [label]))
+        // Ink in the top half, where the text starts, and none in the bottom half.
+        func ink(_ rows: Range<Int>) -> Int {
+            var n = 0
+            for y in stride(from: rows.lowerBound, to: rows.upperBound, by: 4) {
+                for x in stride(from: 0, to: 200, by: 4) where pixel(out, x, y).r < 100 { n += 1 }
+            }
+            return n
+        }
+        XCTAssertGreaterThan(ink(0..<100), 10)
+        XCTAssertEqual(ink(110..<200), 0)
+    }
+
+    func testPixelateChangesTheArea() throws {
+        // Stripes one pixel wide average out to grey under pixelation.
+        let size = 64
+        let ctx = CGContext(data: nil, width: size, height: size, bitsPerComponent: 8, bytesPerRow: 0,
+                            space: CGColorSpace(name: CGColorSpace.sRGB)!, bitmapInfo: CGImageAlphaInfo.premultipliedLast.rawValue)!
+        for x in 0..<size {
+            ctx.setFillColor(x % 2 == 0 ? NSColor.black.cgColor : NSColor.white.cgColor)
+            ctx.fill(CGRect(x: x, y: 0, width: 1, height: size))
+        }
+        let stripes = ctx.makeImage()!
+        let blur = Annotation(.pixelate(CGRect(x: 0, y: 0, width: 64, height: 64), oval: false), color: .black, width: 3)
+        let out = try XCTUnwrap(Renderer.render(screen: stripes, screenSize: CGSize(width: 64, height: 64),
+                                                selection: CGRect(x: 0, y: 0, width: 64, height: 64), annotations: [blur]))
+        let a = pixel(out, 10, 10).r, b = pixel(out, 11, 10).r
+        XCTAssertLessThan(abs(Int(a) - Int(b)), 40, "neighbouring stripes look alike once pixelated")
+    }
+}
