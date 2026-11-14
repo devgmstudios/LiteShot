@@ -108,9 +108,7 @@ enum SelfTest {
             snapshot(SettingsView(), size: CGSize(width: 560, height: 900), to: folder.appendingPathComponent("mac-7-settings.png"))
             if let report = finding.renderResult() {
                 let chat = AskAIChat(image: report, key: { nil })
-                chat.show("What's in this screenshot?", answer: "It's a **quarterly report**:
-- Revenue grew 24% year over year
-- Customer satisfaction reached 92%")
+                chat.show("What's in this screenshot?", answer: "It's a **quarterly report**:\n- Revenue grew 24% year over year\n- Customer satisfaction reached 92%")
                 check(chat.messages.count == 2 && chat.messages[1].text.hasPrefix("It's a quarterly report"), "ask: the chat shows the question and a plain answer")
                 snapshot(AskAIView(chat: chat), size: CGSize(width: 640, height: 720), to: folder.appendingPathComponent("mac-8-ask-ai.png"))
                 chat.ask("Hello?")
