@@ -10,6 +10,7 @@ final class AppDelegate: NSObject, NSApplicationDelegate, NSMenuDelegate {
 
     func applicationDidFinishLaunching(_ notification: Notification) {
         TextStyle.registerBundledFonts()
+        MainActor.assumeIsolated { Updater.shared.start() }
         status = NSStatusBar.system.statusItem(withLength: NSStatusItem.squareLength)
         if let button = status.button {
             button.image = NSImage(systemSymbolName: "camera.viewfinder", accessibilityDescription: "LiteShot")
@@ -44,6 +45,10 @@ final class AppDelegate: NSObject, NSApplicationDelegate, NSMenuDelegate {
             menu.addItem(NSMenuItem(title: "Make Pins Clickable", action: #selector(makePinsClickable), keyEquivalent: ""))
         }
         menu.addItem(.separator())
+        if let release = MainActor.assumeIsolated({ Updater.shared.available }) {
+            menu.addItem(NSMenuItem(title: "Update to LiteShot \(release.version)", action: #selector(installUpdate), keyEquivalent: ""))
+        }
+        menu.addItem(NSMenuItem(title: "Check for Updates…", action: #selector(checkUpdates), keyEquivalent: ""))
         menu.addItem(NSMenuItem(title: "LiteShot Website", action: #selector(openSite), keyEquivalent: ""))
         menu.addItem(NSMenuItem(title: "Quit LiteShot", action: #selector(NSApplication.terminate(_:)), keyEquivalent: "q"))
         for item in menu.items where item.action != #selector(NSApplication.terminate(_:)) && item.submenu == nil { item.target = self }
@@ -82,6 +87,14 @@ final class AppDelegate: NSObject, NSApplicationDelegate, NSMenuDelegate {
 
     @objc private func openSettings() {
         Task { @MainActor in SettingsView.show() }
+    }
+
+    @objc private func checkUpdates() {
+        Task { @MainActor in await Updater.shared.check(manual: true) }
+    }
+
+    @objc private func installUpdate() {
+        Task { @MainActor in if let r = Updater.shared.available { await Updater.shared.install(r) } }
     }
 
     @objc private func openSite() {

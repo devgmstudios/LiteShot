@@ -9,6 +9,8 @@ struct SettingsView: View {
     @AppStorage("HidePersonalInfo") private var hide = false
     @AppStorage("ShowMagnifier") private var magnifier = false
     @AppStorage("UploadLifetime") private var lifetime = "24h"
+    @AppStorage("UpdateMode") private var updateMode = "notify"
+    @AppStorage("CountUsage") private var countUsage = true
     @AppStorage("AiChatModel") private var chatModel = AICatalog.defaultChatModel
     @AppStorage("AiEditModel") private var editModel = AICatalog.editModels[0].id
     @AppStorage("AiVideoModel") private var videoModel = AICatalog.videoModels[0].id
@@ -70,6 +72,21 @@ struct SettingsView: View {
                 TextField("Model ID", text: $chatModel, prompt: Text(AICatalog.defaultChatModel))
                 Text(AICatalog.chatModels.first { $0.id == chatModel }.map { "\($0.note). Any OpenRouter model that reads images works." }
                      ?? "A custom OpenRouter model; it has to read images to see the screenshot.")
+                    .font(.caption).foregroundStyle(.secondary)
+            }
+            Section("Updates") {
+                Picker("New versions", selection: $updateMode) {
+                    Text("Install automatically").tag("automatic")
+                    Text("Tell me").tag("notify")
+                    Text("Off").tag("off")
+                }
+                HStack {
+                    Text("LiteShot \(Updater.version)").foregroundStyle(.secondary)
+                    Spacer()
+                    Button("Check now") { Task { await Updater.shared.check(manual: true) } }
+                }
+                Toggle("Count this copy", isOn: $countUsage)
+                Text("Once a day the update check includes a random number, so Devgm can count how many copies are in use. Nothing about you or your Mac is sent.")
                     .font(.caption).foregroundStyle(.secondary)
             }
             Section("Edit with AI and video") {

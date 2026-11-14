@@ -194,3 +194,40 @@ final class FortefileTests: XCTestCase {
         XCTAssertEqual(x?.absoluteString, "https://twitter.com/intent/tweet?url=https%3A%2F%2Ffortefile.com%2Ff%2Fa%23k-1")
     }
 }
+
+final class ReleasesTests: XCTestCase {
+    /// A manifest signed the way the publish tool signs: ECDSA P-256 over the payload, 64-byte raw signature.
+    func signed(_ payload: String, with key: P256.Signing.PrivateKey) -> Data {
+        let signature = try! key.signature(for: Data(payload.utf8)).rawRepresentation.base64EncodedString()
+        return try! JSONSerialization.data(withJSONObject: ["payload": payload, "signature": signature])
+    }
+
+    let payload = #"{"product":"LiteShot","version":"0.4.0","channel":"mac","published":"2026-11-14T12:00:00Z","notes":"Scrolling capture","files":[{"kind":"mac","name":"LiteShot-mac-0.4.0.zip","size":1234,"sha256":"ab12"}]}"#
+
+    func testAGoodSignatureIsBelieved() throws {
+        let key = P256.Signing.PrivateKey()
+        let release = try Releases.verify(signed(payload, with: key), publicKeyPEM: key.publicKey.pemRepresentation)
+        XCTAssertEqual(release, Release(version: "0.4.0", notes: "Scrolling capture", file: "LiteShot-mac-0.4.0.zip", size: 1234, sha256: "ab12"))
+    }
+
+    func testTamperedOrForeignManifestsAreNot() {
+        let key = P256.Signing.PrivateKey(), stranger = P256.Signing.PrivateKey()
+        XCTAssertThrowsError(try Releases.verify(signed(payload, with: stranger), publicKeyPEM: key.publicKey.pemRepresentation)) {
+            XCTAssertEqual($0 as? Releases.Problem, .badSignature)
+        }
+        var envelope = try! JSONSerialization.jsonObject(with: signed(payload, with: key)) as! [String: Any]
+        envelope["payload"] = payload.replacingOccurrences(of: "0.4.0", with: "9.9.9")
+        XCTAssertThrowsError(try Releases.verify(try! JSONSerialization.data(withJSONObject: envelope), publicKeyPEM: key.publicKey.pemRepresentation))
+        let windows = payload.replacingOccurrences(of: #""channel":"mac""#, with: #""channel":"stable""#)
+        XCTAssertThrowsError(try Releases.verify(signed(windows, with: key), publicKeyPEM: key.publicKey.pemRepresentation)) {
+            XCTAssertEqual($0 as? Releases.Problem, .wrongProduct)
+        }
+    }
+
+    func testTheShippedKeyLoadsAndVersionsCompare() throws {
+        XCTAssertNoThrow(try P256.Signing.PublicKey(pemRepresentation: Releases.publicKeyPEM))
+        XCTAssertTrue(Releases.isNewer("0.10.0", than: "0.9.3"))
+        XCTAssertFalse(Releases.isNewer("0.3.0", than: "0.3.0"))
+        XCTAssertFalse(Releases.isNewer("0.2.9", than: "0.3"))
+    }
+}
