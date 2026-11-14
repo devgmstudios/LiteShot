@@ -31,21 +31,25 @@ final class StubSyncNode: URLProtocol {
         case "/chat-completion":
             if (body["model"] as? String) == "nobody/no-such-model" {
                 status = 404
-                reply = ["error": ["message": "No endpoints found for nobody/no-such-model."]]
+                reply = ["error": ["message": "No endpoints found for nobody/no-such-model."]] as [String: Any]
             } else {
-                let openRouter: [String: Any] = ["id": "gen-1", "choices": [["index": 0, "message": ["role": "assistant", "content": "**Revenue** grew 24%.\n- Customers up 9%"]]]]
-                reply = ["prediction": ["id": "p1", "uid": "hidden", "status": "completed", "output": openRouter, "error": NSNull()]]
+                let message: [String: Any] = ["role": "assistant", "content": "**Revenue** grew 24%.\n- Customers up 9%"]
+                let choice: [String: Any] = ["index": 0, "message": message]
+                let openRouter: [String: Any] = ["id": "gen-1", "choices": [choice]]
+                let prediction: [String: Any] = ["id": "p1", "uid": "hidden", "status": "completed", "output": openRouter, "error": NSNull()]
+                reply = ["prediction": prediction] as [String: Any]
             }
         case "/generate":
-            reply = ["success": true, "job_id": "job-7", "status": "in_progress"]
+            reply = ["success": true, "job_id": "job-7", "status": "in_progress"] as [String: Any]
         case "/prediction-status":
             StubSyncNode.polls += 1
-            reply = StubSyncNode.polls < 2 ? ["replicate_status": "processing"] : ["replicate_status": "succeeded", "output": ["https://example.com/out.png"]]
+            let done: [String: Any] = ["replicate_status": "succeeded", "output": ["https://example.com/out.png"]]
+            reply = StubSyncNode.polls < 2 ? ["replicate_status": "processing"] as [String: Any] : done
         case "/balance":
-            reply = ["balance": "4.75"]
+            reply = ["balance": "4.75"] as [String: Any]
         default:
             status = 404
-            reply = ["error": "not found"]
+            reply = ["error": "not found"] as [String: Any]
         }
         let data = try! JSONSerialization.data(withJSONObject: reply)
         client?.urlProtocol(self, didReceive: HTTPURLResponse(url: request.url!, statusCode: status, httpVersion: nil, headerFields: ["Content-Type": "application/json"])!, cacheStoragePolicy: .notAllowed)
