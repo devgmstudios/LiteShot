@@ -65,16 +65,15 @@ public enum AICatalog {
     public static func dataURI(_ image: CGImage, maxSide: CGFloat) -> String {
         let scale = min(1, maxSide / CGFloat(max(image.width, image.height)))
         let w = max(16, Int(CGFloat(image.width) * scale)), h = max(16, Int(CGFloat(image.height) * scale))
-        let rep = NSBitmapImageRep(bitmapDataPlanes: nil, pixelsWide: w, pixelsHigh: h, bitsPerSample: 8, samplesPerPixel: 3,
-                                   hasAlpha: false, isPlanar: false, colorSpaceName: .deviceRGB, bytesPerRow: 0, bitsPerPixel: 0)!
-        NSGraphicsContext.saveGraphicsState()
-        NSGraphicsContext.current = NSGraphicsContext(bitmapImageRep: rep)
-        NSColor.white.setFill()
-        NSRect(x: 0, y: 0, width: w, height: h).fill()
-        NSGraphicsContext.current?.imageInterpolation = .high
-        NSImage(cgImage: image, size: NSSize(width: w, height: h)).draw(in: NSRect(x: 0, y: 0, width: w, height: h))
-        NSGraphicsContext.restoreGraphicsState()
-        let jpeg = rep.representation(using: .jpeg, properties: [.compressionFactor: 0.92]) ?? Data()
+        // 32-bit RGB with the alpha byte skipped: a format every Core Graphics context accepts. White under any transparency.
+        guard let ctx = CGContext(data: nil, width: w, height: h, bitsPerComponent: 8, bytesPerRow: 0, space: CGColorSpace(name: CGColorSpace.sRGB)!,
+                                  bitmapInfo: CGImageAlphaInfo.noneSkipLast.rawValue) else { return "" }
+        ctx.setFillColor(CGColor(red: 1, green: 1, blue: 1, alpha: 1))
+        ctx.fill(CGRect(x: 0, y: 0, width: w, height: h))
+        ctx.interpolationQuality = .high
+        ctx.draw(image, in: CGRect(x: 0, y: 0, width: w, height: h))
+        guard let flat = ctx.makeImage(),
+              let jpeg = NSBitmapImageRep(cgImage: flat).representation(using: .jpeg, properties: [.compressionFactor: 0.92]) else { return "" }
         return "data:image/jpeg;base64," + jpeg.base64EncodedString()
     }
 
