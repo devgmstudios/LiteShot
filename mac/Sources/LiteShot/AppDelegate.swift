@@ -32,6 +32,10 @@ final class AppDelegate: NSObject, NSApplicationDelegate, NSMenuDelegate {
         menu.addItem(toggle("Hide Personal Info", Settings.hidePersonalInfo, #selector(toggleHide)))
         menu.addItem(toggle("Magnifier", Settings.showMagnifier, #selector(toggleMagnifier)))
         menu.addItem(toggle("Open at Login", SMAppService.mainApp.status == .enabled, #selector(toggleLogin)))
+        if let recent = MainActor.assumeIsolated({ Uploads.menu() }) {
+            menu.addItem(.separator())
+            menu.addItem(recent)
+        }
         menu.addItem(NSMenuItem(title: "Settings…", action: #selector(openSettings), keyEquivalent: ","))
         if PinWindow.anyClickThrough {
             menu.addItem(.separator())
@@ -40,7 +44,7 @@ final class AppDelegate: NSObject, NSApplicationDelegate, NSMenuDelegate {
         menu.addItem(.separator())
         menu.addItem(NSMenuItem(title: "LiteShot Website", action: #selector(openSite), keyEquivalent: ""))
         menu.addItem(NSMenuItem(title: "Quit LiteShot", action: #selector(NSApplication.terminate(_:)), keyEquivalent: "q"))
-        for item in menu.items where item.action != #selector(NSApplication.terminate(_:)) { item.target = self }
+        for item in menu.items where item.action != #selector(NSApplication.terminate(_:)) && item.submenu == nil { item.target = self }
     }
 
     private func toggle(_ title: String, _ on: Bool, _ action: Selector) -> NSMenuItem {

@@ -8,6 +8,7 @@ struct SettingsView: View {
     @AppStorage("ButtonNames") private var names = false
     @AppStorage("HidePersonalInfo") private var hide = false
     @AppStorage("ShowMagnifier") private var magnifier = false
+    @AppStorage("UploadLifetime") private var lifetime = "24h"
     @AppStorage("AiChatModel") private var chatModel = AICatalog.defaultChatModel
     @AppStorage("AiEditModel") private var editModel = AICatalog.editModels[0].id
     @AppStorage("AiVideoModel") private var videoModel = AICatalog.videoModels[0].id
@@ -38,6 +39,13 @@ struct SettingsView: View {
                     .onChange(of: keywords) {
                         LiteShot.Settings.keywords = keywords.split(separator: ",").map { $0.trimmingCharacters(in: .whitespaces) }.filter { $0.count >= 2 }
                     }
+            }
+            Section("Uploads") {
+                Picker("Delete uploaded links after", selection: $lifetime) {
+                    ForEach(Fortefile.lifetimes, id: \.key) { Text($0.label).tag($0.key) }
+                }
+                Text("Uploads go to fortefile.com, encrypted on your Mac first. Delete one sooner from Recent Uploads in the menu bar.")
+                    .font(.caption).foregroundStyle(.secondary)
             }
             Section("SyncNode") {
                 SecureField("API key", text: $key, prompt: Text("SyncNode API key"))

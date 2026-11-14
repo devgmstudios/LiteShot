@@ -118,12 +118,15 @@ final class OverlayView: NSView {
              ToolButton(tip: "Find on screen", label: "Find", key: "⌘F", symbols: ["text.magnifyingglass", "magnifyingglass"],
                         isActive: { [unowned self] in self.findBar.isOpen },
                         action: { [unowned self] in self.toggleFind() })],
+            [b("Upload and copy link", "Upload", "⌘D", ["icloud.and.arrow.up"]) { [unowned self] in self.upload(.link) },
+             b("Share", "Share", nil, ["square.and.arrow.up"]) { [unowned self] in self.upload(.share) },
+             b("Search similar images", "Search", "⌘K", ["magnifyingglass"]) { [unowned self] in self.upload(.search) },
+             b("Print", "Print", "⌘P", ["printer"]) { [unowned self] in self.printImage() }],
             [b("Ask AI about it", "Ask AI", "⇧⌘A", ["bubble.left.and.text.bubble.right", "bubble.left"]) { [unowned self] in self.askAI() },
              b("Edit with AI", "AI edit", nil, ["sparkles"]) { [unowned self] in self.runAI(.edit) },
              b("Make a video", "Video", nil, ["video"]) { [unowned self] in self.runAI(.video) }],
             [b("Copy", "Copy", "⌘C", ["doc.on.doc"]) { [unowned self] in self.copyToClipboard() },
-             b("Save", "Save", "⌘S", ["square.and.arrow.down"]) { [unowned self] in self.save() },
-             b("Print", "Print", "⌘P", ["printer"]) { [unowned self] in self.printImage() }],
+             b("Save", "Save", "⌘S", ["square.and.arrow.down"]) { [unowned self] in self.save() }],
             [b("Close", "Close", "Esc", ["xmark"]) { [unowned self] in self.close() }],
         ])
     }
@@ -768,6 +771,8 @@ final class OverlayView: NSView {
             case "s": save()
             case "t": pin()
             case "p": printImage()
+            case "d": upload(.link)
+            case "k": upload(.search)
             case "z": shift ? redo() : undo()
             case "y": redo()
             case "a" where shift: askAI()
@@ -847,6 +852,13 @@ final class OverlayView: NSView {
         let s = scale
         close()
         AIRun.open(kind, image: img, scale: s)
+    }
+
+    /// Upload and copy link, Share or Search similar images, through fortefile.com.
+    func upload(_ kind: Uploads.Kind) {
+        guard let img = renderResult() else { return }
+        close()
+        Uploads.send(img, kind: kind)
     }
 
     func printImage() {

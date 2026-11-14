@@ -1,4 +1,5 @@
 import AppKit
+import CryptoKit
 import XCTest
 @testable import LiteShotCore
 
@@ -7,6 +8,8 @@ import XCTest
 final class StubSyncNode: URLProtocol {
     nonisolated(unsafe) static var requests: [[String: Any]] = []
     nonisolated(unsafe) static var polls = 0
+    nonisolated(unsafe) static var lastBody = Data()
+    nonisolated(unsafe) static var lastRequest: URLRequest?
 
     override class func canInit(with request: URLRequest) -> Bool { true }
     override class func canonicalRequest(for request: URLRequest) -> URLRequest { request }
@@ -19,11 +22,14 @@ final class StubSyncNode: URLProtocol {
             var buffer = [UInt8](repeating: 0, count: 4096)
             while stream.hasBytesAvailable { let n = stream.read(&buffer, maxLength: buffer.count); if n <= 0 { break }; data.append(buffer, count: n) }
             stream.close()
+            StubSyncNode.lastBody = data
             body = (try? JSONSerialization.jsonObject(with: data)) as? [String: Any] ?? [:]
         } else if let data = request.httpBody {
+            StubSyncNode.lastBody = data
             body = (try? JSONSerialization.jsonObject(with: data)) as? [String: Any] ?? [:]
         }
         StubSyncNode.requests.append(body)
+        StubSyncNode.lastRequest = request
         let path = request.url?.path ?? ""
         var status = 200
         var reply: Any
@@ -47,6 +53,10 @@ final class StubSyncNode: URLProtocol {
             reply = StubSyncNode.polls < 2 ? ["replicate_status": "processing"] as [String: Any] : done
         case "/balance":
             reply = ["balance": "4.75"] as [String: Any]
+        case "/api/files" where request.httpMethod == "POST":
+            reply = ["url": "https://fortefile.com/f/abc123", "id": "abc123", "deleteToken": "tok-1", "expires": "2026-11-15T12:00:00.000Z"] as [String: Any]
+        case "/api/files/abc123" where request.httpMethod == "DELETE":
+            reply = ["ok": true] as [String: Any]
         default:
             status = 404
             reply = ["error": "not found"] as [String: Any]
@@ -138,5 +148,49 @@ final class SyncNodeTests: XCTestCase {
 
     func testMarkdownBecomesPlainText() {
         XCTAssertEqual(AskAIConversation.plain("## Summary\n**Revenue** grew `24%`.\n- one\n* two\n```\ncode\n```"), "Summary\nRevenue grew 24%.\n• one\n• two\ncode")
+    }
+}
+
+final class FortefileTests: XCTestCase {
+    func testEncryptionIsWhatTheViewerExpects() throws {
+        let key = SymmetricKey(size: .bits256)
+        let plain = Data("a screenshot".utf8)
+        let sealed = try Fortefile.encrypt(plain, key: key)
+        XCTAssertEqual(sealed.count, 12 + plain.count + 16, "nonce, ciphertext, tag")
+        XCTAssertEqual(try Fortefile.decrypt(sealed, key: key), plain)
+        let raw = key.withUnsafeBytes { Data($0) }
+        XCTAssertEqual(Fortefile.fromBase64URL(Fortefile.base64URL(raw)), raw)
+        XCTAssertFalse(Fortefile.base64URL(raw).contains("="))
+    }
+
+    func testUploadEncryptsAndPutsTheKeyInTheFragment() async throws {
+        let config = URLSessionConfiguration.ephemeral
+        config.protocolClasses = [StubSyncNode.self]
+        let forte = Fortefile(session: URLSession(configuration: config))
+        let png = Data(repeating: 7, count: 500)
+        let upload = try await forte.upload(png: png, lifetimeHours: 24, encrypt: true)
+        let request = try XCTUnwrap(StubSyncNode.lastRequest)
+        XCTAssertEqual(request.value(forHTTPHeaderField: "X-Encrypted"), "1")
+        XCTAssertEqual(request.value(forHTTPHeaderField: "X-Lifetime"), "86400")
+        XCTAssertTrue(upload.url.hasPrefix("https://fortefile.com/f/abc123#"))
+        let key = try XCTUnwrap(Fortefile.fromBase64URL(String(upload.url.split(separator: "#")[1])))
+        XCTAssertEqual(key.count, 32)
+        XCTAssertNotEqual(StubSyncNode.lastBody, png, "what leaves the Mac is encrypted")
+        XCTAssertEqual(try Fortefile.decrypt(StubSyncNode.lastBody, key: SymmetricKey(data: key)), png, "and the link's key opens it")
+        XCTAssertEqual(upload.deleteToken, "tok-1")
+        try await forte.delete(upload)
+        XCTAssertEqual(StubSyncNode.lastRequest?.value(forHTTPHeaderField: "Authorization"), "Bearer tok-1")
+    }
+
+    func testSearchUploadsArePlainAndShareLinksAreEscaped() async throws {
+        let config = URLSessionConfiguration.ephemeral
+        config.protocolClasses = [StubSyncNode.self]
+        let upload = try await Fortefile(session: URLSession(configuration: config)).upload(png: Data([1, 2, 3]), lifetimeHours: 1, encrypt: false)
+        XCTAssertEqual(StubSyncNode.lastRequest?.value(forHTTPHeaderField: "X-Encrypted"), "0")
+        XCTAssertEqual(StubSyncNode.lastBody, Data([1, 2, 3]))
+        XCTAssertFalse(upload.url.contains("#"))
+        XCTAssertEqual(Fortefile.lensURL(for: upload.url)?.absoluteString, "https://lens.google.com/uploadbyurl?url=https://fortefile.com/f/abc123")
+        let x = Fortefile.shareURL(Fortefile.shareTargets[0].template, link: "https://fortefile.com/f/a#k-1")
+        XCTAssertEqual(x?.absoluteString, "https://twitter.com/intent/tweet?url=https%3A%2F%2Ffortefile.com%2Ff%2Fa%23k-1")
     }
 }
