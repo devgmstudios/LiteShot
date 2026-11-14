@@ -38,6 +38,7 @@ Neither is code-signed yet, so Windows SmartScreen will warn that the publisher 
 | Precision | Pixel loupe with coordinates and hex color (turn it on under **Settings › Capture**; press **C** to copy the color); arrow keys nudge, Shift+arrows resize, Shift draws straight lines and squares |
 | Window capture | Hover a window and click once to capture exactly that window |
 | Copy text (OCR) | Uses the OCR engine built into Windows, so it works offline |
+| Find on screen | **Ctrl+F** reads the selection (or the whole screen) and lights up every place the typed text appears as you type, the rest dimmed; Enter steps through them, Highlight marks them all. Case and accents don't matter, and if the word isn't there, related words light up in blue instead: "fish" finds salmon, trout and tuna |
 | Pin to screen | Floats a screenshot above all windows: drag it, scroll to zoom, Ctrl+scroll for opacity |
 | Last area | Ctrl+PrtScn reopens the editor on the area you used last |
 | Encrypted links that delete themselves | Uploads go to fortefile.com, Devgm's own host. Each screenshot is encrypted on your PC (AES-256-GCM) and the key lives only after the `#` in the link, which browsers never send to a server, so fortefile can't see your files. Links delete themselves after 24 hours (or 1 or 12, in Settings), and **Recent uploads › Delete now** in the tray menu removes one sooner. Search similar images is the exception: Google has to see the picture, so that upload is plain and lasts an hour |
@@ -176,5 +177,6 @@ Third-party parts:
 - **Shield blur by [FacePrivacy.ai](https://faceprivacy.ai)**, version 4.2.1, ported to C# in `src/LiteShot.Core/ShieldBlur.cs` from the reference implementation and [technical note FP-TN-01](https://faceprivacy.ai/research/shield-blur/). Shield Blur License 1.0 (MIT with attribution), © 2026 UnFind LLC.
 - **YuNet** face detector by Shiqi Yu, from the [OpenCV Zoo](https://github.com/opencv/opencv_zoo/tree/main/models/face_detection_yunet). MIT license, included in `src/LiteShot.Core/Models`.
 - **[ONNX Runtime](https://github.com/microsoft/onnxruntime)** by Microsoft, which runs YuNet. MIT license.
+- **[Open English WordNet](https://github.com/globalwordnet/english-wordnet)** 2025 by the Open English Wordnet team, derived from **Princeton WordNet**, for Find on screen's related words (`tools/related-words/build.py` makes the table). CC BY 4.0 and the WordNet License, included in `src/LiteShot/Words`.
 
 LiteShot is an independent project and isn't affiliated with Lightshot or Skillbrains.
