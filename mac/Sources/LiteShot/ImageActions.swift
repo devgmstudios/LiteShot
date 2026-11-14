@@ -12,6 +12,22 @@ enum ImageActions {
         if let png = Renderer.png(image) { pb.setData(png, forType: .png) }
     }
 
+    /// Prints the screenshot, fitted to the page and centred, landscape when it's wider than tall.
+    static func print(_ image: CGImage, scale: CGFloat) {
+        let size = CGSize(width: CGFloat(image.width) / scale, height: CGFloat(image.height) / scale)
+        let view = NSImageView(frame: CGRect(origin: .zero, size: size))
+        view.image = NSImage(cgImage: image, size: size)
+        view.imageScaling = .scaleProportionallyUpOrDown
+        let info = (NSPrintInfo.shared.copy() as? NSPrintInfo) ?? NSPrintInfo()
+        info.horizontalPagination = .fit
+        info.verticalPagination = .fit
+        info.isHorizontallyCentered = true
+        info.isVerticallyCentered = true
+        info.orientation = size.width > size.height ? .landscape : .portrait
+        NSApp.activate(ignoringOtherApps: true)
+        NSPrintOperation(view: view, printInfo: info).run()
+    }
+
     static func save(_ image: CGImage, scale: CGFloat) {
         let panel = NSSavePanel()
         let stamp = DateFormatter()

@@ -7,6 +7,7 @@ struct SettingsView: View {
     @AppStorage("BrightMode") private var bright = false
     @AppStorage("ButtonNames") private var names = false
     @AppStorage("HidePersonalInfo") private var hide = false
+    @AppStorage("ShowMagnifier") private var magnifier = false
     @AppStorage("AiChatModel") private var chatModel = AICatalog.defaultChatModel
     @AppStorage("AiEditModel") private var editModel = AICatalog.editModels[0].id
     @AppStorage("AiVideoModel") private var videoModel = AICatalog.videoModels[0].id
@@ -26,6 +27,10 @@ struct SettingsView: View {
                 Toggle("Bright mode", isOn: Binding(get: { bright }, set: { bright = $0; if $0 { names = true } }))
                 Text("Solid black toolbars with bigger white icons, and yellow for whatever is turned on.").font(.caption).foregroundStyle(.secondary)
                 Toggle("Button names", isOn: $names)
+            }
+            Section("While selecting") {
+                Toggle("Magnifier", isOn: $magnifier)
+                Text("A pixel loupe with coordinates and the color under the pointer. Press C to copy the color.").font(.caption).foregroundStyle(.secondary)
             }
             Section("Privacy") {
                 Toggle("Hide personal info on every capture", isOn: $hide)

@@ -23,6 +23,7 @@ final class OverlayView: NSView {
         case draw(from: CGPoint)
         case button(Toolbar, group: Int, index: Int)
         case palette
+        case moveShape(from: CGPoint, index: Int, start: Annotation)
     }
     private var drag: Drag = .none
     private var dragMoved = false
@@ -36,6 +37,8 @@ final class OverlayView: NSView {
     private var undoStack: [[Annotation]] = []
     private var redoStack: [[Annotation]] = []
     private var drawing: Annotation?
+    /// The drawing picked with no tool active: drag to move it, Delete to remove it, the palette recolors it.
+    private(set) var selectedShape: Int?
     private var editing: Int?
     private var counter = 1
     private var hidingPersonal = false
@@ -119,7 +122,8 @@ final class OverlayView: NSView {
              b("Edit with AI", "AI edit", nil, ["sparkles"]) { [unowned self] in self.runAI(.edit) },
              b("Make a video", "Video", nil, ["video"]) { [unowned self] in self.runAI(.video) }],
             [b("Copy", "Copy", "⌘C", ["doc.on.doc"]) { [unowned self] in self.copyToClipboard() },
-             b("Save", "Save", "⌘S", ["square.and.arrow.down"]) { [unowned self] in self.save() }],
+             b("Save", "Save", "⌘S", ["square.and.arrow.down"]) { [unowned self] in self.save() },
+             b("Print", "Print", "⌘P", ["printer"]) { [unowned self] in self.printImage() }],
             [b("Close", "Close", "Esc", ["xmark"]) { [unowned self] in self.close() }],
         ])
     }
@@ -184,6 +188,16 @@ final class OverlayView: NSView {
             for a in redactions + annotations { a.draw(screen: image, screenSize: size) }
             drawing?.draw(screen: image, screenSize: size)
             if let i = editing, i < annotations.count { drawEditor(annotations[i]) }
+            if let i = selectedShape, i < annotations.count, editing == nil {
+                let box = NSBezierPath(roundedRect: annotations[i].bounds.insetBy(dx: -5, dy: -5), xRadius: 4, yRadius: 4)
+                NSColor(white: 0, alpha: 0.45).setStroke()
+                box.lineWidth = 2
+                box.stroke()
+                box.setLineDash([4, 3], count: 2, phase: 0)
+                box.lineWidth = 1
+                NSColor.white.setStroke()
+                box.stroke()
+            }
             findBar.drawHits(in: sel)
             gc.restoreGraphicsState()
             drawFrame(sel)
@@ -208,6 +222,7 @@ final class OverlayView: NSView {
             NSColor.controlAccentColor.setStroke()
             p.stroke()
         }
+        if magnifierVisible { drawMagnifier() }
     }
 
     private var isDraggingSelection: Bool {
@@ -374,6 +389,7 @@ final class OverlayView: NSView {
 
     override func mouseMoved(with e: NSEvent) {
         mouse = point(e)
+        if Settings.showMagnifier { needsDisplay = true }
         if findBar.isOpen {
             let b = findBar.frame.contains(mouse) ? findBar.button(at: mouse) : nil
             if b != findBar.hoverButton { findBar.hoverButton = b; needsDisplay = true }
@@ -390,6 +406,7 @@ final class OverlayView: NSView {
             needsDisplay = true
         }
         if h != nil || (paletteOpen && paletteRect.contains(mouse)) { NSCursor.arrow.set() }
+        else if let sel = selection, sel.contains(mouse), tool == nil, shape(at: mouse) != nil { NSCursor.pointingHand.set() }
         else if let sel = selection, sel.contains(mouse), tool == nil { NSCursor.openHand.set() }
         else { NSCursor.crosshair.set() }
     }
@@ -411,6 +428,7 @@ final class OverlayView: NSView {
                     if let c = cell.color { color = c }
                     if let w = cell.width { lineWidth = w }
                     restyleEditedText()
+                    restyleSelectedShape(color: cell.color, width: cell.width)
                 }
                 drag = .palette
                 needsDisplay = true
@@ -436,12 +454,20 @@ final class OverlayView: NSView {
                 begin(tool, at: p)
                 return
             }
+            if sel.contains(p), let i = shape(at: p) {
+                selectedShape = i
+                drag = .moveShape(from: p, index: i, start: annotations[i])
+                needsDisplay = true
+                return
+            }
+            selectedShape = nil
             if sel.contains(p) {
                 drag = .move(from: p, start: sel)
                 NSCursor.closedHand.set()
                 return
             }
         }
+        selectedShape = nil
         drag = .select(from: p)
         if let host = host as? OverlayWindow { session?.began(on: host) }
     }
@@ -468,6 +494,15 @@ final class OverlayView: NSView {
             selection = Geometry.resize(sel, handle: handle, to: clamp(p))
         case .draw(let from):
             extendDrawing(from: from, to: p, shift: e.modifierFlags.contains(.shift))
+        case let .moveShape(from, index, start):
+            guard index < annotations.count else { return }
+            if !dragMoved {
+                guard hypot(p.x - from.x, p.y - from.y) >= 2 else { return }
+                dragMoved = true
+                undoStack.append(annotations)
+                redoStack.removeAll()
+            }
+            annotations[index] = start.moved(by: CGSize(width: p.x - from.x, height: p.y - from.y))
         default:
             return
         }
@@ -509,6 +544,26 @@ final class OverlayView: NSView {
         CGPoint(x: min(max(p.x, 0), bounds.width), y: min(max(p.y, 0), bounds.height))
     }
 
+    /// The topmost drawing under `p`, if any.
+    func shape(at p: CGPoint) -> Int? {
+        annotations.indices.reversed().first { annotations[$0].hit(p, tolerance: 5) }
+    }
+
+    /// The palette changed: the picked drawing takes the new color or size.
+    private func restyleSelectedShape(color: NSColor?, width: CGFloat?) {
+        guard editing == nil, let i = selectedShape, i < annotations.count else { return }
+        record {
+            if let color { annotations[i].color = color }
+            if let width { annotations[i].width = width }
+        }
+    }
+
+    func deleteSelectedShape() {
+        guard let i = selectedShape, i < annotations.count else { return }
+        record { annotations.remove(at: i) }
+        selectedShape = nil
+    }
+
     func clearSelection() {
         findBar.close()
         finishText()
@@ -518,6 +573,7 @@ final class OverlayView: NSView {
     }
 
     private func resetAnnotationsForNewSelection() {
+        selectedShape = nil
         guard !annotations.isEmpty || !redactions.isEmpty else { return }
         annotations.removeAll()
         redactions.removeAll()
@@ -603,6 +659,7 @@ final class OverlayView: NSView {
 
     func undo() {
         finishText()
+        selectedShape = nil
         guard let last = undoStack.popLast() else { return }
         redoStack.append(annotations)
         annotations = last
@@ -610,6 +667,7 @@ final class OverlayView: NSView {
     }
 
     func redo() {
+        selectedShape = nil
         guard let next = redoStack.popLast() else { return }
         undoStack.append(annotations)
         annotations = next
@@ -618,6 +676,7 @@ final class OverlayView: NSView {
 
     func setTool(_ t: Tool) {
         finishText()
+        selectedShape = nil
         tool = tool == t ? nil : t
         needsDisplay = true
     }
@@ -693,6 +752,10 @@ final class OverlayView: NSView {
             if e.keyCode == 53 { finishText() } else { type(e) }   // Esc finishes the text
             return true
         }
+        if (e.keyCode == 51 || e.keyCode == 117), !cmd, selectedShape != nil {   // delete, forward delete
+            deleteSelectedShape()
+            return true
+        }
         if e.keyCode == 53 {
             if findBar.isOpen { findBar.close() }
             else if paletteOpen { paletteOpen = false; needsDisplay = true }
@@ -704,6 +767,7 @@ final class OverlayView: NSView {
             case "c": shift ? copyText() : copyToClipboard()
             case "s": save()
             case "t": pin()
+            case "p": printImage()
             case "z": shift ? redo() : undo()
             case "y": redo()
             case "a" where shift: askAI()
@@ -713,6 +777,7 @@ final class OverlayView: NSView {
             }
             return true
         }
+        if key == "c", selection == nil { copyColor(); return true }
         guard selection != nil else { return false }
         switch key {
         case "p": setTool(.pen)
@@ -783,6 +848,97 @@ final class OverlayView: NSView {
         close()
         AIRun.open(kind, image: img, scale: s)
     }
+
+    func printImage() {
+        guard let img = renderResult() else { return }
+        let s = scale
+        close()
+        DispatchQueue.main.async { ImageActions.print(img, scale: s) }
+    }
+
+    /// C with nothing selected: the hex color under the pointer, to the clipboard.
+    func copyColor() {
+        guard let c = pixelColor(at: mouse) else { return }
+        let text = Self.hex(c)
+        NSPasteboard.general.clearContents()
+        NSPasteboard.general.setString(text, forType: .string)
+        HUD.show("Copied \(text)")
+    }
+
+    // MARK: - magnifier
+
+    private lazy var pixels = NSBitmapImageRep(cgImage: image)
+
+    /// The color of the screen pixel under `p` (view points).
+    func pixelColor(at p: CGPoint) -> NSColor? {
+        let x = Int(p.x * scale), y = Int(p.y * scale)
+        guard x >= 0, y >= 0, x < pixels.pixelsWide, y < pixels.pixelsHigh else { return nil }
+        return pixels.colorAt(x: x, y: y)?.usingColorSpace(.sRGB)
+    }
+
+    static func hex(_ c: NSColor) -> String {
+        String(format: "#%02X%02X%02X", Int((c.redComponent * 255).rounded()), Int((c.greenComponent * 255).rounded()), Int((c.blueComponent * 255).rounded()))
+    }
+
+    private var magnifierVisible: Bool {
+        guard Settings.showMagnifier, bounds.contains(mouse), !paletteOpen else { return false }
+        switch drag {
+        case .select, .resize: return true
+        default: return selection == nil
+        }
+    }
+
+    /// Fifteen screen pixels around the pointer, eight points each, in a round lens; coordinates and color underneath.
+    private func drawMagnifier() {
+        let cells = 15, cell: CGFloat = 8, d = CGFloat(cells) * cell, infoH: CGFloat = 26
+        var origin = CGPoint(x: mouse.x + 24, y: mouse.y + 24)
+        if origin.x + d > bounds.maxX - 4 { origin.x = mouse.x - 24 - d }
+        if origin.y + d + infoH + 8 > bounds.maxY - 4 { origin.y = mouse.y - 24 - d - infoH - 8 }
+        let lens = CGRect(origin: origin, size: CGSize(width: d, height: d))
+        let center = CGPoint(x: (mouse.x * scale).rounded(.down), y: (mouse.y * scale).rounded(.down))
+        let wanted = CGRect(x: center.x - CGFloat(cells / 2), y: center.y - CGFloat(cells / 2), width: CGFloat(cells), height: CGFloat(cells))
+        let have = wanted.intersection(CGRect(x: 0, y: 0, width: image.width, height: image.height))
+        guard let gc = NSGraphicsContext.current else { return }
+        gc.saveGraphicsState()
+        NSBezierPath(ovalIn: lens).addClip()
+        NSColor.black.setFill()
+        lens.fill()
+        if !have.isEmpty, let crop = image.cropping(to: have) {
+            let dest = CGRect(x: lens.minX + (have.minX - wanted.minX) * cell, y: lens.minY + (have.minY - wanted.minY) * cell,
+                              width: have.width * cell, height: have.height * cell)
+            gc.imageInterpolation = .none
+            NSImage(cgImage: crop, size: dest.size).draw(in: dest, from: .zero, operation: .copy, fraction: 1, respectFlipped: true, hints: nil)
+        }
+        let mid = CGRect(x: lens.minX + CGFloat(cells / 2) * cell, y: lens.minY + CGFloat(cells / 2) * cell, width: cell, height: cell)
+        NSColor.black.setStroke()
+        NSBezierPath(rect: mid.insetBy(dx: -0.5, dy: -0.5)).stroke()
+        NSColor.white.setStroke()
+        NSBezierPath(rect: mid.insetBy(dx: 0.5, dy: 0.5)).stroke()
+        gc.restoreGraphicsState()
+        let ring = NSBezierPath(ovalIn: lens.insetBy(dx: 1.5, dy: 1.5))
+        ring.lineWidth = 3
+        NSColor.white.setStroke()
+        ring.stroke()
+
+        let color = pixelColor(at: mouse) ?? .black
+        let text = "\(Int(mouse.x * scale)), \(Int(mouse.y * scale))   \(Self.hex(color))"
+        let look = ToolbarLook.current
+        let attrs: [NSAttributedString.Key: Any] = [.font: NSFont.monospacedDigitSystemFont(ofSize: look.bright ? 13 : 12, weight: .medium), .foregroundColor: NSColor.white]
+        let size = (text as NSString).size(withAttributes: attrs)
+        let pill = CGRect(x: lens.midX - (size.width + 44) / 2, y: lens.maxY + 8, width: size.width + 44, height: infoH)
+        look.panel.setFill()
+        NSBezierPath(roundedRect: pill, xRadius: infoH / 2, yRadius: infoH / 2).fill()
+        let swatch = CGRect(x: pill.minX + 10, y: pill.midY - 7, width: 14, height: 14)
+        color.setFill()
+        NSBezierPath(ovalIn: swatch).fill()
+        NSColor(white: 1, alpha: 0.6).setStroke()
+        NSBezierPath(ovalIn: swatch).stroke()
+        (text as NSString).draw(at: CGPoint(x: swatch.maxX + 8, y: pill.midY - size.height / 2), withAttributes: attrs)
+    }
+
+    /// For the self-test: put the pointer somewhere, and pick what's under it.
+    func hover(at p: CGPoint) { mouse = p }
+    func pick(at p: CGPoint) { selectedShape = shape(at: p); needsDisplay = true }
 
     func copyText() {
         guard let img = renderResult(annotated: false) else { return }

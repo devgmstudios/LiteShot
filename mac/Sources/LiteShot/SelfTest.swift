@@ -103,6 +103,41 @@ enum SelfTest {
             menuView.findBar.scanNow("salmon")
             check(menuView.findBar.hits.count == 1 && !menuView.findBar.related, "find: an exact match wins over related words")
         }
+        // Editing drawings: pick one by clicking its stroke, delete it, undo brings it back.
+        do {
+            let editing = OverlayView(frame: CGRect(origin: .zero, size: size), image: screen, windows: [window])
+            editing.select(CGRect(x: 100, y: 100, width: 800, height: 600))
+            editing.add(Annotation(.rect(CGRect(x: 200, y: 200, width: 300, height: 150)), color: Palette.colors[0], width: 4))
+            editing.add(Annotation(.arrow(CGPoint(x: 600, y: 500), CGPoint(x: 700, y: 300)), color: Palette.colors[1], width: 4))
+            editing.pick(at: CGPoint(x: 201, y: 260))
+            check(editing.selectedShape == 0, "edit: clicking a box's edge picks it")
+            editing.pick(at: CGPoint(x: 350, y: 270))
+            check(editing.selectedShape == nil, "edit: inside the box is free for other clicks")
+            editing.pick(at: CGPoint(x: 650, y: 400))
+            check(editing.selectedShape == 1, "edit: clicking the arrow picks it")
+            save(editing, folder.appendingPathComponent("mac-10-picked.png"))
+            editing.deleteSelectedShape()
+            check(editing.annotations.count == 1, "edit: Delete removes the picked drawing")
+            editing.undo()
+            check(editing.annotations.count == 2, "edit: undo brings it back")
+        }
+
+        // The magnifier, and the color under the pointer: the document window is white.
+        do {
+            LiteShot.Settings.showMagnifier = true
+            defer { LiteShot.Settings.showMagnifier = false }
+            let loupe = OverlayView(frame: CGRect(origin: .zero, size: size), image: screen, windows: [window])
+            loupe.hover(at: CGPoint(x: window.minX + 400, y: window.minY + 420))
+            check(loupe.pixelColor(at: CGPoint(x: window.minX + 400, y: window.minY + 420)).map(OverlayView.hex) == "#FFFFFF", "loupe: reads the white page as #FFFFFF")
+            save(loupe, folder.appendingPathComponent("mac-11-magnifier.png"))
+        }
+
+        // Pins turn: a quarter turn swaps width and height, a flip keeps them.
+        if let wide = desktop(size: CGSize(width: 40, height: 20), scale: 1, window: CGRect(x: 2, y: 2, width: 30, height: 10)) {
+            let r = PinWindow.turned(wide, .right), f = PinWindow.turned(wide, .horizontal)
+            check(r?.width == 20 && r?.height == 40 && f?.width == 40 && f?.height == 20, "pin: rotating swaps the sides, flipping doesn't")
+        }
+
         // The new windows, drawn for a look: settings, the Ask AI chat and Edit with AI.
         MainActor.assumeIsolated {
             snapshot(SettingsView(), size: CGSize(width: 560, height: 900), to: folder.appendingPathComponent("mac-7-settings.png"))

@@ -44,6 +44,32 @@ final class PersonalInfoTests: XCTestCase {
     }
 }
 
+final class EditingTests: XCTestCase {
+    func testClicksLandOnStrokesTextAndBlocks() {
+        let box = Annotation(.rect(CGRect(x: 100, y: 100, width: 200, height: 100)), color: .red, width: 4)
+        XCTAssertTrue(box.hit(CGPoint(x: 101, y: 150), tolerance: 4), "on the left edge")
+        XCTAssertFalse(box.hit(CGPoint(x: 200, y: 150), tolerance: 4), "inside a box is free for other clicks")
+        let arrow = Annotation(.arrow(CGPoint(x: 0, y: 0), CGPoint(x: 100, y: 100)), color: .red, width: 4)
+        XCTAssertTrue(arrow.hit(CGPoint(x: 52, y: 48), tolerance: 4))
+        XCTAssertFalse(arrow.hit(CGPoint(x: 80, y: 20), tolerance: 4))
+        let ring = Annotation(.ellipse(CGRect(x: 0, y: 0, width: 200, height: 100)), color: .red, width: 4)
+        XCTAssertTrue(ring.hit(CGPoint(x: 100, y: 1), tolerance: 4), "top of the ellipse")
+        XCTAssertFalse(ring.hit(CGPoint(x: 100, y: 50), tolerance: 4), "its middle")
+        let label = Annotation(.text("Hello", at: CGPoint(x: 10, y: 10), size: 20), color: .red, width: 3)
+        XCTAssertTrue(label.hit(CGPoint(x: 20, y: 20), tolerance: 2))
+    }
+
+    func testMovingKeepsTheShape() {
+        let pen = Annotation(.pen([CGPoint(x: 0, y: 0), CGPoint(x: 10, y: 5)]), color: .red, width: 3).moved(by: CGSize(width: 5, height: -2))
+        guard case let .pen(ps) = pen.kind else { return XCTFail("still a pen") }
+        XCTAssertEqual(ps, [CGPoint(x: 5, y: -2), CGPoint(x: 15, y: 3)])
+        let blur = Annotation(.pixelate(CGRect(x: 1, y: 2, width: 3, height: 4), oval: true), color: .red, width: 3).moved(by: CGSize(width: 10, height: 10))
+        guard case let .pixelate(r, oval) = blur.kind else { return XCTFail("still pixelated") }
+        XCTAssertEqual(r, CGRect(x: 11, y: 12, width: 3, height: 4))
+        XCTAssertTrue(oval)
+    }
+}
+
 final class TextFinderTests: XCTestCase {
     func found(_ query: String, in line: String) -> [String] { TextFinder.ranges(of: query, in: line).map { String(line[$0]) } }
 

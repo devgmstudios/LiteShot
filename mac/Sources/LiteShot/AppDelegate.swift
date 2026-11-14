@@ -30,8 +30,13 @@ final class AppDelegate: NSObject, NSApplicationDelegate, NSMenuDelegate {
         menu.addItem(toggle("Bright Mode", Settings.brightMode, #selector(toggleBright)))
         menu.addItem(toggle("Button Names", Settings.buttonNames, #selector(toggleNames)))
         menu.addItem(toggle("Hide Personal Info", Settings.hidePersonalInfo, #selector(toggleHide)))
+        menu.addItem(toggle("Magnifier", Settings.showMagnifier, #selector(toggleMagnifier)))
         menu.addItem(toggle("Open at Login", SMAppService.mainApp.status == .enabled, #selector(toggleLogin)))
         menu.addItem(NSMenuItem(title: "Settings…", action: #selector(openSettings), keyEquivalent: ","))
+        if PinWindow.anyClickThrough {
+            menu.addItem(.separator())
+            menu.addItem(NSMenuItem(title: "Make Pins Clickable", action: #selector(makePinsClickable), keyEquivalent: ""))
+        }
         menu.addItem(.separator())
         menu.addItem(NSMenuItem(title: "LiteShot Website", action: #selector(openSite), keyEquivalent: ""))
         menu.addItem(NSMenuItem(title: "Quit LiteShot", action: #selector(NSApplication.terminate(_:)), keyEquivalent: "q"))
@@ -57,6 +62,8 @@ final class AppDelegate: NSObject, NSApplicationDelegate, NSMenuDelegate {
 
     @objc private func toggleNames() { Settings.buttonNames.toggle() }
     @objc private func toggleHide() { Settings.hidePersonalInfo.toggle() }
+    @objc private func toggleMagnifier() { Settings.showMagnifier.toggle() }
+    @objc private func makePinsClickable() { PinWindow.makeAllClickable() }
 
     @objc private func toggleLogin() {
         let service = SMAppService.mainApp

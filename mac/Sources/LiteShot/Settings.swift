@@ -17,6 +17,12 @@ enum Settings {
         set { defaults.set(newValue, forKey: "ButtonNames") }
     }
 
+    /// A pixel loupe with coordinates and the color under the pointer, while selecting. C copies the color.
+    static var showMagnifier: Bool {
+        get { defaults.bool(forKey: "ShowMagnifier") }
+        set { defaults.set(newValue, forKey: "ShowMagnifier") }
+    }
+
     /// Hide personal info on every capture until it's switched off (H in the editor).
     static var hidePersonalInfo: Bool {
         get { defaults.bool(forKey: "HidePersonalInfo") }

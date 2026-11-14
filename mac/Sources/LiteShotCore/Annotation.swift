@@ -54,6 +54,57 @@ public struct Annotation {
         }
     }
 
+    /// Whether a click at `p` lands on the drawing: on the stroke of lines, boxes and circles (so a click inside a box
+    /// can still start something else), anywhere on text, numbers and pixelation.
+    public func hit(_ p: CGPoint, tolerance: CGFloat) -> Bool {
+        let reach = width / 2 + tolerance
+        switch kind {
+        case .pen(let ps): return Annotation.near(p, ps, reach)
+        case .marker(let ps): return Annotation.near(p, ps, max(14, width * 5) / 2 + tolerance)
+        case .line(let a, let b), .arrow(let a, let b): return Annotation.near(p, [a, b], reach)
+        case .rect(let r):
+            return r.insetBy(dx: -reach, dy: -reach).contains(p) && !r.insetBy(dx: reach, dy: reach).contains(p)
+        case .ellipse(let r):
+            guard r.width > 0, r.height > 0 else { return false }
+            // How far out the point is, in units of the radius, compared at the ellipse's edge.
+            let dx = (p.x - r.midX) / (r.width / 2), dy = (p.y - r.midY) / (r.height / 2)
+            let d = (dx * dx + dy * dy).squareRoot()
+            return abs(d - 1) * min(r.width, r.height) / 2 <= reach
+        case .text, .counter, .pixelate:
+            return bounds.insetBy(dx: -tolerance, dy: -tolerance).contains(p)
+        }
+    }
+
+    /// The same drawing shifted by `d`.
+    public func moved(by d: CGSize) -> Annotation {
+        func m(_ p: CGPoint) -> CGPoint { CGPoint(x: p.x + d.width, y: p.y + d.height) }
+        var copy = self
+        switch kind {
+        case .pen(let ps): copy.kind = .pen(ps.map(m))
+        case .marker(let ps): copy.kind = .marker(ps.map(m))
+        case .line(let a, let b): copy.kind = .line(m(a), m(b))
+        case .arrow(let a, let b): copy.kind = .arrow(m(a), m(b))
+        case .rect(let r): copy.kind = .rect(r.offsetBy(dx: d.width, dy: d.height))
+        case .ellipse(let r): copy.kind = .ellipse(r.offsetBy(dx: d.width, dy: d.height))
+        case .text(let s, let at, let size): copy.kind = .text(s, at: m(at), size: size)
+        case .counter(let n, let at): copy.kind = .counter(n, at: m(at))
+        case .pixelate(let r, let oval): copy.kind = .pixelate(r.offsetBy(dx: d.width, dy: d.height), oval: oval)
+        }
+        return copy
+    }
+
+    /// Whether `p` is within `reach` of the polyline through `ps`.
+    static func near(_ p: CGPoint, _ ps: [CGPoint], _ reach: CGFloat) -> Bool {
+        guard let first = ps.first else { return false }
+        if ps.count == 1 { return hypot(p.x - first.x, p.y - first.y) <= reach }
+        for (a, b) in zip(ps, ps.dropFirst()) {
+            let dx = b.x - a.x, dy = b.y - a.y, l2 = dx * dx + dy * dy
+            let t = l2 == 0 ? 0 : max(0, min(1, ((p.x - a.x) * dx + (p.y - a.y) * dy) / l2))
+            if hypot(p.x - (a.x + t * dx), p.y - (a.y + t * dy)) <= reach { return true }
+        }
+        return false
+    }
+
     /// Draws into the current (flipped) graphics context. `screen` is the frozen capture, whose size in
     /// points is `screenSize`; pixelation reads from it.
     public func draw(screen: CGImage, screenSize: CGSize) {
