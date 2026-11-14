@@ -79,6 +79,10 @@ internal static class Ui
 
     public static Color WithAlpha(Color c, int alpha) => Color.FromArgb(Math.Clamp(alpha, 0, 255), c.R, c.G, c.B);
 
+    /// <summary><paramref name="a"/> moved <paramref name="t"/> of the way to <paramref name="b"/>, as an opaque color.</summary>
+    public static Color Blend(Color a, Color b, float t) => Color.FromArgb(
+        (int)(a.R + (b.R - a.R) * t), (int)(a.G + (b.G - a.G) * t), (int)(a.B + (b.B - a.B) * t));
+
     public static double Luminance(Color c) => (0.2126 * c.R + 0.7152 * c.G + 0.0722 * c.B) / 255.0;
 
     public static Rectangle Outer(RectangleF r, int pad) => Rectangle.FromLTRB(

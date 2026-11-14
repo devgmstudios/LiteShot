@@ -43,6 +43,8 @@ internal sealed class AppSettings
     public string AiVideoCustomModel { get; set; } = "";
     public string AiVideoCustomField { get; set; } = "image";
     public int AiVideoDuration { get; set; } = 5;
+    /// <summary>The OpenRouter model Ask AI talks to (see <see cref="AskAi.Models"/>); any OpenRouter ID that reads images.</summary>
+    public string AiChatModel { get; set; } = AskAi.DefaultModel;
     public List<string> AiEditPrompts { get; set; } = new();
     public List<string> AiVideoPrompts { get; set; } = new();
 

@@ -28,6 +28,8 @@ internal static class Program
         Application.SetHighDpiMode(HighDpiMode.PerMonitorV2);
         if (args.Contains("--live-scroll")) { LiveScrollCheck.Run(outDir, Check); return failures == 0 ? 0 : 1; }
         if (args.Contains("--scroll")) { ScrollingCapture.Run(outDir, Check); return failures == 0 ? 0 : 1; }
+        if (args.Contains("--ask")) { AskAiChecks.Run(outDir, Check); return failures == 0 ? 0 : 1; }
+        if (args.Contains("--ask-live")) { AskAiChecks.Live(Check); return failures == 0 ? 0 : 1; }
         if (args.Contains("--find"))
         {
             using var d = SyntheticDesktop(SystemInformation.VirtualScreen.Size);
@@ -134,6 +136,9 @@ internal static class Program
 
         // 7a2. Find on screen: OCR the selection, light up every match, step through them, highlight them all.
         FindOnScreen(desktop, virt, windows, a, b);
+
+        // 7a3. Ask AI, against a stand-in for SyncNode.
+        AskAiChecks.Run(outDir, Check);
 
         // 7b. Output paths: OCR with the Windows engine, saving, file naming, pinning.
         using (var doc = desktop.Clone(LightWindow(virt.Size), PixelFormat.Format32bppArgb))

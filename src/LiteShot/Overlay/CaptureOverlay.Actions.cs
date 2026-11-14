@@ -137,6 +137,15 @@ internal sealed partial class CaptureOverlay
         host.Pin(img, location);
     }
 
+    /// <summary>Ask AI: the finished screenshot goes to a chat window, and the capture closes.</summary>
+    void AskAi()
+    {
+        if (!hasSel || closing) return;
+        var img = RenderResult();
+        Finish();
+        host.AskAi(img);
+    }
+
     void DoOcr()
     {
         if (!hasSel || closing) return;

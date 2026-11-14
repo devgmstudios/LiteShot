@@ -340,6 +340,26 @@ internal static class Icons
         g.DrawLine(p, 8.2f, 15, 12.6f, 15);
     }
 
+    /// <summary>bubble.left with a sparkle: Ask AI</summary>
+    public static void AskAi(Graphics g, Pen p, Brush f)
+    {
+        using (var bubble = new GraphicsPath())
+        {
+            bubble.AddArc(3, 4, 6, 6, 180, 90);
+            bubble.AddArc(15, 4, 6, 6, 270, 90);
+            bubble.AddArc(15, 11, 6, 6, 0, 90);
+            bubble.AddLine(18, 17, 10.5f, 17);
+            bubble.AddLine(10.5f, 17, 6.5f, 20.5f);
+            bubble.AddLine(6.5f, 20.5f, 6.8f, 17);
+            bubble.AddArc(3, 11, 6, 6, 90, 90);
+            bubble.CloseFigure();
+            g.DrawPath(p, bubble);
+        }
+        using var star = new GraphicsPath();
+        star.AddPolygon(P(12, 7.2f, 12.9f, 9.8f, 15.5f, 10.7f, 12.9f, 11.6f, 12, 14.2f, 11.1f, 11.6f, 8.5f, 10.7f, 11.1f, 9.8f));
+        g.FillPath(f, star);
+    }
+
     /// <summary>text.magnifyingglass</summary>
     public static void FindText(Graphics g, Pen p, Brush f)
     {

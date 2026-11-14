@@ -346,7 +346,7 @@ internal sealed class SettingsForm : Form
                 "Uploads go to fortefile.com, encrypted on your PC first. Delete one sooner from Recent uploads in the tray menu.", lifetime, wide: true)));
 
         // SyncNode key: stored encrypted for this Windows user; Check shows the balance.
-        string keyHelp = "No key saved. Get one at syncnode.ai/api_keys and save your Replicate token there too.";
+        string keyHelp = "No key saved. Get one at syncnode.ai/api_keys, and save your Replicate token (edits, videos) and OpenRouter key (Ask AI) there too.";
         string Saved() => $"✓ Saved, ending in {AiService.KeyHint} · encrypted for your Windows account. Check shows your balance.";
         string keyStatus = AiService.HasKey ? Saved() : keyHelp;
         SettingRow? keyRow = null;
@@ -394,6 +394,42 @@ internal sealed class SettingsForm : Form
         add(Section("SyncNode"));
         add(new Card(theme).Add(keyRow));
 
+        // Ask AI: an OpenRouter model ID, typed or picked from the ones that read images.
+        var chatModel = new FieldBox(theme);
+        chatModel.Box.Text = AskAi.ModelId;
+        Native.SetCueBanner(chatModel.Box, AskAi.DefaultModel);
+        SettingRow? chatRow = null;
+        string ChatNote() => AskAi.Models.FirstOrDefault(m => m.Id == AskAi.ModelId) is { } known
+            ? $"{known.Note}. Any OpenRouter model that reads images works."
+            : "A custom OpenRouter model; it has to read images to see the screenshot.";
+        chatModel.Box.TextChanged += (_, _) =>
+        {
+            Settings.AiChatModel = chatModel.Box.Text.Trim().Length > 0 ? chatModel.Box.Text.Trim() : AskAi.DefaultModel;
+            Changed();
+            chatRow?.RefreshText();
+        };
+        var choose = new PillButton(theme, "Choose…", 100);
+        choose.Click += (_, _) =>
+        {
+            var menu = new ContextMenuStrip { Renderer = new ModernMenuRenderer(), ShowImageMargin = false };
+            foreach (var m in AskAi.Models)
+            {
+                var item = new ToolStripMenuItem($"{m.Label}  ·  {m.Note}") { Checked = m.Id == AskAi.ModelId, Padding = new Padding(4, 3, 4, 3) };
+                item.Click += (_, _) => chatModel.Box.Text = m.Id;
+                menu.Items.Add(item);
+            }
+            menu.Items.Add(new ToolStripSeparator());
+            var all = new ToolStripMenuItem("All models that read images, on OpenRouter…") { Padding = new Padding(4, 3, 4, 3) };
+            all.Click += (_, _) => ImageOutput.OpenUrl("https://openrouter.ai/models?input_modalities=image");
+            menu.Items.Add(all);
+            ModernMenuRenderer.Attach(menu);
+            menu.Closed += (_, _) => BeginInvoke(new Action(menu.Dispose));
+            menu.Show(choose, new Point(0, choose.Height + 4));
+        };
+        chatRow = new SettingRow(theme, "Model", ChatNote, new FlowRow(theme, chatModel, choose), wide: true);
+        add(Section("Ask AI"));
+        add(new Card(theme).Add(chatRow));
+
         Control CustomRow(Func<string> getModel, Action<string> setModel, Func<string> getField, Action<string> setField)
         {
             var model = new FieldBox(theme);
@@ -433,7 +469,7 @@ internal sealed class SettingsForm : Form
             .Add(new SettingRow(theme, "Length", "Seedance and Kling support 5 or 10 seconds.", length))
             .Add(new SettingRow(theme, "Custom Replicate model", "Used when Custom is chosen: the model, and the name of its image input.",
                 CustomRow(() => Settings.AiVideoCustomModel, v => Settings.AiVideoCustomModel = v, () => Settings.AiVideoCustomField, v => Settings.AiVideoCustomField = v), wide: true)));
-        add(Note("Each run costs $0.02 on SyncNode plus the model's price on your Replicate account. The screenshot is sent inside the request; it's never posted publicly."));
+        add(Note("Edits and videos cost $0.02 a run on SyncNode plus the model's price on your Replicate account; each Ask AI message costs $0.02 plus the model's price on your OpenRouter account. The screenshot is sent inside the request; it's never posted publicly."));
         return page;
     }
 

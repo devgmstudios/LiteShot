@@ -434,6 +434,21 @@ internal sealed class TrayApp : ApplicationContext
         }
     }
 
+    /// <summary>Opens a chat about the screenshot (Ask AI); without a SyncNode key, points to where to add one.</summary>
+    public void AskAi(Bitmap image)
+    {
+        if (!AiService.HasKey)
+        {
+            image.Dispose();
+            Notify("Connect SyncNode first", "Add your SyncNode API key to ask AI about your screenshots.", force: true);
+            ShowSettings(SettingsForm.CloudPage);
+            return;
+        }
+        var form = new AskAiForm(image);
+        form.Show();
+        form.Activate();
+    }
+
     public void Pin(Bitmap image, Point screenLocation)
     {
         var pin = new PinForm(image, screenLocation);

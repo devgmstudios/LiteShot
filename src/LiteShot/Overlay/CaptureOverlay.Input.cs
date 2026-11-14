@@ -600,6 +600,9 @@ internal sealed partial class CaptureOverlay
             case Keys.F3:
                 OpenFind();
                 return true;
+            case Keys.Control | Keys.Shift | Keys.A:
+                if (hasSel) AskAi();
+                return true;
             case Keys.Control | Keys.Z:
                 Undo();
                 return true;

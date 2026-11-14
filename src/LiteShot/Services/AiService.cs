@@ -167,7 +167,7 @@ internal static class AiService
         return input;
     }
 
-    static string ToDataUri(Bitmap image, int maxSide)
+    internal static string ToDataUri(Bitmap image, int maxSide)
     {
         float scale = Math.Min(1f, maxSide / (float)Math.Max(image.Width, image.Height));
         int w = Math.Max(16, (int)(image.Width * scale)), h = Math.Max(16, (int)(image.Height * scale));
@@ -195,6 +195,10 @@ internal static class AiService
             return "Your SyncNode balance is empty. Top up at syncnode.ai/billing.";
         if (msg.Contains("replicate", StringComparison.OrdinalIgnoreCase) && msg.Contains("key", StringComparison.OrdinalIgnoreCase))
             return "Add your Replicate token under Connected Provider Credentials at syncnode.ai/api_keys.";
+        if (msg.Contains("openrouter", StringComparison.OrdinalIgnoreCase) && msg.Contains("key", StringComparison.OrdinalIgnoreCase))
+            return "Add your OpenRouter key under Connected Provider Credentials at syncnode.ai/api_keys.";
+        if (msg.Contains("not a valid model", StringComparison.OrdinalIgnoreCase) || msg.Contains("No endpoints found", StringComparison.OrdinalIgnoreCase))
+            return "OpenRouter doesn't know that model, or it can't read images. Pick another in Settings › Cloud & AI.";
         if (ex is SyncNodeException { Status: 401 } || msg.Contains("Unauthorized", StringComparison.OrdinalIgnoreCase) || msg.Contains("Invalid API key", StringComparison.OrdinalIgnoreCase))
             return "SyncNode didn't accept the API key. Check it in Settings › Cloud & AI.";
         if (ex is HttpRequestException) return "Couldn't reach SyncNode. Check your internet connection.";

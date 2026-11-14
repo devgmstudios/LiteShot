@@ -56,7 +56,8 @@ internal sealed partial class CaptureOverlay
                 B("Print", "Ctrl+P", Icons.Print, DoPrint))
             .Group(
                 aiEditButton = B("Edit with AI", "SyncNode", Icons.Sparkles, () => OpenAiPrompt(AiKind.Edit), "AI edit"),
-                aiVideoButton = B("Make a video", "SyncNode", Icons.Video, () => OpenAiPrompt(AiKind.Video), "Video"))
+                aiVideoButton = B("Make a video", "SyncNode", Icons.Video, () => OpenAiPrompt(AiKind.Video), "Video"),
+                B("Ask AI about it", "Ctrl+Shift+A", Icons.AskAi, AskAi, "Ask AI"))
             .Group(
                 B("Pin to screen", "Ctrl+T", Icons.Pin, DoPin, "Pin"),
                 B("Copy text (OCR)", "Ctrl+Shift+C", Icons.Ocr, DoOcr, "Copy text"),

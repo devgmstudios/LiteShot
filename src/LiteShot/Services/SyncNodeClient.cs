@@ -10,12 +10,13 @@ internal sealed class SyncNodeException : Exception
 }
 
 /// <summary>
-/// Thin client for SyncNode (run.syncnode.ai), which routes the call to Replicate with the user's own
-/// provider credentials. Generation is asynchronous: submit, then poll the job until it finishes.
+/// Thin client for SyncNode (run.syncnode.ai), which routes the call to Replicate or OpenRouter with the user's own
+/// provider credentials. Generation is asynchronous: submit, then poll the job until it finishes. Chat answers at once.
 /// </summary>
 internal static class SyncNodeClient
 {
-    const string Base = "https://run.syncnode.ai";
+    /// <summary>SyncNode's address; the harness points it at a local stand-in so tests never spend real credit.</summary>
+    internal static string Base { get; set; } = "https://run.syncnode.ai";
     static readonly HttpClient Http = CreateClient();
 
     static HttpClient CreateClient()
@@ -68,6 +69,58 @@ internal static class SyncNodeClient
             await Task.Delay(delay, ct);
             delay = Math.Min(4000, delay + 500);
         }
+    }
+
+    /// <summary>
+    /// One chat turn through SyncNode → OpenRouter: the whole conversation goes up, the model's reply comes back.
+    /// </summary>
+    /// <summary>The raw JSON of the last chat reply, for the harness's live check.</summary>
+    internal static string? LastChatReply { get; private set; }
+
+    public static async Task<string> ChatAsync(string apiKey, string model, IReadOnlyList<object> messages, CancellationToken ct)
+    {
+        var payload = JsonSerializer.Serialize(new Dictionary<string, object>
+        {
+            ["apiKey"] = apiKey, ["model"] = model, ["messages"] = messages, ["max_tokens"] = 1500,
+        });
+        using var response = await Http.PostAsync(Base + "/chat-completion", new StringContent(payload, Encoding.UTF8, "application/json"), ct);
+        using var doc = await ReadJson(response, ct);
+        var root = doc.RootElement;
+        LastChatReply = root.GetRawText();
+        // SyncNode files the call as a prediction and puts OpenRouter's reply in its output: {"prediction": {"output": {"choices": …}}}.
+        // Read that, or a bare OpenRouter reply.
+        if (AnswerIn(root) is string answer) return answer;
+        if (root.TryGetProperty("prediction", out var prediction) && ErrorText(prediction, onlyErrorFields: true) is string failed)
+            throw new SyncNodeException(failed);
+        throw new SyncNodeException("The model didn't answer. Try again, or pick another model in Settings › Cloud & AI.");
+    }
+
+    /// <summary>The first choice's text in an OpenRouter reply, looking inside SyncNode's wrapper (output may also be a JSON string).</summary>
+    static string? AnswerIn(JsonElement e, int depth = 0)
+    {
+        if (depth > 3) return null;
+        if (e.ValueKind == JsonValueKind.String && e.GetString() is { } s && s.TrimStart().StartsWith('{'))
+        {
+            try
+            {
+                using var inner = JsonDocument.Parse(s);
+                return AnswerIn(inner.RootElement, depth + 1);
+            }
+            catch (JsonException) { return null; }
+        }
+        if (e.ValueKind != JsonValueKind.Object) return null;
+        if (e.TryGetProperty("choices", out var choices) && choices.ValueKind == JsonValueKind.Array && choices.GetArrayLength() > 0
+            && choices[0].TryGetProperty("message", out var message) && message.TryGetProperty("content", out var content))
+        {
+            // Content is a string, or (for some models) a list of parts.
+            string text = content.ValueKind == JsonValueKind.String ? content.GetString() ?? ""
+                : content.ValueKind == JsonValueKind.Array ? string.Concat(content.EnumerateArray().Select(p => Text(p, "text") ?? ""))
+                : "";
+            return text.Trim().Length > 0 ? text.Trim() : null;
+        }
+        foreach (var name in new[] { "prediction", "output", "data", "result" })
+            if (e.TryGetProperty(name, out var child) && AnswerIn(child, depth + 1) is string found) return found;
+        return null;
     }
 
     public static async Task<decimal?> BalanceAsync(string apiKey, CancellationToken ct = default)
