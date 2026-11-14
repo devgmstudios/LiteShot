@@ -231,3 +231,60 @@ final class RendererTests: XCTestCase {
         XCTAssertLessThan(abs(Int(a) - Int(b)), 40, "neighbouring stripes look alike once pixelated")
     }
 }
+
+final class ScrollStitcherTests: XCTestCase {
+    /// A tall page with a different pattern on every few rows, like lines of text.
+    func page(width: Int, height: Int) -> CGImage {
+        let ctx = CGContext(data: nil, width: width, height: height, bitsPerComponent: 8, bytesPerRow: 0, space: CGColorSpace(name: CGColorSpace.sRGB)!,
+                            bitmapInfo: CGImageAlphaInfo.premultipliedFirst.rawValue | CGBitmapInfo.byteOrder32Little.rawValue)!
+        ctx.setFillColor(CGColor(red: 1, green: 1, blue: 1, alpha: 1))
+        ctx.fill(CGRect(x: 0, y: 0, width: width, height: height))
+        var seed: UInt64 = 42
+        func next() -> CGFloat { seed = seed &* 6364136223846793005 &+ 1442695040888963407; return CGFloat(seed >> 33) / CGFloat(UInt64(1) << 31) }
+        for line in stride(from: 0, to: height, by: 7) {
+            var x: CGFloat = 8
+            while x < CGFloat(width - 20) {
+                let w = 4 + next() * 30
+                ctx.setFillColor(CGColor(red: next(), green: next() * 0.5, blue: next(), alpha: 1))
+                // Flipped: CG's y grows upward, so line 0 is at the top of the image.
+                ctx.fill(CGRect(x: x, y: CGFloat(height - line - 5), width: w, height: 5))
+                x += w + 3 + next() * 6
+            }
+        }
+        return ctx.makeImage()!
+    }
+
+    func crop(_ image: CGImage, top: Int, height: Int) -> CGImage { image.cropping(to: CGRect(x: 0, y: top, width: image.width, height: height))! }
+
+    func testFramesStitchBackIntoThePage() throws {
+        let tall = page(width: 320, height: 1500)
+        let stitcher = ScrollStitcher()
+        for top in stride(from: 0, through: 1100, by: 110) {
+            let step = stitcher.add(crop(tall, top: top, height: 400))
+            XCTAssertTrue(step == .added, "frame at \(top) was \(step)")
+        }
+        XCTAssertEqual(stitcher.add(crop(tall, top: 1100, height: 400)), .same, "the end of the page")
+        let out = try XCTUnwrap(stitcher.compose())
+        XCTAssertEqual(out.height, 1500)
+        XCTAssertEqual(ScrollStitcher.pixels(out), ScrollStitcher.pixels(tall), "pixel for pixel")
+    }
+
+    func testAStickyHeaderAppearsOnce() throws {
+        let tall = page(width: 320, height: 1200)
+        let stitcher = ScrollStitcher()
+        func frame(_ top: Int) -> CGImage {
+            let ctx = CGContext(data: nil, width: 320, height: 400, bitsPerComponent: 8, bytesPerRow: 0, space: CGColorSpace(name: CGColorSpace.sRGB)!,
+                                bitmapInfo: CGImageAlphaInfo.premultipliedFirst.rawValue | CGBitmapInfo.byteOrder32Little.rawValue)!
+            ctx.draw(crop(tall, top: top, height: 400), in: CGRect(x: 0, y: 0, width: 320, height: 400))
+            ctx.setFillColor(CGColor(red: 0.1, green: 0.2, blue: 0.6, alpha: 1))
+            ctx.fill(CGRect(x: 0, y: 360, width: 320, height: 40))   // the top 40 rows
+            ctx.setFillColor(CGColor(red: 1, green: 1, blue: 1, alpha: 1))
+            ctx.fill(CGRect(x: 20, y: 372, width: 90, height: 14))
+            return ctx.makeImage()!
+        }
+        for top in stride(from: 0, through: 800, by: 100) { _ = stitcher.add(frame(top)) }
+        XCTAssertEqual(stitcher.header, 40)
+        let out = try XCTUnwrap(stitcher.compose())
+        XCTAssertEqual(out.height, 1200, "the header once, then the page")
+    }
+}

@@ -113,6 +113,7 @@ final class OverlayView: NSView {
             ToolButton(tip: tip, label: label, key: key, symbols: symbols, action: action)
         }
         return Toolbar(vertical: false, groups: [
+            [b("Scrolling capture", "Scroll", "S", ["arrow.down.doc", "scroll"]) { [unowned self] in self.startScrollCapture() }],
             [b("Pin to screen", "Pin", "⌘T", ["pin"]) { [unowned self] in self.pin() },
              b("Copy text", "Copy text", "⇧⌘C", ["text.viewfinder"]) { [unowned self] in self.copyText() },
              ToolButton(tip: "Find on screen", label: "Find", key: "⌘F", symbols: ["text.magnifyingglass", "magnifyingglass"],
@@ -134,7 +135,7 @@ final class OverlayView: NSView {
     private var bars: [Toolbar] { selection == nil ? [] : textBarVisible ? [tools, actions, textBar] : [tools, actions] }
 
     /// Where the Find button is, for anchoring the find bar under it.
-    var findButtonFrame: CGRect { actions.buttonFrames.first.flatMap { $0.count > 2 ? $0[2] : nil } ?? actions.frame }
+    var findButtonFrame: CGRect { actions.buttonFrames.count > 1 && actions.buttonFrames[1].count > 2 ? actions.buttonFrames[1][2] : actions.frame }
 
     /// Lightshot's layout: tools to the right of the selection (bottom-aligned), actions below it (right-aligned).
     func layoutBars() {
@@ -944,6 +945,7 @@ final class OverlayView: NSView {
         case "n": setTool(.counter)
         case "b": setTool(.pixelate)
         case "f": blurFaces()
+        case "s": startScrollCapture()
         case "h": toggleHidePersonal()
         default:
             if e.keyCode == 36 || e.keyCode == 76 { copyToClipboard(); return true }   // Return copies, like double-clicking
@@ -1001,6 +1003,14 @@ final class OverlayView: NSView {
         let s = scale
         close()
         AIRun.open(kind, image: img, scale: s)
+    }
+
+    /// Scrolling capture over the selection: the overlay goes away and the page under it is scrolled and stitched.
+    func startScrollCapture() {
+        guard let sel = selection, let window = host, let screen = window.screen else { return }
+        let area = CGRect(x: window.frame.minX + sel.minX, y: window.frame.maxY - sel.maxY, width: sel.width, height: sel.height)
+        close()
+        Task { @MainActor in await ScrollCapture.run(area: area, screen: screen) }
     }
 
     /// Upload and copy link, Share or Search similar images, through fortefile.com.
