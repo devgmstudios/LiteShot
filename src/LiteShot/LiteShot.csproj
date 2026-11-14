@@ -31,6 +31,7 @@
     <EmbeddedResource Include="app.ico" LogicalName="LiteShot.app.ico" />
     <EmbeddedResource Include="Fonts\*.ttf" LogicalName="LiteShot.Fonts.%(Filename)%(Extension)" />
     <EmbeddedResource Include="Names\*.txt" LogicalName="LiteShot.Names.%(Filename)%(Extension)" />
+    <EmbeddedResource Include="Words\related-words.gz" LogicalName="LiteShot.related-words.gz" />
     <EmbeddedResource Include="update-public-key.pem" LogicalName="LiteShot.update-public-key.pem" Condition="Exists('update-public-key.pem')" />
     <AssemblyMetadata Include="UpdateServer" Value="$(UpdateServer)" />
     <InternalsVisibleTo Include="LiteShot.Harness" />

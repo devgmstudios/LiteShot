@@ -70,6 +70,31 @@ final class TextFinderTests: XCTestCase {
     }
 }
 
+final class RelatedWordsTests: XCTestCase {
+    static let table: RelatedWords? = {
+        let url = URL(fileURLWithPath: #filePath).deletingLastPathComponent().deletingLastPathComponent().deletingLastPathComponent()
+            .appendingPathComponent("Sources/LiteShotCore/Resources/related-words.gz")
+        return (try? Data(contentsOf: url)).flatMap { RelatedWords(gzip: $0) }
+    }()
+
+    func testKindsOfFish() throws {
+        let words = try XCTUnwrap(Self.table, "the table loads")
+        let fish = try XCTUnwrap(words.matcher(for: "fish"))
+        XCTAssertTrue(fish("Salmon,") && fish("trout") && fish("TUNA"))
+        XCTAssertFalse(fish("report") || fish("grew"))
+        XCTAssertTrue(try XCTUnwrap(words.matcher(for: "salmon"))("fish"), "fish is just broader than salmon")
+        XCTAssertNil(words.matcher(for: "thing"))
+        XCTAssertNil(words.matcher(for: "zzqx"))
+    }
+
+    func testRelatedRangesInALine() throws {
+        let words = try XCTUnwrap(Self.table)
+        let line = "Tonight: grilled salmon and trout tacos."
+        XCTAssertEqual(TextFinder.relatedRanges(of: "fish", in: line, words: words).map { String(line[$0]) }, ["salmon", "trout"])
+        XCTAssertEqual(TextFinder.relatedRanges(of: "grilled fish", in: line, words: words), [])
+    }
+}
+
 final class RendererTests: XCTestCase {
     /// A solid image of `size` pixels.
     func solid(_ color: NSColor, size: Int) -> CGImage {

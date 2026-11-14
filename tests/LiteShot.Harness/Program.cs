@@ -289,6 +289,48 @@ internal static class Program
         Check(TextFinder.Find(lines, "cafe").Count == 1 && TextFinder.Find(lines, "CAFÉ").Count == 1, "find: accents and case don't matter");
         Check(TextFinder.Find(lines, " ").Count == 0 && TextFinder.Find(lines, "growth").Count == 0, "find: blank or missing text finds nothing");
 
+        // Related words: "fish" finds salmon and trout when "fish" itself isn't there; too-general words don't.
+        var fish = RelatedWords.For("fish");
+        Check(fish != null && fish("Salmon,") && fish("trout") && fish("TUNA") && !fish("report") && !fish("grew"), "find: salmon, trout and tuna are kinds of fish; report isn't");
+        Check(RelatedWords.For("salmon") is { } salmon && salmon("fish"), "find: fish is just broader than salmon");
+        Check(RelatedWords.For("thing") == null && RelatedWords.For("zzqx") == null, "find: too general or unknown words don't light up everything");
+        var menu = new List<List<OcrWord>>
+        {
+            new() { new("Grilled", new RectangleF(0, 0, 60, 20)), new("salmon", new RectangleF(70, 0, 60, 20)), new("and", new RectangleF(140, 0, 30, 20)), new("trout", new RectangleF(180, 0, 50, 20)) },
+            new() { new("Tuna", new RectangleF(0, 40, 45, 20)), new("salad", new RectangleF(55, 40, 45, 20)) },
+        };
+        var kinds = TextFinder.FindRelated(menu, "fish");
+        Check(kinds.Count == 3 && kinds[0].Left == 70 && kinds[2].Top == 40, $"find: related words come back in reading order ({kinds.Count})");
+        Check(TextFinder.FindRelated(menu, "grilled fish").Count == 0, "find: related words are for single words only");
+
+        // In the overlay, on a menu: no "fish" on it, so its fish light up in blue.
+        using (var menuShot = (Bitmap)desktop.Clone())
+        {
+            var lw0 = LightWindow(desktop.Size);
+            using (var g = Graphics.FromImage(menuShot))
+            using (var font = new Font("Segoe UI", 30, GraphicsUnit.Pixel))
+            {
+                g.FillRectangle(Brushes.White, lw0.X + 60, lw0.Y + 300, 700, 200);
+                g.DrawString("Tonight: grilled salmon and trout tacos.", font, Brushes.Black, lw0.X + 80, lw0.Y + 330);
+                g.DrawString("Lunch: tuna salad with lemon.", font, Brushes.Black, lw0.X + 80, lw0.Y + 400);
+            }
+            var mo = NewOverlay(menuShot, virt, windows);
+            Drag(mo, new Point(lw0.X + 60, lw0.Y + 300), new Point(lw0.X + 760, lw0.Y + 500));
+            Key(mo, Keys.Control | Keys.F);
+            var menuScan = Get<Task<List<List<OcrWord>>>>(mo, "findScan");
+            menuScan.Wait(TimeSpan.FromSeconds(30));
+            Get<TextBox>(mo, "findBox").Text = "fish";
+            Invoke(mo, "UpdateFindHits");
+            var fishHits = Get<List<RectangleF>>(mo, "findHits");
+            string status = (string)mo.GetType().GetProperty("FindStatus", BindingFlags.Instance | BindingFlags.NonPublic)!.GetValue(mo)!;
+            Check(fishHits.Count == 3 && Get<bool>(mo, "findRelated") && status == "1 of 3 related", $"find: \"fish\" lights up salmon, trout and tuna in blue ({fishHits.Count}, {status})");
+            Snap(mo, "07f-find-related", Inflate(Rectangle.Union(Get<Rectangle>(mo, "sel"), Rectangle.Round(Get<RectangleF>(mo, "findRect"))), 40));
+            Get<TextBox>(mo, "findBox").Text = "salmon";
+            Invoke(mo, "UpdateFindHits");
+            Check(Get<List<RectangleF>>(mo, "findHits").Count == 1 && !Get<bool>(mo, "findRelated"), "find: an exact match wins over related words");
+            mo.Dispose();
+        }
+
         // In the overlay, on the synthetic report.
         var o = NewOverlay(desktop, virt, windows);
         Drag(o, a, b);

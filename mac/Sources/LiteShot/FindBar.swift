@@ -3,7 +3,8 @@ import LiteShotCore
 import Vision
 
 /// Find on screen (⌘F): Apple's on-device text recognition reads the selection once, then every place the typed text
-/// appears lights up as you type, with the rest of the selection stepping back. Return steps through the matches;
+/// appears lights up as you type, with the rest of the selection stepping back; if it isn't there, related words light
+/// up in blue instead ("salmon" for "fish"). Return steps through the matches;
 /// Highlight marks them all with the highlighter so they stay in the screenshot.
 final class FindBar: NSObject, NSTextFieldDelegate {
     static let yellow = NSColor(srgbRed: 1, green: 0.84, blue: 0.04, alpha: 1)
@@ -22,7 +23,10 @@ final class FindBar: NSObject, NSTextFieldDelegate {
     private var scanning = false
     private var failed = false
     private(set) var hits: [CGRect] = []
+    /// No exact match, so `hits` are related words ("salmon" for "fish"), drawn in blue.
+    private(set) var related = false
     private(set) var index = 0
+    static let blue = NSColor(srgbRed: 0.04, green: 0.52, blue: 1, alpha: 1)
 
     init(view: OverlayView) {
         self.view = view
@@ -106,15 +110,25 @@ final class FindBar: NSObject, NSTextFieldDelegate {
     func update() {
         guard isOpen, let sel = view.selection else { return }
         if !scanArea.contains(sel), !scanning { scan(); return }
-        var found: [CGRect] = []
         let query = field.stringValue
-        for line in observations {
-            guard let candidate = line.topCandidates(1).first else { continue }
-            for range in TextFinder.ranges(of: query, in: candidate.string) {
-                guard let box = try? candidate.boundingBox(for: range) else { continue }
-                let r = Geometry.fromNormalized(box.boundingBox, in: scanArea)
-                if sel.contains(CGPoint(x: r.midX, y: r.midY)) { found.append(r) }
+        func boxes(_ ranges: (String) -> [Range<String.Index>]) -> [CGRect] {
+            var found: [CGRect] = []
+            for line in observations {
+                guard let candidate = line.topCandidates(1).first else { continue }
+                for range in ranges(candidate.string) {
+                    guard let box = try? candidate.boundingBox(for: range) else { continue }
+                    let r = Geometry.fromNormalized(box.boundingBox, in: scanArea)
+                    if sel.contains(CGPoint(x: r.midX, y: r.midY)) { found.append(r) }
+                }
             }
+            return found
+        }
+        var found = boxes { TextFinder.ranges(of: query, in: $0) }
+        related = false
+        // Not on screen as typed: light up related words instead, "salmon" and "trout" for "fish".
+        if found.isEmpty, let words = RelatedWords.shared {
+            found = Array(boxes { TextFinder.relatedRanges(of: query, in: $0, words: words) }.prefix(150))
+            related = !found.isEmpty
         }
         hits = TextFinder.readingOrder(found)
         index = hits.isEmpty ? 0 : min(index, hits.count - 1)
@@ -125,7 +139,8 @@ final class FindBar: NSObject, NSTextFieldDelegate {
         if scanning { return "Reading…" }
         if failed { return "Couldn't read" }
         if TextFinder.normalized(field.stringValue) == nil { return "" }
-        return hits.isEmpty ? "No matches" : "\(index + 1) of \(hits.count)"
+        if hits.isEmpty { return "No matches" }
+        return related ? "\(index + 1) of \(hits.count) related" : "\(index + 1) of \(hits.count)"
     }
 
     func step(_ delta: Int) {
@@ -194,10 +209,10 @@ final class FindBar: NSObject, NSTextFieldDelegate {
         let bounds = view.bounds, bar = view.actions.frame, anchor = view.findButtonFrame
         let look = ToolbarLook.current
         let attrs: [NSAttributedString.Key: Any] = [.font: NSFont.systemFont(ofSize: look.bright ? 13 : 12, weight: .medium)]
-        let statusW = ("888 of 888" as NSString).size(withAttributes: attrs).width + 16
+        let statusW = ("88 of 88 related" as NSString).size(withAttributes: attrs).width + 16
         let markW = ("Highlight" as NSString).size(withAttributes: attrs).width + 48
         let h: CGFloat = 46, pad: CGFloat = 7, btn: CGFloat = 32, iconArea: CGFloat = 34
-        let fieldW: CGFloat = 210 + statusW
+        let fieldW: CGFloat = 190 + statusW
         let w = iconArea + fieldW + 8 + btn * 2 + 4 + markW + pad + 4
         let below = bar.minY >= (view.selection?.maxY ?? 0) - 1
         var x = anchor.midX - w / 2
@@ -227,13 +242,15 @@ final class FindBar: NSObject, NSTextFieldDelegate {
         dim.windingRule = .evenOdd
         NSColor(white: 0, alpha: bright ? 0.5 : 0.33).setFill()
         dim.fill()
+        // Related words are blue, so they don't pass for the word that was typed.
+        let tint = related ? FindBar.blue : FindBar.yellow
         for (i, h) in hits.enumerated() {
             let current = i == index
             let p = NSBezierPath(roundedRect: h.insetBy(dx: -3, dy: -2), xRadius: 4, yRadius: 4)
-            FindBar.yellow.withAlphaComponent(current ? 0.38 : 0.22).setFill()
+            tint.withAlphaComponent(current ? 0.38 : 0.22).setFill()
             p.fill()
             p.lineWidth = (current ? 3 : 1.6) * (bright ? 1.4 : 1)
-            (current ? FindBar.orange : FindBar.yellow).setStroke()
+            (current ? FindBar.orange : tint).setStroke()
             p.stroke()
         }
     }
@@ -272,7 +289,9 @@ final class FindBar: NSObject, NSTextFieldDelegate {
         if !text.isEmpty {
             let bad = text == "No matches" || text == "Couldn't read"
             var a = attrs
-            a[.foregroundColor] = bad ? NSColor(srgbRed: 1, green: 0.47, blue: 0.43, alpha: 1) : NSColor(white: 1, alpha: look.bright ? 0.85 : 0.6)
+            a[.foregroundColor] = bad ? NSColor(srgbRed: 1, green: 0.47, blue: 0.43, alpha: 1)
+                : related ? NSColor(srgbRed: 0.4, green: 0.71, blue: 1, alpha: 1)
+                : NSColor(white: 1, alpha: look.bright ? 0.85 : 0.6)
             let s = (text as NSString).size(withAttributes: a)
             (text as NSString).draw(at: CGPoint(x: fieldFrame.maxX - 14 - s.width, y: fieldFrame.midY - s.height / 2), withAttributes: a)
         }

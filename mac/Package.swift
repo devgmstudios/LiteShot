@@ -11,7 +11,8 @@ let package = Package(
     ],
     targets: [
         // Drawing, geometry and text rules: everything that doesn't need a screen, so it can be tested.
-        .target(name: "LiteShotCore"),
+        // Resources/related-words.gz is copied into the app bundle by scripts/bundle.sh, not built in.
+        .target(name: "LiteShotCore", exclude: ["Resources"]),
         .executableTarget(name: "LiteShot", dependencies: ["LiteShotCore"]),
         .testTarget(name: "LiteShotCoreTests", dependencies: ["LiteShotCore"]),
     ]

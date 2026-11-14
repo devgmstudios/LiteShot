@@ -14,6 +14,8 @@ rm -rf dist
 mkdir -p "$APP/Contents/MacOS" "$APP/Contents/Resources"
 cp "$BIN" "$APP/Contents/MacOS/LiteShot"
 sed -e "s/__VERSION__/$VERSION/" -e "s/__BUILD__/$BUILD/" Resources/Info.plist > "$APP/Contents/Info.plist"
+# Find on screen's related words ("fish" finds salmon).
+cp Sources/LiteShotCore/Resources/related-words.gz "$APP/Contents/Resources/"
 
 # The app icon, from the website's.
 ICONSET="$(mktemp -d)/LiteShot.iconset"

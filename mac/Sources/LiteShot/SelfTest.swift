@@ -88,6 +88,20 @@ enum SelfTest {
         finding.findBar.highlight()
         check(finding.annotations.count == before + 2 && !finding.findBar.isOpen, "find: Highlight marks both and closes the bar")
         if let out = finding.renderResult(), let png = Renderer.png(out) { try? png.write(to: folder.appendingPathComponent("mac-5-find-highlighted.png")) }
+
+        // Related words: no "fish" on the menu, so its salmon, trout and tuna light up in blue.
+        check(RelatedWords.shared != nil, "find: the related-words table is in the app")
+        if let menu = desktop(size: size, scale: scale, window: window, lines: ["Tonight: grilled salmon and trout tacos.", "Lunch: tuna salad with lemon."]) {
+            let menuView = OverlayView(frame: CGRect(origin: .zero, size: size), image: menu, windows: [window])
+            menuView.select(area)
+            menuView.layoutBars()
+            menuView.findBar.scanNow("fish")
+            check(menuView.findBar.hits.count == 3 && menuView.findBar.related && menuView.findBar.status == "1 of 3 related",
+                  "find: \"fish\" lights up salmon, trout and tuna (\(menuView.findBar.hits.count), \(menuView.findBar.status))")
+            save(menuView, folder.appendingPathComponent("mac-6-find-related.png"))
+            menuView.findBar.scanNow("salmon")
+            check(menuView.findBar.hits.count == 1 && !menuView.findBar.related, "find: an exact match wins over related words")
+        }
         return ok
     }
 
@@ -98,7 +112,7 @@ enum SelfTest {
     }
 
     /// A wallpaper-ish gradient with a document window on it, at `scale` pixels per point.
-    private static func desktop(size: CGSize, scale: CGFloat, window: CGRect) -> CGImage? {
+    private static func desktop(size: CGSize, scale: CGFloat, window: CGRect, lines custom: [String]? = nil) -> CGImage? {
         let w = Int(size.width * scale), h = Int(size.height * scale)
         guard let ctx = CGContext(data: nil, width: w, height: h, bitsPerComponent: 8, bytesPerRow: 0,
                                   space: CGColorSpace(name: CGColorSpace.sRGB)!,
@@ -123,7 +137,7 @@ enum SelfTest {
         let title: [NSAttributedString.Key: Any] = [.font: NSFont.systemFont(ofSize: 30, weight: .bold), .foregroundColor: NSColor(white: 0.1, alpha: 1)]
         ("Quarterly report" as NSString).draw(at: CGPoint(x: window.minX + 48, y: window.minY + 80), withAttributes: title)
         let body: [NSAttributedString.Key: Any] = [.font: NSFont.systemFont(ofSize: 19), .foregroundColor: NSColor(white: 0.3, alpha: 1)]
-        let lines = ["Revenue grew 24% year over year, led by the new product line.",
+        let lines = custom ?? ["Revenue grew 24% year over year, led by the new product line.",
                      "Customer satisfaction reached an all-time high of 92%.",
                      "Account numbers 4417-1234-5678 and 9921-7765-1102 are redacted.",
                      "Next quarter we focus on onboarding and performance.",

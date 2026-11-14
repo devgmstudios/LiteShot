@@ -4,13 +4,15 @@ namespace LiteShot.Overlay;
 
 /// <summary>
 /// Find on screen (Ctrl+F): Windows' OCR reads the selection once, then every place the typed text appears lights up
-/// as you type, with the rest of the selection stepping back. Enter steps through the matches; Highlight marks them
-/// all with the highlighter so they stay in the screenshot.
+/// as you type, with the rest of the selection stepping back. If the word isn't there, related words light up in blue
+/// instead ("salmon" for "fish"). Enter steps through the matches; Highlight marks them all with the highlighter so
+/// they stay in the screenshot.
 /// </summary>
 internal sealed partial class CaptureOverlay
 {
     const int FindPrev = 0, FindNext = 1, FindMark = 2;
-    static readonly Color FindYellow = Color.FromArgb(255, 214, 10), FindOrange = Color.FromArgb(255, 149, 0);
+    static readonly Color FindYellow = Color.FromArgb(255, 214, 10), FindOrange = Color.FromArgb(255, 149, 0), FindBlue = Color.FromArgb(10, 132, 255);
+    const string FindStatusSample = "88 of 88 related";
 
     ToolButton findButton = null!;
     bool findOpen;
@@ -22,6 +24,8 @@ internal sealed partial class CaptureOverlay
     Task<List<List<OcrWord>>>? findScan;
     Rectangle findScanArea;
     List<RectangleF> findHits = new();
+    /// <summary>No exact match, so <see cref="findHits"/> are related words ("salmon" for "fish"), drawn in blue.</summary>
+    bool findRelated;
     int findIndex;
     string findLayoutKey = "";
 
@@ -110,16 +114,25 @@ internal sealed partial class CaptureOverlay
     {
         if (!findOpen) return;
         var hits = new List<RectangleF>();
+        bool related = false;
         string query = findBox?.Text ?? "";
         if (findScan is { IsCompletedSuccessfully: true } scan && query.Trim().Length > 0)
         {
             var area = findScanArea;
-            hits = TextFinder.Find(scan.Result, query)
+            List<RectangleF> Inside(List<RectangleF> found) => found
                 .Select(h => new RectangleF(h.X + area.X, h.Y + area.Y, h.Width, h.Height))
                 .Where(h => sel.Contains(Point.Round(Center(h))))
                 .ToList();
+            hits = Inside(TextFinder.Find(scan.Result, query));
+            // Not on screen as typed: light up related words instead, "salmon" and "trout" for "fish".
+            if (hits.Count == 0)
+            {
+                hits = Inside(TextFinder.FindRelated(scan.Result, query));
+                related = hits.Count > 0;
+            }
         }
         findHits = hits;
+        findRelated = related;
         findIndex = hits.Count == 0 ? 0 : Math.Clamp(findIndex, 0, hits.Count - 1);
         RevealFindHit();
         if (hasSel) InvalidateRect(Rectangle.Inflate(sel, 8, 8));
@@ -136,7 +149,8 @@ internal sealed partial class CaptureOverlay
             if (!findScan.IsCompletedSuccessfully)
                 return findScan.Exception?.InnerException is InvalidOperationException ? "No OCR language" : "Couldn't read";
             if ((findBox?.Text.Trim().Length ?? 0) == 0) return "";
-            return findHits.Count == 0 ? "No matches" : $"{findIndex + 1} of {findHits.Count}";
+            if (findHits.Count == 0) return "No matches";
+            return findRelated ? $"{findIndex + 1} of {findHits.Count} related" : $"{findIndex + 1} of {findHits.Count}";
         }
     }
 
@@ -241,7 +255,7 @@ internal sealed partial class CaptureOverlay
 
         var mon = MonitorAt(Center(sel));
         float pad = 8 * S, h = 50 * S, btn = 34 * S, gap = 4 * S, iconArea = 34 * S;
-        float fieldW = 220 * S + Ui.Measure("888 of 888", smallFont).Width + 16 * S;
+        float fieldW = 200 * S + Ui.Measure(FindStatusSample, smallFont).Width + 16 * S;
         float markW = Ui.Measure("Highlight", smallFont).Width + 52 * S;
         float w = iconArea + fieldW + gap + btn * 2 + gap * 2 + markW + pad + 4 * S;
 
@@ -273,7 +287,7 @@ internal sealed partial class CaptureOverlay
         findBox.BackColor = FieldColor(tone);
         findBox.ForeColor = tone.Glyph;
         int bh = findBox.PreferredHeight;
-        float statusW = Ui.Measure("888 of 888", smallFont).Width + 16 * S;
+        float statusW = Ui.Measure(FindStatusSample, smallFont).Width + 16 * S;
         findBox.SetBounds((int)(findFieldRect.X + 14 * S), (int)(findFieldRect.Y + (findFieldRect.Height - bh) / 2) - scrollY,
             (int)(findFieldRect.Width - 14 * S - statusW), bh);
     }
@@ -291,13 +305,15 @@ internal sealed partial class CaptureOverlay
             using var shade = new SolidBrush(Color.FromArgb(bright ? 125 : 85, 0, 0, 0));
             g.FillRegion(shade, dim);
         }
+        // Related words are blue, so they don't pass for the word that was typed.
+        var tint = findRelated ? FindBlue : FindYellow;
         for (int i = 0; i < findHits.Count; i++)
         {
             bool current = i == findIndex;
             var r = RectangleF.Inflate(findHits[i], 3 * S, 2 * S);
             using var path = Ui.RoundRect(r, 4 * S);
-            using (var fill = new SolidBrush(Color.FromArgb(current ? 95 : 55, FindYellow))) g.FillPath(fill, path);
-            using var pen = new Pen(current ? FindOrange : FindYellow, (current ? 3f : 1.6f) * S * (bright ? 1.4f : 1f));
+            using (var fill = new SolidBrush(Color.FromArgb(current ? 95 : 55, tint))) g.FillPath(fill, path);
+            using var pen = new Pen(current ? FindOrange : tint, (current ? 3f : 1.6f) * S * (bright ? 1.4f : 1f));
             g.DrawPath(pen, path);
         }
         g.Restore(state);
@@ -323,7 +339,9 @@ internal sealed partial class CaptureOverlay
         {
             var ss = Ui.Measure(status, smallFont);
             bool none = status is "No matches" or "Couldn't read" or "No OCR language";
-            var ink = none ? (tone.Light ? Color.FromArgb(200, 40, 30) : Color.FromArgb(255, 120, 110)) : tone.Secondary;
+            var ink = none ? (tone.Light ? Color.FromArgb(200, 40, 30) : Color.FromArgb(255, 120, 110))
+                : findRelated ? (tone.Light ? Color.FromArgb(0, 100, 220) : Color.FromArgb(100, 180, 255))
+                : tone.Secondary;
             Ui.DrawText(g, status, smallFont, ink, new PointF(findFieldRect.Right - 14 * S - ss.Width, findFieldRect.Y + (findFieldRect.Height - ss.Height) / 2));
         }
 

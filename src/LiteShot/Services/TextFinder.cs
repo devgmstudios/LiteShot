@@ -36,6 +36,22 @@ internal static class TextFinder
         return hits.OrderBy(h => MathF.Round(h.Top / Math.Max(1, h.Height))).ThenBy(h => h.Left).ToList();
     }
 
+    /// <summary>
+    /// When a single word isn't on screen: the words that are the same thing, a kind of it or just broader, by
+    /// <see cref="RelatedWords"/> ("fish" finds salmon and trout). Whole words, in reading order, at most 150.
+    /// </summary>
+    public static List<RectangleF> FindRelated(IReadOnlyList<IReadOnlyList<OcrWord>> lines, string query)
+    {
+        var hits = new List<RectangleF>();
+        string q = query.Trim();
+        if (q.Length < 2 || q.Any(char.IsWhiteSpace) || RelatedWords.For(q) is not { } related) return hits;
+        string asked = RelatedWords.Clean(q);
+        foreach (var words in lines)
+            foreach (var w in words)
+                if (RelatedWords.Clean(w.Text) != asked && related(w.Text)) hits.Add(w.Bounds);
+        return hits.OrderBy(h => MathF.Round(h.Top / Math.Max(1, h.Height))).ThenBy(h => h.Left).Take(150).ToList();
+    }
+
     /// <summary>The part of the line's words from character <paramref name="from"/> up to <paramref name="to"/>.</summary>
     static RectangleF Box(IReadOnlyList<OcrWord> words, int[] starts, int from, int to)
     {
