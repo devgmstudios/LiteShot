@@ -63,6 +63,31 @@ enum SelfTest {
                 check(false, "\(look.name): the result renders")
             }
         }
+        // Find on screen, for real: Vision reads the report, "year" lights up twice, Highlight marks both.
+        Settings.brightMode = false
+        Settings.buttonNames = false
+        let finding = OverlayView(frame: CGRect(origin: .zero, size: size), image: screen, windows: [window])
+        let area = CGRect(x: window.minX + 20, y: window.minY + 50, width: 760, height: 420)
+        finding.select(area)
+        finding.layoutBars()
+        finding.findBar.scanNow("year")
+        let years = finding.findBar.hits
+        check(years.count == 2, "find: \"year\" lights up twice (\(years.count))")
+        check(years.allSatisfy { area.contains($0) }, "find: matches are inside the selection")
+        check(years.count == 2 && years[0].minX < years[1].minX, "find: matches are in reading order")
+        check(finding.findBar.status == (years.isEmpty ? "No matches" : "1 of \(years.count)"), "find: the bar counts them (\(finding.findBar.status))")
+        finding.findBar.step(1)
+        check(years.count < 2 || finding.findBar.index == 1, "find: Return goes to the next match")
+        save(finding, folder.appendingPathComponent("mac-4-find.png"))
+        finding.findBar.scanNow("GLASS interface")
+        check(finding.findBar.hits.count == 1, "find: a phrase in any case (\(finding.findBar.hits.count))")
+        finding.findBar.scanNow("zebra crossing")
+        check(finding.findBar.hits.isEmpty && finding.findBar.status == "No matches", "find: says when nothing matches")
+        finding.findBar.scanNow("year")
+        let before = finding.annotations.count
+        finding.findBar.highlight()
+        check(finding.annotations.count == before + 2 && !finding.findBar.isOpen, "find: Highlight marks both and closes the bar")
+        if let out = finding.renderResult(), let png = Renderer.png(out) { try? png.write(to: folder.appendingPathComponent("mac-5-find-highlighted.png")) }
         return ok
     }
 

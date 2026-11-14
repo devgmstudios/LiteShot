@@ -44,6 +44,32 @@ final class PersonalInfoTests: XCTestCase {
     }
 }
 
+final class TextFinderTests: XCTestCase {
+    func found(_ query: String, in line: String) -> [String] { TextFinder.ranges(of: query, in: line).map { String(line[$0]) } }
+
+    func testCaseAccentsAndRepeats() {
+        let line = "Revenue grew 24% year over YEAR, at the Café"
+        XCTAssertEqual(found("year", in: line), ["year", "YEAR"])
+        XCTAssertEqual(found("cafe", in: line), ["Café"])
+        XCTAssertEqual(found("  revenue   GREW ", in: line), ["Revenue grew"])
+    }
+
+    func testDoubledSpacesInTheLineStillMatch() {
+        XCTAssertEqual(found("glass interface", in: "the glass  interface refresh"), ["glass  interface"])
+    }
+
+    func testNothingToFind() {
+        XCTAssertEqual(found("   ", in: "anything"), [])
+        XCTAssertEqual(found("growth", in: "Revenue grew"), [])
+    }
+
+    func testReadingOrder() {
+        let a = CGRect(x: 200, y: 10, width: 40, height: 20), b = CGRect(x: 20, y: 12, width: 40, height: 20)
+        let c = CGRect(x: 10, y: 60, width: 40, height: 20)
+        XCTAssertEqual(TextFinder.readingOrder([c, a, b]), [b, a, c])
+    }
+}
+
 final class RendererTests: XCTestCase {
     /// A solid image of `size` pixels.
     func solid(_ color: NSColor, size: Int) -> CGImage {

@@ -5,7 +5,7 @@ import Vision
 /// Apple's on-device text recognition and face detection. Nothing leaves the Mac. Boxes come back in
 /// Vision's normalized space (0…1, origin bottom left); `Geometry.fromNormalized` places them.
 enum VisionTools {
-    private static func recognize(_ image: CGImage) throws -> [VNRecognizedTextObservation] {
+    static func recognize(_ image: CGImage) throws -> [VNRecognizedTextObservation] {
         let request = VNRecognizeTextRequest()
         request.recognitionLevel = .accurate
         request.usesLanguageCorrection = true
@@ -38,6 +38,13 @@ enum VisionTools {
             return boxes
         }.value
     }
+
+    /// The recognized lines themselves, for Find on screen, which asks them for the boxes of what it matches.
+    static func observations(in image: CGImage) async throws -> [VNRecognizedTextObservation] {
+        try await Task.detached(priority: .userInitiated) { try recognize(image) }.value
+    }
+
+    static func observationsNow(in image: CGImage) throws -> [VNRecognizedTextObservation] { try recognize(image) }
 
     static func faces(in image: CGImage) async throws -> [CGRect] {
         try await Task.detached(priority: .userInitiated) {

@@ -46,6 +46,7 @@ final class OverlayView: NSView {
 
     private(set) lazy var tools = buildTools()
     private(set) lazy var actions = buildActions()
+    private(set) lazy var findBar = FindBar(view: self)
     private var hover: (bar: Toolbar, group: Int, index: Int)?
 
     init(frame: CGRect, image: CGImage, windows: [CGRect]) {
@@ -110,7 +111,10 @@ final class OverlayView: NSView {
         }
         return Toolbar(vertical: false, groups: [
             [b("Pin to screen", "Pin", "⌘T", ["pin"]) { [unowned self] in self.pin() },
-             b("Copy text", "Copy text", "⇧⌘C", ["text.viewfinder"]) { [unowned self] in self.copyText() }],
+             b("Copy text", "Copy text", "⇧⌘C", ["text.viewfinder"]) { [unowned self] in self.copyText() },
+             ToolButton(tip: "Find on screen", label: "Find", key: "⌘F", symbols: ["text.magnifyingglass", "magnifyingglass"],
+                        isActive: { [unowned self] in self.findBar.isOpen },
+                        action: { [unowned self] in self.toggleFind() })],
             [b("Copy", "Copy", "⌘C", ["doc.on.doc"]) { [unowned self] in self.copyToClipboard() },
              b("Save", "Save", "⌘S", ["square.and.arrow.down"]) { [unowned self] in self.save() }],
             [b("Close", "Close", "Esc", ["xmark"]) { [unowned self] in self.close() }],
@@ -118,6 +122,9 @@ final class OverlayView: NSView {
     }
 
     private var bars: [Toolbar] { selection == nil ? [] : [tools, actions] }
+
+    /// Where the Find button is, for anchoring the find bar under it.
+    var findButtonFrame: CGRect { actions.buttonFrames.first.flatMap { $0.count > 2 ? $0[2] : nil } ?? actions.frame }
 
     /// Lightshot's layout: tools to the right of the selection (bottom-aligned), actions below it (right-aligned).
     func layoutBars() {
@@ -174,6 +181,7 @@ final class OverlayView: NSView {
             for a in redactions + annotations { a.draw(screen: image, screenSize: size) }
             drawing?.draw(screen: image, screenSize: size)
             if let i = editing, i < annotations.count { drawEditor(annotations[i]) }
+            findBar.drawHits(in: sel)
             gc.restoreGraphicsState()
             drawFrame(sel)
             drawSizeLabel(sel)
@@ -187,6 +195,7 @@ final class OverlayView: NSView {
                     bar.draw(look: look, hover: h, pressed: p)
                 }
                 if paletteOpen { drawPalette(look) }
+                if findBar.isOpen { findBar.layout(); findBar.draw(look: look) }
                 if let h = hover, tools.labelFont == nil { drawTip(h.bar.groups[h.group][h.index], h.bar, h.bar.buttonFrames[h.group][h.index], look) }
             }
             if let text = busy ?? flash { drawPill(text, near: sel) }
@@ -362,6 +371,12 @@ final class OverlayView: NSView {
 
     override func mouseMoved(with e: NSEvent) {
         mouse = point(e)
+        if findBar.isOpen {
+            let b = findBar.frame.contains(mouse) ? findBar.button(at: mouse) : nil
+            if b != findBar.hoverButton { findBar.hoverButton = b; needsDisplay = true }
+            if findBar.frame.contains(mouse) { NSCursor.arrow.set(); return }
+            if findBar.hitIndex(at: mouse) != nil { NSCursor.pointingHand.set(); return }
+        }
         if selection == nil {
             let w = windows.first { $0.contains(mouse) }
             if w != hoverWindow { hoverWindow = w; needsDisplay = true }
@@ -380,6 +395,13 @@ final class OverlayView: NSView {
         let p = point(e)
         mouse = p
         dragMoved = false
+        if findBar.isOpen {
+            if findBar.frame.contains(p) { findBar.click(p); return }
+            if let i = findBar.hitIndex(at: p) { findBar.select(i); return }
+            let onFindButton = findButtonFrame.contains(p)
+            findBar.close()
+            if onFindButton { return }
+        }
         if paletteOpen {
             if paletteRect.contains(p) {
                 if let cell = paletteCells().first(where: { $0.rect.insetBy(dx: -4, dy: -4).contains(p) }) {
@@ -461,6 +483,7 @@ final class OverlayView: NSView {
             if selection != nil, Settings.hidePersonalInfo { findPersonalInfo() }
         case .move, .resize:
             NSCursor.openHand.set()
+            findBar.update()
         case .draw:
             if let d = drawing, isMeaningful(d) { record { annotations.append(d) } }
             drawing = nil
@@ -484,6 +507,7 @@ final class OverlayView: NSView {
     }
 
     func clearSelection() {
+        findBar.close()
         finishText()
         selection = nil
         resetAnnotationsForNewSelection()
@@ -634,7 +658,28 @@ final class OverlayView: NSView {
     }
 
     override func performKeyEquivalent(with e: NSEvent) -> Bool {
-        e.modifierFlags.contains(.command) ? handleKey(e) : false
+        guard e.modifierFlags.contains(.command) else { return false }
+        // Typing in the find box: its own copy, paste and undo come first.
+        if findBar.isEditing, let key = e.charactersIgnoringModifiers?.lowercased(), ["c", "v", "x", "a", "z"].contains(key) { return false }
+        return handleKey(e)
+    }
+
+    func toggleFind() {
+        if findBar.isOpen { findBar.close(); return }
+        finishText()
+        paletteOpen = false
+        // With nothing selected yet, look through the whole screen.
+        if selection == nil { selection = bounds; hoverWindow = nil; layoutBars() }
+        findBar.open()
+    }
+
+    /// Highlight from the find bar: a highlighter stroke across each match, as one undo step.
+    func addMarks(_ boxes: [CGRect]) {
+        let marks = boxes.map { r in
+            // The marker draws max(14, width × 5) wide with square ends, so this covers the match's height exactly.
+            Annotation(.marker([CGPoint(x: r.minX, y: r.midY), CGPoint(x: r.maxX, y: r.midY)]), color: FindBar.yellow, width: r.height * 1.15 / 5)
+        }
+        record { annotations.append(contentsOf: marks) }
     }
 
     @discardableResult
@@ -646,7 +691,9 @@ final class OverlayView: NSView {
             return true
         }
         if e.keyCode == 53 {
-            if paletteOpen { paletteOpen = false; needsDisplay = true } else { close() }
+            if findBar.isOpen { findBar.close() }
+            else if paletteOpen { paletteOpen = false; needsDisplay = true }
+            else { close() }
             return true
         }
         if cmd {
@@ -657,6 +704,7 @@ final class OverlayView: NSView {
             case "z": shift ? redo() : undo()
             case "y": redo()
             case "a": finishText(); selection = bounds; hoverWindow = nil; needsDisplay = true
+            case "f": toggleFind()
             default: return false
             }
             return true
@@ -777,7 +825,7 @@ final class OverlayView: NSView {
         }
     }
 
-    private func showFlash(_ text: String) {
+    func showFlash(_ text: String) {
         flash = text
         flashWork?.cancel()
         let work = DispatchWorkItem { [weak self] in self?.flash = nil; self?.needsDisplay = true }
