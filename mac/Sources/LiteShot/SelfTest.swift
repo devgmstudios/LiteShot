@@ -1,4 +1,5 @@
 import AppKit
+import SwiftUI
 import LiteShotCore
 
 /// `LiteShot --render-shots <folder>`: the real overlay on a made-up screen, drawn to PNGs in each look, with
@@ -7,8 +8,8 @@ enum SelfTest {
     static func renderShots(to folder: URL) -> Bool {
         _ = NSApplication.shared
         try? FileManager.default.createDirectory(at: folder, withIntermediateDirectories: true)
-        let saved = (Settings.brightMode, Settings.buttonNames)
-        defer { Settings.brightMode = saved.0; Settings.buttonNames = saved.1 }
+        let saved = (LiteShot.Settings.brightMode, LiteShot.Settings.buttonNames)
+        defer { LiteShot.Settings.brightMode = saved.0; LiteShot.Settings.buttonNames = saved.1 }
 
         let size = CGSize(width: 1440, height: 900), scale: CGFloat = 2
         let window = CGRect(x: 180, y: 120, width: 820, height: 560)
@@ -26,8 +27,8 @@ enum SelfTest {
 
         let looks: [(name: String, bright: Bool, names: Bool)] = [("glass", false, false), ("names", false, true), ("bright", true, true)]
         for look in looks {
-            Settings.brightMode = look.bright
-            Settings.buttonNames = look.names
+            LiteShot.Settings.brightMode = look.bright
+            LiteShot.Settings.buttonNames = look.names
             let view = OverlayView(frame: CGRect(origin: .zero, size: size), image: screen, windows: [window])
             let sel = CGRect(x: window.minX + 30, y: window.minY + 50, width: 640, height: 420)
             view.select(sel)
@@ -64,8 +65,8 @@ enum SelfTest {
             }
         }
         // Find on screen, for real: Vision reads the report, "year" lights up twice, Highlight marks both.
-        Settings.brightMode = false
-        Settings.buttonNames = false
+        LiteShot.Settings.brightMode = false
+        LiteShot.Settings.buttonNames = false
         let finding = OverlayView(frame: CGRect(origin: .zero, size: size), image: screen, windows: [window])
         let area = CGRect(x: window.minX + 20, y: window.minY + 50, width: 760, height: 420)
         finding.select(area)
@@ -102,7 +103,35 @@ enum SelfTest {
             menuView.findBar.scanNow("salmon")
             check(menuView.findBar.hits.count == 1 && !menuView.findBar.related, "find: an exact match wins over related words")
         }
+        // The new windows, drawn for a look: settings, the Ask AI chat and Edit with AI.
+        MainActor.assumeIsolated {
+            snapshot(SettingsView(), size: CGSize(width: 560, height: 900), to: folder.appendingPathComponent("mac-7-settings.png"))
+            if let report = finding.renderResult() {
+                let chat = AskAIChat(image: report, key: { nil })
+                chat.show("What's in this screenshot?", answer: "It's a **quarterly report**:
+- Revenue grew 24% year over year
+- Customer satisfaction reached 92%")
+                check(chat.messages.count == 2 && chat.messages[1].text.hasPrefix("It's a quarterly report"), "ask: the chat shows the question and a plain answer")
+                snapshot(AskAIView(chat: chat), size: CGSize(width: 640, height: 720), to: folder.appendingPathComponent("mac-8-ask-ai.png"))
+                chat.ask("Hello?")
+                check(chat.messages.count == 2 && chat.status.contains("SyncNode API key"), "ask: without a key nothing is sent")
+                let run = AIRun(kind: .edit, image: report, scale: scale)
+                run.prompt = "Remove the background"
+                snapshot(AIRunView(run: run), size: CGSize(width: 620, height: 640), to: folder.appendingPathComponent("mac-9-edit-with-ai.png"))
+            }
+        }
         return ok
+    }
+
+    /// A SwiftUI view drawn to a PNG, in an offscreen window so its AppKit controls have somewhere to draw.
+    @MainActor
+    private static func snapshot<V: View>(_ view: V, size: CGSize, to url: URL) {
+        let host = NSHostingView(rootView: view.frame(width: size.width, height: size.height))
+        host.frame = CGRect(origin: .zero, size: size)
+        let window = NSWindow(contentRect: host.frame, styleMask: [.titled], backing: .buffered, defer: false)
+        window.contentView = host
+        host.layoutSubtreeIfNeeded()
+        save(host, url)
     }
 
     private static func save(_ view: NSView, _ url: URL) {

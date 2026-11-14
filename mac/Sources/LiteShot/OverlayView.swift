@@ -115,6 +115,9 @@ final class OverlayView: NSView {
              ToolButton(tip: "Find on screen", label: "Find", key: "⌘F", symbols: ["text.magnifyingglass", "magnifyingglass"],
                         isActive: { [unowned self] in self.findBar.isOpen },
                         action: { [unowned self] in self.toggleFind() })],
+            [b("Ask AI about it", "Ask AI", "⇧⌘A", ["bubble.left.and.text.bubble.right", "bubble.left"]) { [unowned self] in self.askAI() },
+             b("Edit with AI", "AI edit", nil, ["sparkles"]) { [unowned self] in self.runAI(.edit) },
+             b("Make a video", "Video", nil, ["video"]) { [unowned self] in self.runAI(.video) }],
             [b("Copy", "Copy", "⌘C", ["doc.on.doc"]) { [unowned self] in self.copyToClipboard() },
              b("Save", "Save", "⌘S", ["square.and.arrow.down"]) { [unowned self] in self.save() }],
             [b("Close", "Close", "Esc", ["xmark"]) { [unowned self] in self.close() }],
@@ -703,6 +706,7 @@ final class OverlayView: NSView {
             case "t": pin()
             case "z": shift ? redo() : undo()
             case "y": redo()
+            case "a" where shift: askAI()
             case "a": finishText(); selection = bounds; hoverWindow = nil; needsDisplay = true
             case "f": toggleFind()
             default: return false
@@ -763,6 +767,21 @@ final class OverlayView: NSView {
         let frame = CGRect(x: window.frame.minX + sel.minX, y: window.frame.maxY - sel.maxY, width: sel.width, height: sel.height)
         close()
         PinWindow.open(img, frame: frame)
+    }
+
+    /// Ask AI: the finished screenshot goes to a chat window, and the capture closes.
+    func askAI() {
+        guard let img = renderResult() else { return }
+        close()
+        AskAIChat.open(img)
+    }
+
+    /// Edit with AI or Make a video, in their own window.
+    func runAI(_ kind: AIRun.Kind) {
+        guard let img = renderResult() else { return }
+        let s = scale
+        close()
+        AIRun.open(kind, image: img, scale: s)
     }
 
     func copyText() {
