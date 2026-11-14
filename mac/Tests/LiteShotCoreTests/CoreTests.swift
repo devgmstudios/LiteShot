@@ -44,6 +44,36 @@ final class PersonalInfoTests: XCTestCase {
     }
 }
 
+final class TextStyleTests: XCTestCase {
+    override class func setUp() {
+        // The fonts the app bundles live with the Windows app's; register them from there.
+        let fonts = URL(fileURLWithPath: #filePath).deletingLastPathComponent().deletingLastPathComponent().deletingLastPathComponent()
+            .deletingLastPathComponent().appendingPathComponent("src/LiteShot/Fonts")
+        TextStyle.registerBundledFonts(in: fonts)
+    }
+
+    func testBundledFontsLoad() {
+        for f in TextStyle.fonts.compactMap(\.postScript) {
+            XCTAssertNotNil(NSFont(name: f, size: 20), "\(f) is registered")
+        }
+    }
+
+    func testLooksPadTheText() {
+        func box(_ look: TextLook) -> CGRect {
+            Annotation(.text("Ship it", at: CGPoint(x: 50, y: 50), size: 30), color: .systemOrange, width: 3, style: TextStyle(look: look)).bounds
+        }
+        XCTAssertGreaterThan(box(.label).width, box(.plain).width, "a label has room around the text")
+        XCTAssertGreaterThan(box(.outline).height, box(.plain).height)
+        let bold = Annotation(.text("Ship it", at: .zero, size: 30), color: .black, width: 3, style: TextStyle(bold: true)).bounds
+        XCTAssertGreaterThanOrEqual(bold.width, box(.plain).width)
+    }
+
+    func testLabelInkContrasts() {
+        XCTAssertEqual(Annotation.contrast(.white).usingColorSpace(.sRGB)!.redComponent, 0.11, accuracy: 0.01)
+        XCTAssertEqual(Annotation.contrast(.black), .white)
+    }
+}
+
 final class EditingTests: XCTestCase {
     func testClicksLandOnStrokesTextAndBlocks() {
         let box = Annotation(.rect(CGRect(x: 100, y: 100, width: 200, height: 100)), color: .red, width: 4)

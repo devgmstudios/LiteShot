@@ -16,6 +16,9 @@ cp "$BIN" "$APP/Contents/MacOS/LiteShot"
 sed -e "s/__VERSION__/$VERSION/" -e "s/__BUILD__/$BUILD/" Resources/Info.plist > "$APP/Contents/Info.plist"
 # Find on screen's related words ("fish" finds salmon).
 cp Sources/LiteShotCore/Resources/related-words.gz "$APP/Contents/Resources/"
+# The text bar's fonts: the same files the Windows app bundles, with their licenses.
+mkdir -p "$APP/Contents/Resources/Fonts"
+cp ../src/LiteShot/Fonts/*.ttf ../src/LiteShot/Fonts/OFL.txt ../src/LiteShot/Fonts/Apache-LICENSE.txt "$APP/Contents/Resources/Fonts/"
 
 # The app icon, from the website's.
 ICONSET="$(mktemp -d)/LiteShot.iconset"

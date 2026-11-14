@@ -131,7 +131,7 @@ final class OverlayView: NSView {
         ])
     }
 
-    private var bars: [Toolbar] { selection == nil ? [] : [tools, actions] }
+    private var bars: [Toolbar] { selection == nil ? [] : textBarVisible ? [tools, actions, textBar] : [tools, actions] }
 
     /// Where the Find button is, for anchoring the find bar under it.
     var findButtonFrame: CGRect { actions.buttonFrames.first.flatMap { $0.count > 2 ? $0[2] : nil } ?? actions.frame }
@@ -161,6 +161,7 @@ final class OverlayView: NSView {
         if vr.intersects(hr) { vy = max(area.minY, hr.minY - gap - vs.height) }
         tools.layout(at: CGPoint(x: vx.rounded(), y: vy.rounded()))
         actions.layout(at: CGPoint(x: hx.rounded(), y: hy.rounded()))
+        if textBarVisible { layoutTextBar() }
     }
 
     private func hitBar(_ p: CGPoint) -> (bar: Toolbar, group: Int, index: Int)? {
@@ -215,6 +216,7 @@ final class OverlayView: NSView {
                     bar.draw(look: look, hover: h, pressed: p)
                 }
                 if paletteOpen { drawPalette(look) }
+                if fontListOpen, textBarVisible { drawFontList(look) }
                 if findBar.isOpen { findBar.layout(); findBar.draw(look: look) }
                 if let h = hover, tools.labelFont == nil { drawTip(h.bar.groups[h.group][h.index], h.bar, h.bar.buttonFrames[h.group][h.index], look) }
             }
@@ -308,13 +310,16 @@ final class OverlayView: NSView {
         NSColor.white.setStroke()
         p.stroke()
         if case let .text(s, at, size) = a.kind {
-            let font = Annotation.font(size: size)
+            let font = a.style.nsFont(size: size)
             let lines = s.components(separatedBy: "\n")
             let last = lines.last ?? ""
             let w = (last as NSString).size(withAttributes: [.font: font]).width
             let lineHeight = ceil(font.ascender - font.descender + font.leading)
+            // The caret follows the last line, wherever the alignment puts it.
+            let block = a.textRect(s, at: at, size: size).width
+            let x = at.x + (a.style.align == .left ? w : a.style.align == .center ? (block + w) / 2 : block)
             a.color.setFill()
-            NSBezierPath(rect: CGRect(x: at.x + w + 1, y: at.y + CGFloat(lines.count - 1) * lineHeight, width: 2, height: lineHeight)).fill()
+            NSBezierPath(rect: CGRect(x: x + 1, y: at.y + CGFloat(lines.count - 1) * lineHeight, width: 2, height: lineHeight)).fill()
         }
     }
 
@@ -386,6 +391,143 @@ final class OverlayView: NSView {
         }
     }
 
+    // MARK: - text bar
+
+    /// The style new text gets, and the size; the text bar changes them and the text being typed or picked.
+    var textStyle = TextStyle()
+    var textSize: CGFloat = 22
+    private var fontListOpen = false
+
+    private(set) lazy var textBar = buildTextBar()
+
+    /// Shown with the Text tool, while typing, or with a text picked.
+    var textBarVisible: Bool { selection != nil && (tool == .text || editing != nil || textTarget != nil) }
+
+    /// The text the bar works on: the one being typed, or the one picked.
+    private var textTarget: Int? {
+        if let i = editing, i < annotations.count { return i }
+        if let i = selectedShape, i < annotations.count, case .text = annotations[i].kind { return i }
+        return nil
+    }
+
+    private var targetStyle: TextStyle { textTarget.map { annotations[$0].style } ?? textStyle }
+
+    private func buildTextBar() -> Toolbar {
+        func b(_ tip: String, _ label: String, _ key: String?, _ symbols: [String], active: @escaping () -> Bool = { false },
+               paint: ((CGRect) -> Void)? = nil, _ action: @escaping () -> Void) -> ToolButton {
+            ToolButton(tip: tip, label: label, key: key, symbols: symbols, isActive: active, paint: paint, action: action)
+        }
+        return Toolbar(vertical: false, groups: [
+            [b("Font", "Font", nil, ["textformat"], active: { [unowned self] in self.fontListOpen }) { [unowned self] in
+                self.fontListOpen.toggle(); self.paletteOpen = false; self.needsDisplay = true }],
+            [b("Smaller", "Smaller", "⌘[", ["textformat.size.smaller"]) { [unowned self] in self.stepTextSize(-1) },
+             b("Larger", "Larger", "⌘]", ["textformat.size.larger"]) { [unowned self] in self.stepTextSize(1) }],
+            [b("Bold", "Bold", "⌘B", ["bold"], active: { [unowned self] in self.targetStyle.bold }) { [unowned self] in self.restyle { $0.bold.toggle() } },
+             b("Italic", "Italic", "⌘I", ["italic"], active: { [unowned self] in self.targetStyle.italic }) { [unowned self] in self.restyle { $0.italic.toggle() } }],
+            [b("Align left", "Left", nil, ["text.alignleft"], active: { [unowned self] in self.targetStyle.align == .left }) { [unowned self] in self.restyle { $0.align = .left } },
+             b("Center", "Center", nil, ["text.aligncenter"], active: { [unowned self] in self.targetStyle.align == .center }) { [unowned self] in self.restyle { $0.align = .center } },
+             b("Align right", "Right", nil, ["text.alignright"], active: { [unowned self] in self.targetStyle.align == .right }) { [unowned self] in self.restyle { $0.align = .right } }],
+            [b("Text look: plain, outline, label, shadow", "Look", nil, [], paint: { [unowned self] r in self.paintLook(r) }) { [unowned self] in
+                self.restyle { $0.look = TextLook(rawValue: ($0.look.rawValue + 1) % TextLook.allCases.count) ?? .plain } }],
+        ])
+    }
+
+    /// Changes the style of new text and of the text being typed or picked (undoable when it's an existing one).
+    func restyle(_ change: (inout TextStyle) -> Void) {
+        change(&textStyle)
+        if let i = textTarget {
+            var style = annotations[i].style
+            change(&style)
+            if editing == i { annotations[i].style = style } else { record { annotations[i].style = style } }
+        }
+        needsDisplay = true
+    }
+
+    func stepTextSize(_ step: Int) {
+        let sizes = TextStyle.sizes
+        let current: CGFloat = {
+            if let i = textTarget, case let .text(_, _, size) = annotations[i].kind { return size }
+            return textSize
+        }()
+        let index = sizes.firstIndex { $0 >= current - 0.5 } ?? sizes.count - 1
+        let next = sizes[max(0, min(sizes.count - 1, index + step))]
+        textSize = next
+        if let i = textTarget, case let .text(s, at, _) = annotations[i].kind {
+            if editing == i { annotations[i].kind = .text(s, at: at, size: next) } else { record { annotations[i].kind = .text(s, at: at, size: next) } }
+        }
+        needsDisplay = true
+    }
+
+    func setFont(_ postScript: String?) {
+        restyle { $0.font = postScript }
+        fontListOpen = false
+    }
+
+    /// An "A" in the current look: the Look button shows what it will do.
+    private func paintLook(_ r: CGRect) {
+        let size = r.height * 1.05
+        var a = Annotation(.text("A", at: .zero, size: size), color: ToolbarLook.current.glyph, width: 3,
+                           style: TextStyle(bold: true, look: targetStyle.look))
+        let box = a.textRect("A", at: .zero, size: size)
+        a.kind = .text("A", at: CGPoint(x: r.midX - box.width / 2, y: r.midY - box.height / 2), size: size)
+        a.draw(screen: image, screenSize: bounds.size)
+    }
+
+    /// Above the text being typed, or above the selection's top right; clear of the tools bar.
+    private func layoutTextBar() {
+        guard let sel = selection else { return }
+        textBar.labelFont = tools.labelFont
+        let size = textBar.size, gap: CGFloat = 10, area = bounds.insetBy(dx: 4, dy: 4)
+        let anchor = textTarget.map { annotations[$0].bounds.insetBy(dx: -6, dy: -4) } ?? sel
+        var x = textTarget == nil ? sel.maxX - size.width : anchor.minX
+        var y = anchor.minY - gap - size.height
+        if y < area.minY { y = (textTarget == nil ? sel.minY : anchor.maxY) + gap }
+        let frame = CGRect(x: x, y: y, width: size.width, height: size.height)
+        if frame.intersects(tools.frame.insetBy(dx: -gap, dy: -gap)) { x = tools.frame.minX > anchor.minX ? tools.frame.minX - gap - size.width : tools.frame.maxX + gap }
+        x = min(max(x, area.minX), max(area.minX, area.maxX - size.width))
+        y = min(max(y, area.minY), max(area.minY, area.maxY - size.height))
+        textBar.layout(at: CGPoint(x: x.rounded(), y: y.rounded()))
+    }
+
+    private var fontListRect: CGRect {
+        let rowH: CGFloat = 34, w: CGFloat = 230, h = CGFloat(TextStyle.fonts.count) * rowH + 16
+        let anchor = textBar.buttonFrames.first?.first ?? textBar.frame
+        var y = textBar.frame.maxY + 8
+        if y + h > bounds.maxY - 4 { y = textBar.frame.minY - 8 - h }
+        let x = min(max(anchor.minX, 4), bounds.maxX - w - 4)
+        return CGRect(x: x, y: max(4, y), width: w, height: h)
+    }
+
+    private func fontRow(at p: CGPoint) -> Int? {
+        let r = fontListRect
+        guard r.contains(p) else { return nil }
+        let i = Int((p.y - r.minY - 8) / 34)
+        return (0..<TextStyle.fonts.count).contains(i) ? i : nil
+    }
+
+    private func drawFontList(_ look: ToolbarLook) {
+        let r = fontListRect
+        look.panel.setFill()
+        NSBezierPath(roundedRect: r, xRadius: 14, yRadius: 14).fill()
+        look.border.setStroke()
+        let edge = NSBezierPath(roundedRect: r.insetBy(dx: 0.5, dy: 0.5), xRadius: 14, yRadius: 14)
+        edge.lineWidth = look.borderWidth
+        edge.stroke()
+        let current = targetStyle.font
+        for (i, f) in TextStyle.fonts.enumerated() {
+            let row = CGRect(x: r.minX + 6, y: r.minY + 8 + CGFloat(i) * 34, width: r.width - 12, height: 34)
+            let on = f.postScript == current
+            if on {
+                look.on.setFill()
+                NSBezierPath(roundedRect: row.insetBy(dx: 0, dy: 2), xRadius: 9, yRadius: 9).fill()
+            }
+            let font = f.postScript.flatMap { NSFont(name: $0, size: 17) } ?? .systemFont(ofSize: 15, weight: .semibold)
+            let attrs: [NSAttributedString.Key: Any] = [.font: font, .foregroundColor: on ? look.onGlyph : look.glyph]
+            let s = (f.name as NSString).size(withAttributes: attrs)
+            (f.name as NSString).draw(at: CGPoint(x: row.minX + 12, y: row.midY - s.height / 2), withAttributes: attrs)
+        }
+    }
+
     // MARK: - mouse
 
     private func point(_ e: NSEvent) -> CGPoint { convert(e.locationInWindow, from: nil) }
@@ -424,6 +566,10 @@ final class OverlayView: NSView {
             let onFindButton = findButtonFrame.contains(p)
             findBar.close()
             if onFindButton { return }
+        }
+        if fontListOpen, textBarVisible {
+            if let row = fontRow(at: p) { setFont(TextStyle.fonts[row].postScript); needsDisplay = true; return }
+            if !fontListRect.contains(p), hitBar(p) == nil { fontListOpen = false; needsDisplay = true }
         }
         if paletteOpen {
             if paletteRect.contains(p) {
@@ -591,8 +737,8 @@ final class OverlayView: NSView {
     private func begin(_ tool: Tool, at p: CGPoint) {
         switch tool {
         case .text:
-            let size = max(14, lineWidth * 6)
-            record { annotations.append(Annotation(.text("", at: CGPoint(x: p.x, y: p.y - size * 0.6), size: size), color: color, width: lineWidth)) }
+            let size = textSize
+            record { annotations.append(Annotation(.text("", at: CGPoint(x: p.x, y: p.y - size * 0.6), size: size), color: color, width: lineWidth, style: textStyle)) }
             editing = annotations.count - 1
         case .counter:
             record { annotations.append(Annotation(.counter(counter, at: p), color: color, width: lineWidth)) }
@@ -699,9 +845,8 @@ final class OverlayView: NSView {
     }
 
     private func restyleEditedText() {
-        guard let i = editing, i < annotations.count, case let .text(s, at, _) = annotations[i].kind else { return }
+        guard let i = editing, i < annotations.count, case .text = annotations[i].kind else { return }
         annotations[i].color = color
-        annotations[i].kind = .text(s, at: at, size: max(14, lineWidth * 6))
     }
 
     /// Stops typing; empty text is dropped along with its undo step.
@@ -771,6 +916,10 @@ final class OverlayView: NSView {
             case "s": save()
             case "t": pin()
             case "p": printImage()
+            case "b" where textBarVisible: restyle { $0.bold.toggle() }
+            case "i" where textBarVisible: restyle { $0.italic.toggle() }
+            case "[" where textBarVisible: stepTextSize(-1)
+            case "]" where textBarVisible: stepTextSize(1)
             case "d": upload(.link)
             case "k": upload(.search)
             case "z": shift ? redo() : undo()

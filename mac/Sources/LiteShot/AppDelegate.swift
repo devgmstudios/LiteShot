@@ -1,4 +1,5 @@
 import AppKit
+import LiteShotCore
 import ServiceManagement
 
 /// The menu bar item, the global shortcut and the settings menu.
@@ -8,6 +9,7 @@ final class AppDelegate: NSObject, NSApplicationDelegate, NSMenuDelegate {
     private var session: CaptureSession?
 
     func applicationDidFinishLaunching(_ notification: Notification) {
+        TextStyle.registerBundledFonts()
         status = NSStatusBar.system.statusItem(withLength: NSStatusItem.squareLength)
         if let button = status.button {
             button.image = NSImage(systemSymbolName: "camera.viewfinder", accessibilityDescription: "LiteShot")

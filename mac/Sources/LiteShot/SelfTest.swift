@@ -103,6 +103,27 @@ enum SelfTest {
             menuView.findBar.scanNow("salmon")
             check(menuView.findBar.hits.count == 1 && !menuView.findBar.related, "find: an exact match wins over related words")
         }
+        // The text bar, and every text look in a bundled font.
+        do {
+            TextStyle.registerBundledFonts()
+            let texting = OverlayView(frame: CGRect(origin: .zero, size: size), image: screen, windows: [window])
+            texting.select(CGRect(x: window.minX + 20, y: window.minY + 50, width: 760, height: 480))
+            for (i, look) in TextLook.allCases.enumerated() {
+                let style = TextStyle(font: i == 0 ? nil : TextStyle.fonts[i * 2].postScript, bold: i == 3, look: look)
+                texting.add(Annotation(.text("\(look.name) · \(style.fontName)", at: CGPoint(x: window.minX + 60, y: window.minY + 300 + CGFloat(i) * 52), size: 28),
+                                       color: Palette.colors[i + 1], width: 3, style: style))
+            }
+            texting.tool = .text
+            texting.layoutBars()
+            check(texting.textBarVisible && CGRect(origin: .zero, size: size).contains(texting.textBar.frame) && !texting.textBar.frame.intersects(texting.tools.frame),
+                  "text: the text bar shows with the Text tool, on screen and clear of the tools")
+            texting.restyle { $0.bold = true }
+            check(texting.textStyle.bold, "text: Bold sets the style for new text")
+            texting.stepTextSize(1)
+            check(texting.textSize > 22, "text: Larger steps the size up (\(texting.textSize))")
+            save(texting, folder.appendingPathComponent("mac-12-text.png"))
+        }
+
         // Editing drawings: pick one by clicking its stroke, delete it, undo brings it back.
         do {
             let editing = OverlayView(frame: CGRect(origin: .zero, size: size), image: screen, windows: [window])

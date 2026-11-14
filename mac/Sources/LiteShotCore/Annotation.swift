@@ -23,11 +23,14 @@ public struct Annotation {
     public var kind: Kind
     public var color: NSColor
     public var width: CGFloat
+    /// For text: font, bold, italic, alignment and look.
+    public var style = TextStyle()
 
-    public init(_ kind: Kind, color: NSColor, width: CGFloat) {
+    public init(_ kind: Kind, color: NSColor, width: CGFloat, style: TextStyle = TextStyle()) {
         self.kind = kind
         self.color = color
         self.width = width
+        self.style = style
     }
 
     public static func font(size: CGFloat) -> NSFont { .systemFont(ofSize: size, weight: .semibold) }
@@ -43,11 +46,7 @@ public struct Annotation {
         case .line(let a, let b), .arrow(let a, let b): return Geometry.rect(a, b)
         case .rect(let r), .ellipse(let r), .pixelate(let r, _): return r
         case .text(let s, let at, let size):
-            let shown = s.isEmpty ? " " : s
-            let box = (shown as NSString).boundingRect(with: CGSize(width: 10_000, height: 10_000),
-                                                       options: [.usesLineFragmentOrigin],
-                                                       attributes: [.font: Annotation.font(size: size)])
-            return CGRect(origin: at, size: CGSize(width: ceil(box.width), height: ceil(box.height)))
+            return textBounds(s, at: at, size: size)
         case .counter(_, let at):
             let r = counterRadius
             return CGRect(x: at.x - r, y: at.y - r, width: r * 2, height: r * 2)
@@ -130,7 +129,7 @@ public struct Annotation {
             p.lineWidth = width
             p.stroke()
         case .text(let s, let at, let size):
-            (s as NSString).draw(at: at, withAttributes: [.font: Annotation.font(size: size), .foregroundColor: color])
+            drawText(s, at: at, size: size)
         case .counter(let n, let at):
             let r = counterRadius
             NSBezierPath(ovalIn: CGRect(x: at.x - r, y: at.y - r, width: r * 2, height: r * 2)).fill()
