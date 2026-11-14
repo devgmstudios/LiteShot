@@ -13,6 +13,16 @@ internal sealed partial class CaptureOverlay
         if (e.Button != MouseButtons.Left) return;
         HideTooltip();
 
+        if (findOpen)
+        {
+            if (FindVisible && findRect.Contains(p)) { FindClick(p); return; }
+            int match = FindHitAt(p);
+            if (match >= 0) { findIndex = match; StepFind(0); return; }
+            bool onFindButton = findButton.Bounds.Contains(p);
+            CloseFind();
+            if (onFindButton) return;
+        }
+
         if (aiMode != null)
         {
             if (AiOpen && aiRect.Contains(p)) { AiClick(p); return; }
@@ -265,6 +275,7 @@ internal sealed partial class CaptureOverlay
 
     void RightClick()
     {
+        if (findOpen) { CloseFind(); return; }
         if (aiMode != null) { CloseAiPrompt(); return; }
         if (paletteOpen) { ClosePalette(); return; }
         if (editing != null) { CommitText(); return; }
@@ -311,6 +322,7 @@ internal sealed partial class CaptureOverlay
     void ClearSelection()
     {
         InvalidateRect(lastFrame);
+        CloseFind();
         hasSel = false;
         sel = Rectangle.Empty;
         SelectShape(null);
@@ -322,6 +334,21 @@ internal sealed partial class CaptureOverlay
 
     void UpdateHover(Point p)
     {
+        if (FindVisible && findRect.Contains(p))
+        {
+            SetHoverButton(null);
+            int hit = findHits.Count > 0 ? FindButtonAt(p) : -1;
+            if (hit != findHover) { findHover = hit; InvalidateRect(findRect, 2); }
+            SetCursor(hit >= 0 ? Cursors.Hand : findFieldRect.Contains(p) ? Cursors.IBeam : Cursors.Default);
+            return;
+        }
+        if (findHover != -1) { findHover = -1; InvalidateRect(findRect, 2); }
+        if (findOpen && FindHitAt(p) >= 0)
+        {
+            SetHoverButton(null);
+            SetCursor(Cursors.Hand);
+            return;
+        }
         if (AiOpen && aiRect.Contains(p))
         {
             SetHoverButton(null);
@@ -428,6 +455,11 @@ internal sealed partial class CaptureOverlay
     protected override bool ProcessCmdKey(ref Message msg, Keys keyData)
     {
         if (closing) return true;
+        if (findOpen)
+        {
+            if (HandleFindKey(keyData)) return true;
+            if (findBox is { Focused: true }) return false;   // typing goes to the find box
+        }
         if (aiMode != null)
         {
             if (HandleAiKey(keyData)) return true;
@@ -563,6 +595,10 @@ internal sealed partial class CaptureOverlay
                 return true;
             case Keys.Control | Keys.Shift | Keys.C:
                 if (hasSel) DoOcr();
+                return true;
+            case Keys.Control | Keys.F:
+            case Keys.F3:
+                OpenFind();
                 return true;
             case Keys.Control | Keys.Z:
                 Undo();

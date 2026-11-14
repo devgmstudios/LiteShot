@@ -267,7 +267,7 @@ internal sealed partial class CaptureOverlay : Form
             buttonFont?.Dispose();
         }
         base.Dispose(disposing);
-        if (disposing) aiFont?.Dispose();   // after the prompt box that uses it is gone
+        if (disposing) { aiFont?.Dispose(); findFont?.Dispose(); }   // after the boxes that use them are gone
     }
 
     void CloseOverlay()
@@ -466,6 +466,7 @@ internal sealed partial class CaptureOverlay : Form
                 r = Ui.Union(r, Ui.Outer(actions.Bounds, Px(14)));
                 if (TextBarVisible) r = Ui.Union(r, Ui.Outer(textBar.Bounds, Px(14)));
                 if (AiOpen) r = Ui.Union(r, Ui.Outer(aiRect, Px(16)));
+                if (FindVisible) r = Ui.Union(r, Ui.Outer(findRect, Px(16)));
                 if (paletteOpen) r = Ui.Union(r, Ui.Outer(paletteRect, Px(16)));
             }
             return r;
@@ -505,6 +506,7 @@ internal sealed partial class CaptureOverlay : Form
         tools.Anchor = actions.Anchor = sel;
         if (TextBarVisible) LayoutTextBar();
         if (aiMode != null) LayoutAiPrompt();
+        if (findOpen) LayoutFind();
         foreach (var g in Bars.SelectMany(b => b.Groups)) g.Tone = glass.ToneAt(g.Bounds, sel);
         if (paletteOpen) LayoutPalette();
     }

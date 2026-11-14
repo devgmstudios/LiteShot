@@ -37,6 +37,7 @@ internal sealed partial class CaptureOverlay
         if (hasSel)
         {
             if (sel.IntersectsWith(clip)) DrawAnnotations(g);
+            if (findOpen) DrawFindHits(g);
             DrawBrushCursor(g);
             DrawSelectionFrame(g, sel, handles: !(dragMoved && drag is DragMode.NewSelection or DragMode.MoveSelection));
             DrawSizeLabel(g, sel);
@@ -49,6 +50,7 @@ internal sealed partial class CaptureOverlay
                 actions.Draw(g, glass, sel, S, hoverButton, hoverAnim, pressedButton);
                 if (TextBarVisible) textBar.Draw(g, glass, sel, S, hoverButton, hoverAnim, pressedButton);
                 if (AiOpen) DrawAiPrompt(g);
+                if (FindVisible) DrawFind(g);
                 if (paletteOpen) DrawPalette(g);
                 if (tooltipVisible && hoverButton != null) DrawTooltip(g, hoverButton);
             }

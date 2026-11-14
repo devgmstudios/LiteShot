@@ -180,7 +180,7 @@ internal sealed partial class CaptureOverlay
     /// Adds shapes the app made as one undo step. Blurs that arrive while a drag or text edit is in progress are
     /// also put into that edit's snapshot, so undoing the edit doesn't take them away.
     /// </summary>
-    void AddShapes(List<BlurShape> added, bool underneath)
+    void AddShapes(IReadOnlyList<Annotation> added, bool underneath)
     {
         PushUndo();
         if (underneath) shapes.InsertRange(0, added);

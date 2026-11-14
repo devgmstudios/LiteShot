@@ -28,6 +28,13 @@ internal static class Program
         Application.SetHighDpiMode(HighDpiMode.PerMonitorV2);
         if (args.Contains("--live-scroll")) { LiveScrollCheck.Run(outDir, Check); return failures == 0 ? 0 : 1; }
         if (args.Contains("--scroll")) { ScrollingCapture.Run(outDir, Check); return failures == 0 ? 0 : 1; }
+        if (args.Contains("--find"))
+        {
+            using var d = SyntheticDesktop(SystemInformation.VirtualScreen.Size);
+            var lw0 = LightWindow(d.Size);
+            FindOnScreen(d, SystemInformation.VirtualScreen, new List<Rectangle>(), new Point(lw0.X + 60, lw0.Y + 80), new Point(lw0.X + 820, lw0.Y + 620));
+            return failures == 0 ? 0 : 1;
+        }
         if (args.Contains("--bright"))
         {
             using var d = SyntheticDesktop(SystemInformation.VirtualScreen.Size);
@@ -124,6 +131,9 @@ internal static class Program
 
         // 7a. Bright mode with button names: solid black bars, every button named, nothing overlapping.
         BrightMode(desktop, virt, windows, a, b);
+
+        // 7a2. Find on screen: OCR the selection, light up every match, step through them, highlight them all.
+        FindOnScreen(desktop, virt, windows, a, b);
 
         // 7b. Output paths: OCR with the Windows engine, saving, file naming, pinning.
         using (var doc = desktop.Clone(LightWindow(virt.Size), PixelFormat.Format32bppArgb))
@@ -255,6 +265,87 @@ internal static class Program
     }
 
     // ───────────────────────────── driving the overlay ─────────────────────────────
+
+    static void FindOnScreen(Bitmap desktop, Rectangle virt, List<Rectangle> windows, Point a, Point b)
+    {
+        // The matcher on its own: case, accents, phrases across words, parts of words, repeats.
+        var words = new List<OcrWord>
+        {
+            new("Revenue", new RectangleF(0, 0, 70, 20)), new("grew", new RectangleF(80, 0, 40, 20)),
+            new("year", new RectangleF(130, 0, 40, 20)), new("over", new RectangleF(180, 0, 40, 20)),
+            new("year,", new RectangleF(230, 0, 50, 20)), new("café", new RectangleF(290, 0, 40, 20)),
+        };
+        var lines = new List<List<OcrWord>> { words };
+        var grew = TextFinder.Find(lines, "grew");
+        Check(grew.Count == 1 && grew[0] == new RectangleF(80, 0, 40, 20), "find: a whole word gets its own box");
+        var phrase = TextFinder.Find(lines, "  REVENUE   grew ");
+        Check(phrase.Count == 1 && phrase[0].Left == 0 && phrase[0].Right == 120, $"find: a phrase across words, any case and spacing ({(phrase.Count > 0 ? phrase[0] : RectangleF.Empty)})");
+        var part = TextFinder.Find(lines, "venu");
+        Check(part.Count == 1 && part[0].Left > 10 && part[0].Right < 66 && part[0].Width > 25, $"find: part of a word is placed by its letters ({(part.Count > 0 ? part[0] : RectangleF.Empty)})");
+        var comma = TextFinder.Find(lines, "year").Last();
+        Check(comma.Right > 230 + 50 * 0.8f, $"find: a trailing comma is narrow, so \"year\" in \"year,\" reaches past four fifths ({comma.Right})");
+        var years = TextFinder.Find(lines, "year");
+        Check(years.Count == 2 && years[0].Left < years[1].Left, "find: every repeat, left to right");
+        Check(TextFinder.Find(lines, "cafe").Count == 1 && TextFinder.Find(lines, "CAFÉ").Count == 1, "find: accents and case don't matter");
+        Check(TextFinder.Find(lines, " ").Count == 0 && TextFinder.Find(lines, "growth").Count == 0, "find: blank or missing text finds nothing");
+
+        // In the overlay, on the synthetic report.
+        var o = NewOverlay(desktop, virt, windows);
+        Drag(o, a, b);
+        var sel = Get<Rectangle>(o, "sel");
+        Key(o, Keys.Control | Keys.F);
+        Check(Get<bool>(o, "findOpen"), "find: Ctrl+F opens the find bar");
+        var scan = Get<Task<List<List<OcrWord>>>>(o, "findScan");
+        Check(scan.Wait(TimeSpan.FromSeconds(30)) && scan.IsCompletedSuccessfully, "find: the selection is read");
+        var box = Get<TextBox>(o, "findBox");
+        List<RectangleF> Hits(string query)
+        {
+            box.Text = query;
+            Invoke(o, "UpdateFindHits");
+            return Get<List<RectangleF>>(o, "findHits");
+        }
+        var hits = Hits("year");
+        // "Revenue grew 24% year over year, …" is the first body line, drawn at the window's top + 170.
+        var lw = LightWindow(desktop.Size);
+        bool onLine = hits.All(h => h.Top > lw.Y + 160 && h.Bottom < lw.Y + 215);
+        Check(hits.Count == 2 && onLine && hits.All(h => sel.Contains(Rectangle.Round(h))), $"find: \"year\" lights up twice on its line ({hits.Count})");
+        Check(Get<int>(o, "findIndex") == 0, "find: the first match is current");
+        Key(o, Keys.Enter);
+        Check(Get<int>(o, "findIndex") == 1, "find: Enter goes to the next match");
+        Key(o, Keys.Enter);
+        Check(Get<int>(o, "findIndex") == 0, "find: and wraps around");
+        Key(o, Keys.Shift | Keys.Enter);
+        Check(Get<int>(o, "findIndex") == 1, "find: Shift+Enter goes back");
+        Snap(o, "07d-find-on-screen", Inflate(Rectangle.Union(sel, Rectangle.Round(Get<RectangleF>(o, "findRect"))), 60));
+        Check(Hits("glass interface").Count == 1, "find: a two-word phrase");
+        Check(Hits("REDACTED").Count == 1, "find: any case");
+        Check(Hits("zebra crossing").Count == 0 && (string)o.GetType().GetProperty("FindStatus", BindingFlags.Instance | BindingFlags.NonPublic)!.GetValue(o)! == "No matches",
+            "find: says when nothing matches");
+
+        // Highlight all: one highlighter stroke per match, undoable, and the bar closes.
+        Hits("year");
+        int before = Get<List<Annotation>>(o, "shapes").Count;
+        Key(o, Keys.Control | Keys.Enter);
+        var marks = Get<List<Annotation>>(o, "shapes").Skip(before).OfType<StrokeShape>().ToList();
+        Check(marks.Count == 2 && marks.All(m => m.Highlighter) && !Get<bool>(o, "findOpen"), "find: Highlight all marks both matches and closes the bar");
+        using (var result = (Bitmap)Invoke(o, "RenderResult")!)
+            result.Save(Path.Combine(outDir, "07e-find-highlighted.png"), ImageFormat.Png);
+        Key(o, Keys.Control | Keys.Z);
+        Check(Get<List<Annotation>>(o, "shapes").Count == before, "find: one undo takes the highlights away");
+
+        // Esc closes the bar, not the capture.
+        Key(o, Keys.Control | Keys.F);
+        Key(o, Keys.Escape);
+        Check(!Get<bool>(o, "findOpen") && !Get<bool>(o, "closing"), "find: Esc closes only the find bar");
+        o.Dispose();
+
+        // With nothing selected, Ctrl+F looks through the whole screen under the pointer.
+        o = NewOverlay(desktop, virt, windows);
+        Move(o, lw.X + 100, lw.Y + 100);
+        Key(o, Keys.Control | Keys.F);
+        Check(Get<bool>(o, "hasSel") && Get<Rectangle>(o, "sel").Contains(lw) && Get<bool>(o, "findOpen"), "find: with no selection, the whole screen is searched");
+        o.Dispose();
+    }
 
     static void BrightMode(Bitmap desktop, Rectangle virt, List<Rectangle> windows, Point a, Point b)
     {

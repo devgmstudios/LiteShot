@@ -28,6 +28,7 @@ internal sealed partial class CaptureOverlay
         if (aiMode == kind) { CloseAiPrompt(); return; }
         CommitText();
         ClosePalette();
+        CloseFind();
         HideTooltip();
         aiMode = kind;
         aiHover = -1;

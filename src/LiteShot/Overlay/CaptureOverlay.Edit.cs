@@ -59,7 +59,8 @@ internal sealed partial class CaptureOverlay
                 aiVideoButton = B("Make a video", "SyncNode", Icons.Video, () => OpenAiPrompt(AiKind.Video), "Video"))
             .Group(
                 B("Pin to screen", "Ctrl+T", Icons.Pin, DoPin, "Pin"),
-                B("Copy text (OCR)", "Ctrl+Shift+C", Icons.Ocr, DoOcr, "Copy text"))
+                B("Copy text (OCR)", "Ctrl+Shift+C", Icons.Ocr, DoOcr, "Copy text"),
+                findButton = new ToolButton { Tip = "Find on screen", Label = "Find", Shortcut = "Ctrl+F", Glyph = Icons.FindText, OnClick = ToggleFind, IsActive = () => findOpen })
             .Group(
                 B("Copy", "Ctrl+C", Icons.Copy, DoCopy),
                 B("Save", "Ctrl+S", Icons.Save, DoSave))

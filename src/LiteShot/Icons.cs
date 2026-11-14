@@ -340,6 +340,17 @@ internal static class Icons
         g.DrawLine(p, 8.2f, 15, 12.6f, 15);
     }
 
+    /// <summary>text.magnifyingglass</summary>
+    public static void FindText(Graphics g, Pen p, Brush f)
+    {
+        g.DrawLine(p, 3.5f, 5.5f, 16.5f, 5.5f);
+        g.DrawLine(p, 3.5f, 10.5f, 9, 10.5f);
+        g.DrawLine(p, 3.5f, 15.5f, 7.5f, 15.5f);
+        g.DrawEllipse(p, 10.6f, 9.6f, 7.6f, 7.6f);
+        using var handle = new Pen(p.Color, p.Width * 1.25f) { StartCap = LineCap.Round, EndCap = LineCap.Round };
+        g.DrawLine(handle, 17.2f, 16.2f, 20.6f, 19.6f);
+    }
+
     /// <summary>plus.viewfinder</summary>
     public static void Capture(Graphics g, Pen p, Brush f)
     {
