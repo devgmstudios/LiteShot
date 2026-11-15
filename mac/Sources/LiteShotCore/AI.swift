@@ -110,6 +110,16 @@ public final class AskAIConversation {
         return answer
     }
 
+    /// Forgets the conversation from question `turn` (0 = the first) on, so it can be edited or asked again. Going back
+    /// to the start means the next question carries the screenshot again.
+    public func rewind(to turn: Int) {
+        var seen = 0
+        for i in messages.indices.dropFirst() where messages[i]["role"] as? String == "user" {
+            if seen == turn { messages.removeSubrange(i...); return }
+            seen += 1
+        }
+    }
+
     /// Models answer in Markdown; the chat shows plain text, so the marks come off and bullets become dots.
     public static func plain(_ markdown: String) -> String {
         markdown.replacingOccurrences(of: "\r\n", with: "\n").split(separator: "\n", omittingEmptySubsequences: false).compactMap { raw -> String? in

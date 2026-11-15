@@ -63,6 +63,20 @@ internal sealed class AskAi
         }
     }
 
+    /// <summary>
+    /// Forgets the conversation from question <paramref name="turn"/> (0 = the first) on, so it can be edited or asked
+    /// again. Going back to the start means the next question carries the screenshot again.
+    /// </summary>
+    public void Rewind(int turn)
+    {
+        int seen = 0;
+        for (int i = 1; i < messages.Count; i++)
+        {
+            if (messages[i] is not (Turn { Role: "user" } or UserWithImage)) continue;
+            if (seen++ == turn) { messages.RemoveRange(i, messages.Count - i); return; }
+        }
+    }
+
     sealed record Turn(string Role, string Text);
     sealed record UserWithImage(string Text, string ImageUri);
 

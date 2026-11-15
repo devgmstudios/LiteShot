@@ -78,6 +78,8 @@ internal static class AskAiChecks
                 HttpListenerContext ctx;
                 try { ctx = await listener.GetContextAsync(); } catch { return; }
                 string body = new StreamReader(ctx.Request.InputStream).ReadToEnd();
+                // "slowly" in a question gives time to press Stop.
+                if (body.Contains("slowly")) await Task.Delay(2500);
                 var doc = JsonDocument.Parse(body);
                 lock (requests) requests.Add(doc);
                 string model = doc.RootElement.GetProperty("model").GetString() ?? "";
@@ -156,10 +158,84 @@ internal static class AskAiChecks
                 var said = form.Messages.ToList();
                 check(said.Count == 2 && said[0].Mine && said[0].Text == "What's in this screenshot?" && !said[1].Mine && said[1].Text.StartsWith("Revenue grew 24%."),
                     $"ask: the window shows the question and the answer ({said.Count})");
-                using var bmp = new Bitmap(form.Width, form.Height);
-                form.DrawToBitmap(bmp, new Rectangle(Point.Empty, form.Size));
-                bmp.Save(Path.Combine(outDir, "09-ask-ai.png"), ImageFormat.Png);
+                // DoEvents can drop WinForms' synchronization context; put it back before each step, as the app's message loop would have it.
+                void Ui() => SynchronizationContext.SetSynchronizationContext(new WindowsFormsSynchronizationContext());
+                void Wait() { var end = DateTime.UtcNow.AddSeconds(15); while (form.Busy && DateTime.UtcNow < end) { Application.DoEvents(); Thread.Sleep(20); } Application.DoEvents(); }
+                string Labels() => string.Join(" | ", form.ActionLabels.Select(a => string.Join(",", a)));
+                check(Labels() == "Copy,Edit | Copy,Retry", $"ask: Copy and Edit under the question, Copy and Retry under the answer ({Labels()})");
+
+                // Retry: the same question again, from the start, so the screenshot goes up again.
+                int sent = requests.Count;
+                Ui(); form.RetryLast();
+                Wait();
+                var retried = requests[^1].RootElement.GetProperty("messages");
+                check(requests.Count == sent + 1 && form.Messages.Count() == 2 && retried.GetArrayLength() == 2 && retried[1].GetProperty("content").ValueKind == JsonValueKind.Array,
+                    "ask: Retry asks the last question again in place of the old answer");
+
+                // A follow-up, then Edit takes it back: only the latest question can be edited.
+                Ui(); form.Ask("And customers?");
+                Wait();
+                check(Labels() == "Copy | Copy | Copy,Edit | Copy,Retry", $"ask: only the latest exchange has Edit and Retry ({Labels()})");
+                using (var bmp = new Bitmap(form.Width, form.Height))
+                {
+                    form.DrawToBitmap(bmp, new Rectangle(Point.Empty, form.Size));
+                    bmp.Save(Path.Combine(outDir, "09-ask-ai.png"), ImageFormat.Png);
+                }
+                Ui(); form.EditLast();
+                check(form.Draft == "And customers?" && form.Messages.Count() == 2, "ask: Edit puts the last question back in the box and takes it off the chat");
+                Ui(); form.Ask("And churn?");
+                Wait();
+                var edited = requests[^1].RootElement.GetProperty("messages");
+                check(edited.GetArrayLength() == 4 && edited[3].GetProperty("content").GetString() == "And churn?", "ask: the edited question replaces the old one in the conversation");
+
+                // Stop while it's thinking: the question comes back to the box and nothing is kept.
+                Ui(); form.Ask("Tell me slowly");
+                var t = DateTime.UtcNow.AddMilliseconds(300);
+                while (DateTime.UtcNow < t) { Application.DoEvents(); Thread.Sleep(10); }
+                check(form.Busy, "ask: a slow answer keeps the window busy");
+                form.Stop();
+                Wait();
+                check(!form.Busy && form.Draft == "Tell me slowly" && form.Messages.Count() == 4, "ask: Stop takes the question back to the box");
+                Ui(); form.Ask("Thanks");
+                Wait();
+                check(requests[^1].RootElement.GetProperty("messages").GetArrayLength() == 6, "ask: a stopped question isn't kept in the conversation");
+
+                // The screenshot opens big: fitted first, then the wheel zooms.
+                var viewer = form.ShowZoom();
+                viewer.StartPosition = FormStartPosition.Manual;
+                viewer.Location = new Point(-9000, -9000);
+                viewer.Size = new Size(1000, 760);
+                Application.DoEvents();
+                viewer.View.Fit();
+                check(viewer.View.Fitted && viewer.View.Zoom > 0.9f && viewer.View.Zoom < 1.3f, $"zoom: the screenshot opens fitted to the window ({viewer.View.Zoom:0.00})");
+                var hintLabel = viewer.Controls.OfType<Label>().First();
+                check(hintLabel.Width >= viewer.ClientSize.Width - 2 && hintLabel.Text.Contains("scroll to zoom"), $"zoom: the hint runs along the bottom ({hintLabel.Bounds} {hintLabel.Dock} {hintLabel.AutoSize} canvas {viewer.View.Bounds} of {viewer.ClientSize})");
+                check(ReferenceEquals(form.ShowZoom(), viewer), "zoom: clicking again brings back the same viewer");
+                viewer.View.ZoomBy(3f, new Point(200, 200));
+                check(!viewer.View.Fitted && viewer.View.Zoom > 2.5f, "zoom: zooming in leaves the fitted view");
+                using (var zb = new Bitmap(viewer.Width, viewer.Height))
+                {
+                    viewer.DrawToBitmap(zb, new Rectangle(Point.Empty, viewer.Size));
+                    zb.Save(Path.Combine(outDir, "09-ask-ai-zoom.png"), ImageFormat.Png);
+                }
                 form.Close();
+                check(viewer.IsDisposed, "zoom: closing the chat closes the viewer");
+            }
+            using (var tall = new Bitmap(500, 1400, PixelFormat.Format32bppArgb))
+            {
+                using (var g = Graphics.FromImage(tall))
+                {
+                    g.Clear(Color.White);
+                    using var font = new Font("Segoe UI", 26, GraphicsUnit.Pixel);
+                    for (int i = 0; i < 20; i++) g.DrawString($"Line {i + 1} of a long page", font, Brushes.Black, 30, 30 + i * 66);
+                }
+                using var tallForm = new AskAiForm((Bitmap)tall.Clone(), () => "sn_test_key") { StartPosition = FormStartPosition.Manual, Location = new Point(-6000, -6000) };
+                tallForm.Show();
+                Application.DoEvents();
+                using var tb = new Bitmap(tallForm.Width, tallForm.Height);
+                tallForm.DrawToBitmap(tb, new Rectangle(Point.Empty, tallForm.Size));
+                tb.Save(Path.Combine(outDir, "09-ask-ai-tall.png"), ImageFormat.Png);
+                tallForm.Close();
             }
             using (var noKey = new AskAiForm((Bitmap)shot.Clone(), () => null) { StartPosition = FormStartPosition.Manual, Location = new Point(-6000, -6000) })
             {

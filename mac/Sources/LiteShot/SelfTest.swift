@@ -169,6 +169,12 @@ enum SelfTest {
                 snapshot(AskAIView(chat: chat), size: CGSize(width: 640, height: 720), to: folder.appendingPathComponent("mac-8-ask-ai.png"))
                 chat.ask("Hello?")
                 check(chat.messages.count == 2 && chat.status.contains("SyncNode API key"), "ask: without a key nothing is sent")
+                chat.editLast()
+                check(chat.messages.isEmpty && chat.input == "What's in this screenshot?", "ask: Edit takes the last question back into the box")
+                let viewer = ImageViewer.show(report, title: "Ask AI screenshot")
+                check(viewer.window.isVisible, "zoom: clicking the screenshot opens it big")
+                if let content = viewer.window.contentView { save(content, folder.appendingPathComponent("mac-8-ask-ai-zoom.png")) }
+                viewer.window.close()
                 let run = AIRun(kind: .edit, image: report, scale: scale)
                 run.prompt = "Remove the background"
                 snapshot(AIRunView(run: run), size: CGSize(width: 620, height: 640), to: folder.appendingPathComponent("mac-9-edit-with-ai.png"))

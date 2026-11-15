@@ -109,6 +109,22 @@ final class SyncNodeTests: XCTestCase {
         XCTAssertTrue(followUp[3]["content"] is String, "the picture goes only once")
     }
 
+    func testRewindForgetsFromAQuestionOn() async throws {
+        let chat = AskAIConversation(imageURI: "data:image/jpeg;base64,AA==")
+        _ = try await chat.ask("One") { _ in "1" }
+        _ = try await chat.ask("Two") { _ in "2" }
+        XCTAssertEqual(chat.messages.count, 5)
+        chat.rewind(to: 1)
+        XCTAssertEqual(chat.messages.count, 3, "Edit or Retry on the second question keeps only the first exchange")
+        chat.rewind(to: 5)
+        XCTAssertEqual(chat.messages.count, 3, "a question that isn't there changes nothing")
+        chat.rewind(to: 0)
+        XCTAssertEqual(chat.messages.count, 1)
+        var sent: [[String: Any]] = []
+        _ = try await chat.ask("Again") { sent = $0; return "ok" }
+        XCTAssertTrue(sent[1]["content"] is [Any], "after going back to the start the screenshot goes up again")
+    }
+
     func testAFailedTurnLeavesNoTraceAndSaysWhy() async throws {
         let client = StubSyncNode.client()
         let chat = AskAIConversation(imageURI: "data:image/jpeg;base64,AA==")
